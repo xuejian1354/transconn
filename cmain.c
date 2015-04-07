@@ -39,6 +39,11 @@ int main(int argc, char **argv)
 	DE_PRINTF("%s start!\n", TARGET_NAME);
 	DE_PRINTF("Serial Port:%s, UDP Port:%d\n", serial_port, udp_port);
 
+	if(timer_initial() < 0)
+	{
+		return -1;
+	}
+
 #ifdef SERIAL_SUPPORT
 	if(serial_initial(serial_port) < 0)			//initial serial port
 	{

@@ -55,7 +55,7 @@ typedef struct
 
 #ifdef COMM_CLIENT
 void analysis_zdev_frame(char *buf, int len);
-void analysis_capps_frame(struct sockaddr_in addr, char *buf, int len);
+void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len);
 #endif
 
 #endif  //__PROTOCOL_H__

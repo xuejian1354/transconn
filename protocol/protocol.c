@@ -41,11 +41,9 @@ static cli_list_t cli_list =
 #ifdef COMM_CLIENT
 void analysis_zdev_frame(char *buf, int len)
 {
-	uc_t *uc;
-	uo_t *uo;
-	uh_t *uh;
-	ur_t *ur;
-	de_t *de;
+	uc_t *uc; uo_t *uo; uh_t *uh;
+	ur_t *ur; de_t *de;
+	
 	dev_info_t *dev_info;
 	uint16 znet_addr;
 	
@@ -120,16 +118,11 @@ void analysis_zdev_frame(char *buf, int len)
 }
 
 
-void analysis_capps_frame(struct sockaddr_in addr, char *buf, int len)
+void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 {
-	pi_t *pi;
-	bi_t *bi;
-	gp_t *gp;
-	rp_t *rp;
-	gd_t *gd;
-	rd_t *rd;
-	dc_t *dc;
-	ub_t *ub;
+  	pi_t *pi; bi_t *bi; gp_t *gp; rp_t *rp;
+	gd_t *gd; rd_t *rd; dc_t *dc; ub_t *ub;
+	
 	cli_info_t *cli_info;
 	tr_head_type_t head_type = get_trhead_from_str(buf);
 	void *p = get_trframe_alloc(head_type, buf, len);
@@ -143,34 +136,42 @@ void analysis_capps_frame(struct sockaddr_in addr, char *buf, int len)
 	{
 	case TRHEAD_PI:
 		pi = (pi_t *)p;
+		get_trframe_free(TRHEAD_PI, p);
 		break;
 		
 	case TRHEAD_BI:
 		bi = (bi_t *)p;
+		get_trframe_free(TRHEAD_BI, p);
 		break;
 		
 	case TRHEAD_GP:
 		gp = (gp_t *)p;
+		get_trframe_free(TRHEAD_GP, p);
 		break;
 		
 	case TRHEAD_RP:
 		rp = (rp_t *)p;
+		get_trframe_free(TRHEAD_RP, p);
 		break;
 		
 	case TRHEAD_GD:
 		gd = (gd_t *)p;
+		get_trframe_free(TRHEAD_GD, p);
 		break;
 		
 	case TRHEAD_RD:
 		rd = (rd_t *)p;
+		get_trframe_free(TRHEAD_RD, p);
 		break;
 		
 	case TRHEAD_DC:
 		dc = (dc_t *)p;
+		get_trframe_free(TRHEAD_DC, p);
 		break;
 		
 	case TRHEAD_UB:
 		ub = (ub_t *)p;
+		get_trframe_free(TRHEAD_UB, p);
 		break;
 
 	default:

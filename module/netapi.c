@@ -187,7 +187,7 @@ void socket_udp_recvfrom()
 	//DE_PRINTF("data:%s\n", buf);
 
 #ifdef COMM_CLIENT
-	analysis_capps_frame(client_addr, buf, nbytes);
+	analysis_capps_frame(&client_addr, buf, nbytes);
 #endif
 
 #ifdef TRANS_UDP_SESS_QUEUE

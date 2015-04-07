@@ -226,3 +226,30 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 tr_analysis_err:
 	return NULL;
 }
+
+void get_trframe_free(tr_head_type_t head_type, void *p)
+{
+	switch(head_type)
+	{
+	case TRHEAD_PI: 
+	case TRHEAD_BI:
+	case TRHEAD_GP:
+	case TRHEAD_RP:
+	case TRHEAD_GD:
+	case TRHEAD_RD:
+		free(p);
+		break;
+		
+	case TRHEAD_DC:
+		free(((dc_t *)p)->data);
+		free(p);
+		break;
+	case TRHEAD_UB:
+		free(((ub_t *)p)->data);
+		free(p);
+		break;
+		
+	default: break;
+	}
+}
+
