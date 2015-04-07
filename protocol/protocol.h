@@ -18,9 +18,9 @@
 #define __PROTOCOL_H__
 
 #include <mconfig.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <protocol/framelysis.h>
-
-typedef byte zidentify_no_t[8];
 
 typedef struct Dev_Info
 {
@@ -40,8 +40,22 @@ typedef struct
 	dev_info_t *p_dev;
 }gw_info_t;
 
+typedef struct Cli_Info
+{
+	cidentify_no_t cidentify_no;
+	struct sockaddr_in sock_addr;
+	struct Cli_Info *next;
+}cli_info_t;
+
+typedef struct
+{
+	cli_info_t *cli_info;
+	int max_num;
+}cli_list_t;
+
 #ifdef COMM_CLIENT
-void analysis_ssa_frame(char *buf, int len);
+void analysis_zdev_frame(char *buf, int len);
+void analysis_capps_frame(struct sockaddr_in addr, char *buf, int len);
 #endif
 
 #endif  //__PROTOCOL_H__

@@ -18,7 +18,7 @@
 
 int main(int argc, char **argv)
 {
-	char serial_port[16] = "/dev/ttyUSB0";
+	char serial_port[16] = "/dev/ttyS1";
 	int udp_port = TRANS_UDP_REMOTE_PORT;
 
 	if(argc > 1)

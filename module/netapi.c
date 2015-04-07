@@ -17,15 +17,10 @@
 
 #include "netapi.h"
 #include <module/netlist.h>
+#include <protocol/trframelysis.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <string.h>
-
-#ifdef TRANS_UDP_SERVICE
-void socket_udp_client_recvfrom(int fd);
-void socket_tcp_client_recv(int fd);
-void socket_tcp_client_release(int fd);
-#endif
 
 #ifdef TRANS_TCP_SERVER
 static int tcpfd;
@@ -95,6 +90,26 @@ void socket_tcp_client_connect(int fd)
 	select_set(rw);
 }
 
+void socket_tcp_client_release(int fd)
+{
+	close(fd);
+	select_clr(fd);
+
+#ifdef TRANS_TCP_CONN_LIST
+	tcp_conn_t *m_list = queryfrom_tcpconn_list(fd);
+	if(m_list != NULL)
+	{
+		DE_PRINTF("TCP:release,ip=%s:%u\n\n", 
+			inet_ntoa(m_list->client_addr.sin_addr), 
+			ntohs(m_list->client_addr.sin_port));
+	}
+	
+	delfrom_tcpconn_list(fd);
+#else
+	DE_PRINTF("TCP:release,fd=%d\n\n", fd);
+#endif
+}
+
 void socket_tcp_client_recv(int fd)
 {
 	int nbytes;
@@ -118,26 +133,6 @@ void socket_tcp_client_recv(int fd)
 #endif
 		DE_PRINTF("data:%s\n", buf);
 	}
-}
-
-void socket_tcp_client_release(int fd)
-{
-	close(fd);
-	select_clr(fd);
-
-#ifdef TRANS_TCP_CONN_LIST
-	tcp_conn_t *m_list = queryfrom_tcpconn_list(fd);
-	if(m_list != NULL)
-	{
-		DE_PRINTF("TCP:release,ip=%s:%u\n\n", 
-			inet_ntoa(m_list->client_addr.sin_addr), 
-			ntohs(m_list->client_addr.sin_port));
-	}
-	
-	delfrom_tcpconn_list(fd);
-#else
-	DE_PRINTF("TCP:release,fd=%d\n\n", fd);
-#endif
 }
 #endif
 
@@ -186,10 +181,18 @@ void socket_udp_recvfrom()
 	nbytes = recvfrom(udpfd, buf, sizeof(buf), 0, 
 				(struct sockaddr *)&client_addr, &socklen);
 
-	DE_PRINTF("UDP:receive %d bytes, from ip=%s:%u\n", 
-		nbytes, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+	//DE_PRINTF("UDP:receive %d bytes, from ip=%s:%u\n", 
+		//nbytes, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-	DE_PRINTF("data:%s\n", buf);
+	//DE_PRINTF("data:%s\n", buf);
+
+#ifdef COMM_CLIENT
+	analysis_capps_frame(client_addr, buf, nbytes);
+#endif
+
+#ifdef TRANS_UDP_SESS_QUEUE
+	addto_udpsess_queue(&client_addr);
+#endif
 }
 
 void socket_udp_sendto(char *addr, char *data, int len)
@@ -233,29 +236,6 @@ void socket_udp_sendto(char *addr, char *data, int len)
 		len, inet_ntoa(maddr.sin_addr), ntohs(maddr.sin_port));
 
 	DE_PRINTF("data:%s\n\n", data);
-}
-
-void socket_udp_client_recvfrom(int fd)
-{
-	int nbytes;
-	char buf[MAXSIZE];
-
-	struct sockaddr_in client_addr;
-	int socklen = sizeof(client_addr);
-
-	memset(buf, 0, sizeof(buf));
-	
-	nbytes = recvfrom(fd, buf, sizeof(buf), 0, 
-				(struct sockaddr *)&client_addr, &socklen);
-
-	DE_PRINTF("UDP:receive %d bytes, from ip=%s:%u\n", 
-		nbytes, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-
-	DE_PRINTF("data:%s\n", buf);
-
-#ifdef TRANS_UDP_SESS_QUEUE
-	addto_udpsess_queue(&client_addr);
-#endif
 }
 #endif
 

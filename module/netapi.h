@@ -30,7 +30,7 @@ void socket_tcp_client_recv(int fd);
 int get_udp_fd();
 int socket_udp_service_init(int port);
 void socket_udp_sendto(char *addr, char *data, int len);
-void socket_udp_client_recvfrom(int fd);
+void socket_udp_recvfrom();
 #endif
 
 #endif  // __NETAPI_H__

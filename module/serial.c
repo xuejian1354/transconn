@@ -315,7 +315,7 @@ serial_update:
                 step = 0;
 				mcount = 0;
 
-                analysis_ssa_frame(tmpFrame, dataLen);
+                analysis_zdev_frame(tmpFrame, dataLen);
 				memset(tmpFrame, 0, sizeof(tmpFrame));
             }
             i++;

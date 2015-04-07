@@ -66,5 +66,8 @@
 //single frame max size
 #define MAXSIZE	128
 
+typedef byte zidentify_no_t[8];
+typedef byte cidentify_no_t[16];
+
 #endif //__MCONFIG_H__
 

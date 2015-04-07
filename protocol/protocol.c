@@ -17,6 +17,7 @@
 #include "protocol.h"
 #include <mincode.h>
 #include <module/serial.h>
+#include <protocol/trframelysis.h>
 
 int add_zdevice_info(dev_info_t *m_dev);
 dev_info_t *query_zdevice_info(uint16 znet_addr);
@@ -31,9 +32,14 @@ static gw_info_t gw_info =
 	NULL,
 };
 
+static cli_list_t cli_list = 
+{
+	NULL,
+};
+
 
 #ifdef COMM_CLIENT
-void analysis_ssa_frame(char *buf, int len)
+void analysis_zdev_frame(char *buf, int len)
 {
 	uc_t *uc;
 	uo_t *uo;
@@ -108,6 +114,65 @@ void analysis_ssa_frame(char *buf, int len)
 		get_frame_free(HEAD_DE, de);
 		break;
 		
+	default:
+		break;
+	}
+}
+
+
+void analysis_capps_frame(struct sockaddr_in addr, char *buf, int len)
+{
+	pi_t *pi;
+	bi_t *bi;
+	gp_t *gp;
+	rp_t *rp;
+	gd_t *gd;
+	rd_t *rd;
+	dc_t *dc;
+	ub_t *ub;
+	cli_info_t *cli_info;
+	tr_head_type_t head_type = get_trhead_from_str(buf);
+	void *p = get_trframe_alloc(head_type, buf, len);
+
+	if(p == NULL)
+	{
+		return;
+	}
+
+	switch(head_type)
+	{
+	case TRHEAD_PI:
+		pi = (pi_t *)p;
+		break;
+		
+	case TRHEAD_BI:
+		bi = (bi_t *)p;
+		break;
+		
+	case TRHEAD_GP:
+		gp = (gp_t *)p;
+		break;
+		
+	case TRHEAD_RP:
+		rp = (rp_t *)p;
+		break;
+		
+	case TRHEAD_GD:
+		gd = (gd_t *)p;
+		break;
+		
+	case TRHEAD_RD:
+		rd = (rd_t *)p;
+		break;
+		
+	case TRHEAD_DC:
+		dc = (dc_t *)p;
+		break;
+		
+	case TRHEAD_UB:
+		ub = (ub_t *)p;
+		break;
+
 	default:
 		break;
 	}

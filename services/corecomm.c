@@ -55,7 +55,7 @@ int select_listen()
 #ifdef TRANS_UDP_SERVICE
 		if(FD_ISSET(udpfd, &current_rdfs))
 		{
-			socket_udp_client_recvfrom(udpfd);
+			socket_udp_recvfrom();
 		}
 #ifdef TRANS_TCP_SERVER
 		else 
