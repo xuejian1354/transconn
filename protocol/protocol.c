@@ -16,6 +16,12 @@
  */
 #include "protocol.h"
 #include <mincode.h>
+#include <module/serial.h>
+
+int add_zdevice_info(dev_info_t *m_dev);
+dev_info_t *query_zdevice_info(uint16 znet_addr);
+int del_zdevice_info(uint16 znet_addr);
+
 
 static gw_info_t gw_info = 
 {
@@ -25,6 +31,8 @@ static gw_info_t gw_info =
 	NULL,
 };
 
+
+#ifdef COMM_CLIENT
 void analysis_ssa_frame(char *buf, int len)
 {
 	uc_t *uc;
@@ -32,6 +40,8 @@ void analysis_ssa_frame(char *buf, int len)
 	uh_t *uh;
 	ur_t *ur;
 	de_t *de;
+	dev_info_t *dev_info;
+	uint16 znet_addr;
 	
 	fr_head_type_t head_type = get_frhead_from_str(buf);
 	
@@ -46,24 +56,50 @@ void analysis_ssa_frame(char *buf, int len)
 	{
 	case HEAD_UC:
 		uc = (uc_t *)p;
-		incode_ctoxs(gw_info.identity_no, uc->ext_addr, 16);
-		incode_ctox16(&gw_info.panid, uc->panid);
-		incode_ctox16(&gw_info.channel, uc->channel);
+		incode_ctoxs(gw_info.zidentity_no, uc->ext_addr, 16);
+		incode_ctox16(&gw_info.zpanid, uc->panid);
+		incode_ctox16(&gw_info.zchannel, uc->channel);
 		get_frame_free(HEAD_UC, uc);
 		break;
 		
 	case HEAD_UO:
 		uo = (uo_t *)p;
+		dev_info = calloc(1, sizeof(dev_info_t));
+		incode_ctoxs(dev_info->zidentity_no, uo->ext_addr, 16);
+		incode_ctox16(&dev_info->znet_addr, uo->short_addr);
+		dev_info->zapp_type = get_frapp_type_from_str(uo->ed_type);
+		dev_info->znet_type = get_frnet_type_from_str(&uo->type);
+		
+		if(add_zdevice_info(dev_info) != 0)
+		{
+			free(dev_info);
+		}
 		get_frame_free(HEAD_UO, uo);
 		break;
 		
 	case HEAD_UH:
 		uh = (uh_t *)p;
+		incode_ctox16(&znet_addr, uh->short_addr);
+		dev_info = query_zdevice_info(znet_addr);
+		if(dev_info == NULL)
+		{
+			uint8 mbuf[16] = {0};
+			sprintf(mbuf, "D:/SR/%0X:O\r\n", znet_addr);
+			serial_write(mbuf, 14);
+		}
 		get_frame_free(HEAD_UH, uh);
 		break;
 		
 	case HEAD_UR:
 		ur = (ur_t *)p;
+		incode_ctox16(&znet_addr, ur->short_addr);
+		dev_info = query_zdevice_info(znet_addr);
+		if(dev_info == NULL)
+		{
+			uint8 mbuf[16] = {0};
+			sprintf(mbuf, "D:/SR/%0X:O\r\n", znet_addr);
+			serial_write(mbuf, 14);
+		}
 		get_frame_free(HEAD_UR, ur);
 		break;
 		
@@ -75,4 +111,111 @@ void analysis_ssa_frame(char *buf, int len)
 	default:
 		break;
 	}
+}
+#endif
+
+int add_zdevice_info(dev_info_t *m_dev)
+{
+	dev_info_t *p_dev = gw_info.p_dev;
+	dev_info_t *pre_dev =  NULL;
+	dev_info_t *t_dev = p_dev;
+
+	if(m_dev == NULL)
+	{
+		return -1;
+	}
+	else
+	{
+		m_dev->next = NULL;
+	}
+
+	while(t_dev != NULL)
+	{
+		if(t_dev->znet_addr != m_dev->znet_addr)
+		{
+			pre_dev = t_dev;
+			t_dev = t_dev->next;
+		}
+		else
+		{
+			if(memcmp(t_dev->zidentity_no, m_dev->zidentity_no, 8)
+				|| t_dev->zapp_type != m_dev->zapp_type
+				|| t_dev->znet_type != m_dev->znet_type)
+			{
+				memcpy(t_dev->zidentity_no, m_dev->zidentity_no, 8);
+				t_dev->zapp_type = m_dev->zapp_type;
+				t_dev->znet_type = m_dev->znet_type;
+			}
+
+			if(pre_dev != NULL)
+			{
+				pre_dev->next = t_dev->next;
+				t_dev->next = p_dev;
+				p_dev = t_dev;
+			}
+			
+			return 1;
+		}
+	}
+
+	m_dev->next = p_dev;
+	p_dev = m_dev;
+
+	return 0;
+}
+
+
+
+dev_info_t *query_zdevice_info(uint16 znet_addr)
+{
+	dev_info_t *p_dev = gw_info.p_dev;
+	dev_info_t *t_dev = p_dev;
+
+
+	while(t_dev != NULL)
+	{
+		if(t_dev->znet_addr != znet_addr)
+		{
+			t_dev = t_dev->next;
+		}
+		else
+		{
+			return t_dev;
+		}
+	}
+
+	return NULL;
+}
+
+int del_zdevice_info(uint16 znet_addr)
+{
+	dev_info_t *p_dev = gw_info.p_dev;
+	dev_info_t *pre_dev =  NULL;
+	dev_info_t *t_dev = p_dev;
+
+
+	while(t_dev != NULL)
+	{
+		if(t_dev->znet_addr != znet_addr)
+		{
+			pre_dev = t_dev;
+			t_dev = t_dev->next;
+		}
+		else
+		{
+			if(pre_dev != NULL)
+			{
+				pre_dev->next = t_dev->next;
+			}
+			else
+			{
+				p_dev = t_dev->next;
+			}
+
+			free(t_dev);
+			return 0;
+		}
+	}
+
+	return -1;
 }

@@ -39,13 +39,15 @@ typedef enum
 	FRAPP_ALARM = 11,
 	FRAPP_IR_DETECTION = 12,
 	FRAPP_DOOR_SENSOR = 13,
-	FRAPP_IR_RELAY = 21
+	FRAPP_IR_RELAY = 21,
+	FRAPP_NONE = 0xFF,
 }fr_app_type_t;
 
 typedef enum
 {
-	FGNET_ROUTER = 0,
-	FRNET_ENDDEV = 1
+	FRNET_ROUTER = 0,
+	FRNET_ENDDEV = 1,
+	FRNET_NONE,
 }fr_net_type_t;
 
 //Coordinator info frame
@@ -117,8 +119,12 @@ typedef struct
 }fr_buffer_t;
 
 fr_head_type_t get_frhead_from_str(char *head);
+fr_app_type_t get_frapp_type_from_str(char *app_type);
+fr_net_type_t get_frnet_type_from_str(char *net_type);
+
 void *get_frame_alloc(fr_head_type_t htype, uint8 buffer[], int length);
 void get_frame_free(fr_head_type_t htype, void *p);
+
 fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame);
 void get_buffer_free(fr_buffer_t *p);
 

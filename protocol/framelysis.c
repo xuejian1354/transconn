@@ -89,6 +89,62 @@ fr_head_type_t get_frhead_from_str(char *head)
 	return HEAD_NONE;
 }
 
+fr_app_type_t get_frapp_type_from_str(char *app_type)
+{
+	if(!strncmp(FR_APP_CONNECTOR, app_type, 2))
+	{
+		return FGAPP_CONNECTOR;
+	}
+	else if(!strncmp(FR_APP_LIGHTSWITCH_ONE, app_type, 2))
+	{
+		return FRAPP_LIGHTSWITCH_ONE;
+	}
+	else if(!strncmp(FR_APP_LIGHTSWITCH_TWO, app_type, 2))
+	{
+		return FRAPP_LIGHTSWITCH_TWO;
+	}
+	else if(!strncmp(FR_APP_LIGHTSWITCH_THREE, app_type, 2))
+	{
+		return  FRAPP_LIGHTSWITCH_THREE;
+	}
+	else if(!strncmp(FR_APP_LIGHTSWITCH_FOUR, app_type, 2))
+	{
+		return FRAPP_LIGHTSWITCH_FOUR;
+	}
+	else if(!strncmp(FR_APP_ALARM, app_type, 2))
+	{
+		return FRAPP_ALARM;
+	}
+	else if(!strncmp(FR_APP_IR_DETECTION, app_type, 2))
+	{
+		return FRAPP_IR_DETECTION;
+	}
+	else if(!strncmp(FR_APP_DOOR_SENSOR, app_type, 2))
+	{
+		return FRAPP_DOOR_SENSOR;
+	}
+	else if(!strncmp(FR_APP_IR_RELAY, app_type, 2))
+	{
+		return FRAPP_IR_RELAY;
+	}
+
+	return FRAPP_NONE;
+}
+
+fr_net_type_t get_frnet_type_from_str(char *net_type)
+{
+	if(FR_DEV_ROUTER == *net_type)
+	{
+		return FRNET_ROUTER;
+	}
+	else if(FR_DEV_ENDDEV == *net_type)
+	{
+		return FRNET_ENDDEV;
+	}
+
+	return FRNET_NONE;
+}
+
 void *get_frame_alloc(fr_head_type_t htype, uint8 buffer[], int length)
 { 
 	if(length > FRAME_BUFFER_SIZE)

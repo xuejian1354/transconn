@@ -21,7 +21,7 @@
 #include <debug/dlog.h>
 
 //#define COMM_SERVER
-//#define GOMM_CLIENT
+//#define COMM_CLIENT
 
 //default program name
 #ifndef TARGET_NAME

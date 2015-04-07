@@ -28,8 +28,7 @@ int set_serial_params(int fd,
 int serial_initial(char *dev);
 int serial_write(char *data, int datalen);
 void *uart_read_func(void *p);
-int serial_send_frame(int fd, 
-	uint8 frame_type, uint8 id, uint8 *data, uint8 data_len);
+
 #endif
 
 #endif //__SERIAL_H__

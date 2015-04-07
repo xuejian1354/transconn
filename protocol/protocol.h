@@ -24,21 +24,24 @@ typedef byte zidentify_no_t[8];
 
 typedef struct Dev_Info
 {
-	zidentify_no_t identity_no;
-	fr_app_type_t app_type;
-	fr_net_type_t net_type;
+	zidentify_no_t zidentity_no;
+	uint16 znet_addr;
+	fr_app_type_t zapp_type;
+	fr_net_type_t znet_type;
 	struct Dev_Info *next;
 }dev_info_t;
 
 
 typedef struct
 {
-	zidentify_no_t identity_no;
-	uint16 panid;
-	uint16 channel;
+	zidentify_no_t zidentity_no;
+	uint16 zpanid;
+	uint16 zchannel;
 	dev_info_t *p_dev;
 }gw_info_t;
 
+#ifdef COMM_CLIENT
 void analysis_ssa_frame(char *buf, int len);
+#endif
 
 #endif  //__PROTOCOL_H__
