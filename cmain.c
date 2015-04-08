@@ -59,6 +59,11 @@ int main(int argc, char **argv)
 	}
 #endif
 
+	if(mach_init() < 0)
+	{
+		return -1;
+	}
+
 	event_init();
 
 #ifdef DEBUG_CONSOLE_SUPPORT

@@ -37,6 +37,7 @@ typedef struct
 	zidentify_no_t gw_no;
 	uint16 zpanid;
 	uint16 zchannel;
+	pthread_mutex_t lock;
 	dev_info_t *p_dev;
 }gw_info_t;
 

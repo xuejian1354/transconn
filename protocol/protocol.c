@@ -227,17 +227,21 @@ int add_zdevice_info(dev_info_t *m_dev)
 
 			if(pre_dev != NULL)
 			{
+				pthread_mutex_lock(&gw_info.lock);
 				pre_dev->next = t_dev->next;
 				t_dev->next = gw_info.p_dev;
 				gw_info.p_dev = t_dev;
+				pthread_mutex_unlock(&gw_info.lock);
 			}
 			
 			return 1;
 		}
 	}
 
+	pthread_mutex_lock(&gw_info.lock);
 	m_dev->next = gw_info.p_dev;
 	gw_info.p_dev = m_dev;
+	pthread_mutex_unlock(&gw_info.lock);
 
 	return 0;
 }
@@ -279,6 +283,7 @@ int del_zdevice_info(uint16 znet_addr)
 		}
 		else
 		{
+			pthread_mutex_lock(&gw_info.lock);
 			if(pre_dev != NULL)
 			{
 				pre_dev->next = t_dev->next;
@@ -287,6 +292,7 @@ int del_zdevice_info(uint16 znet_addr)
 			{
 				gw_info.p_dev = t_dev->next;
 			}
+			pthread_mutex_unlock(&gw_info.lock);
 
 			free(t_dev);
 			return 0;

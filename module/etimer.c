@@ -15,6 +15,7 @@
  * GNU General Public License for more details.
  */
 #include "etimer.h"
+#include <errno.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <tpool.h>
@@ -24,6 +25,7 @@
 #define TIMER_MIN_INTERVAL	1
 
 static timer_event_t *p_event;
+static pthread_mutex_t timer_lock;
 
 void timer_func(int sig)
 {
@@ -65,6 +67,13 @@ void timer_func(int sig)
 int timer_init()
 {
 	p_event = NULL;
+
+	if(pthread_mutex_init(&timer_lock, NULL) != 0)
+    {
+        fprintf(stderr, "%s: pthread_mutext_init failed, errno:%d, error:%s\n",
+            __FUNCTION__, errno, strerror(errno));
+        return -1;
+    }
 	
 	struct itimerval tv, oldtv;
 	signal(SIGALRM, timer_func);
@@ -107,10 +116,11 @@ int set_timer_event(timer_event_t *event)
 	{
 		if(t_event->timer_id == event->timer_id)
 		{
+			pthread_mutex_lock(&timer_lock);
 			t_event->param = event->param;
 			t_event->interval_count = t_event->param.interval;
 			t_event->timer_callback = event->timer_callback;
-			
+			pthread_mutex_unlock(&timer_lock);
 			return 1;
 		}
 		pre_event = t_event;
@@ -135,6 +145,7 @@ int del_timer_event(int timer_id)
 	{
 		if(t_event->timer_id == timer_id)
 		{
+			pthread_mutex_lock(&timer_lock);
 			if(pre_event != NULL)
 			{
 				pre_event->next = t_event->next;
@@ -144,6 +155,7 @@ int del_timer_event(int timer_id)
 			{
 				p_event = p_event->next;
 			}
+			pthread_mutex_unlock(&timer_lock);
 
 			free(t_event);
 			return 0;

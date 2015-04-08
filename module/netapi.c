@@ -227,7 +227,7 @@ void socket_udp_sendto(char *addr, char *data, int len)
 
 	if(saddr[0]==0 || iport==0)
 	{
-		printf("erro ip address\n");
+		printf("error ip address\n");
 		return;
 	}
 	

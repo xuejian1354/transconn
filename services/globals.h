@@ -18,6 +18,7 @@
  
 #include <mconfig.h>
 
+int mach_init();
 void event_init();
 
 #endif	//__GLOBALS_H__

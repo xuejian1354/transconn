@@ -14,7 +14,23 @@
  * GNU General Public License for more details.
  */
 #include "globals.h"
+#include <pthread.h>
+#include <errno.h>
 #include <services/mevent.h>
+#include <protocol/protocol.h>
+
+int mach_init()
+{
+	
+	if(pthread_mutex_init(&(get_gateway_info()->lock), NULL) != 0)
+    {
+        fprintf(stderr, "%s: pthread_mutext_init failed, errno:%d, error:%s\n",
+            __FUNCTION__, errno, strerror(errno));
+        return -1;
+    }
+
+	return 0;
+}
 
 void event_init()
 {
