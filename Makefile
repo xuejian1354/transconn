@@ -62,13 +62,13 @@ $(CLIENT_TARGET):$(inc_deps) client_comshow $(CLIENT_OBJS)
 	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -o $@ $(CLIENT_OBJS) $(LDPATH) $(STD_LDFLAGS) $(patsubst %,%-c,$(LDFLAGS)))
 	@$(CTARGET_STRIP) $@
 
-%-s.o:%.c
+%-s.o:%.c mconfig/server_config
 	$(call echocmd,CC, $@, \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -o $@ -c $^)
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -o $@ -c $<)
 
-%-c.o:%.c
+%-c.o:%.c mconfig/client_config
 	$(call echocmd,CC, $@, \
-	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -o $@ -c $^)
+	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -o $@ -c $<)
 
 $(eval $(call dependlibs-relations,$(SERVER_TARGET),$(LDFLAGS),-s))
 $(eval $(call dependlibs-relations,$(CLIENT_TARGET),$(LDFLAGS),-c))

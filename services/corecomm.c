@@ -15,15 +15,34 @@
  * GNU General Public License for more details.
  */
 #include "corecomm.h"
+#include <signal.h>
 #include <module/netapi.h>
+
+#ifdef SELECT_SUPPORT
 
 static int maxfd;
 static fd_set global_rdfs;
+static sigset_t sigmask;
 
-void select_init()
+int select_init()
 {
 	maxfd = 0;
 	FD_ZERO(&global_rdfs);
+
+	
+	if(sigemptyset(&sigmask) < 0)
+    {
+		perror("sigemptyset");
+		return -1;
+    }
+
+    if(sigaddset(&sigmask,SIGALRM) < 0)
+    {
+		perror("sigaddset");
+		return -1;
+    }
+
+	return 0;
 }
 
 void select_set(int fd)
@@ -94,7 +113,7 @@ int select_listen()
 	int ret;
 	
 	fd_set current_rdfs = global_rdfs;
-	ret = select(maxfd+1, &current_rdfs, NULL, NULL, 0);
+	ret = pselect(maxfd+1, &current_rdfs, NULL, NULL, NULL, &sigmask);
 	if(ret > 0)
 	{
 #ifdef TRANS_UDP_SERVICE
@@ -106,10 +125,11 @@ int select_listen()
 	}
 	else if (ret < 0)
 	{
-		perror("select");
+		perror("pselect");
 		return -1;
 	}
 
 	return 0;
 }
+#endif
 #endif

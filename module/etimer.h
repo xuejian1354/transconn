@@ -1,5 +1,5 @@
 /*
- * corecomm.h
+ * etimer.h
  *
  * Copyright (C) 2013 loongsky development.
  *
@@ -14,14 +14,32 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#ifndef __CORECOMM_H__
-#define __CORECOMM_H__
+ #ifndef __ETIMER_H__
+ #define __ETIMER_H__
 
-#include <mconfig.h>
+ #include <mconfig.h>
 
-int select_init();
-void select_set(int fd);
-void select_clr(int fd);
-int select_listen();
+typedef void *(*timer_callback_t)(void *);
 
-#endif  //__CORECOMM_H__
+typedef struct
+{
+	int interval;
+	int count;
+	int resident;
+	void *arg;
+}timer_event_param_t;
+
+typedef struct Timer_Event
+{
+	int timer_id;
+	int interval_count;
+	timer_event_param_t param;
+	timer_callback_t timer_callback;
+	struct Timer_Event *next;
+}timer_event_t;
+
+int timer_initial();
+int set_timer_event(timer_event_t *event);
+int del_timer_event(int timer_id);
+ 
+ #endif  //__ETIMER_H__

@@ -1,2 +1,2 @@
-SERVER_SRCS :=netapi.c netlist.c
-CLIENT_SRCS :=netapi.c netlist.c serial.c
+SERVER_SRCS :=netapi.c netlist.c etimer.c
+CLIENT_SRCS :=netapi.c netlist.c etimer.c serial.c

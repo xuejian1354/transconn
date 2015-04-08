@@ -57,7 +57,9 @@ int socket_tcp_server_init(int port)
 
 	listen(tcpfd, 10);
 
+#ifdef SELECT_SUPPORT
 	select_set(tcpfd);
+#endif
 }
 
 void socket_tcp_client_connect(int fd)
@@ -87,13 +89,17 @@ void socket_tcp_client_connect(int fd)
 	}
 #endif
 
+#ifdef SELECT_SUPPORT
 	select_set(rw);
+#endif
 }
 
 void socket_tcp_client_release(int fd)
 {
 	close(fd);
+#ifdef SELECT_SUPPORT
 	select_clr(fd);
+#endif
 
 #ifdef TRANS_TCP_CONN_LIST
 	tcp_conn_t *m_list = queryfrom_tcpconn_list(fd);
@@ -164,7 +170,9 @@ int socket_udp_service_init(int port)
 		return -1;
 	}
 
+#ifdef SELECT_SUPPORT
 	select_set(udpfd);
+#endif
 }
 
 
@@ -181,10 +189,10 @@ void socket_udp_recvfrom()
 	nbytes = recvfrom(udpfd, buf, sizeof(buf), 0, 
 				(struct sockaddr *)&client_addr, &socklen);
 
-	//DE_PRINTF("UDP:receive %d bytes, from ip=%s:%u\n", 
-		//nbytes, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+	DE_PRINTF("UDP:receive %d bytes, from ip=%s:%u\n", 
+		nbytes, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-	//DE_PRINTF("data:%s\n", buf);
+	DE_PRINTF("data:%s\n", buf);
 
 #ifdef COMM_CLIENT
 	analysis_capps_frame(&client_addr, buf, nbytes);

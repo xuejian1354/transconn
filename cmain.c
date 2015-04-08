@@ -39,10 +39,12 @@ int main(int argc, char **argv)
 	DE_PRINTF("%s start!\n", TARGET_NAME);
 	DE_PRINTF("Serial Port:%s, UDP Port:%d\n", serial_port, udp_port);
 
+#ifdef TIMER_SUPPORT
 	if(timer_initial() < 0)
 	{
 		return -1;
 	}
+#endif
 
 #ifdef SERIAL_SUPPORT
 	if(serial_initial(serial_port) < 0)			//initial serial port
@@ -51,7 +53,12 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	select_init();
+#ifdef SELECT_SUPPORT
+	if(select_init() < 0)
+	{
+		return -1;
+	}
+#endif
 
 #ifdef THREAD_POOL_SUPPORT
 	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
@@ -73,7 +80,9 @@ int main(int argc, char **argv)
 
 	while(1)
 	{
+#ifdef SELECT_SUPPORT
 		select_listen();
+#endif
 	}
 
 end:	

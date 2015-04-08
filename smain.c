@@ -23,7 +23,9 @@ int main(int argc, char **argv)
 
 	unsigned char buf[MAXSIZE];
 
+#ifdef SELECT_SUPPORT
 	select_init();
+#endif
 
 	if (argc > 1)
 		tcp_port = atoi(argv[1]);
@@ -67,7 +69,9 @@ int main(int argc, char **argv)
 
 	while(1)
 	{
+#ifdef SELECT_SUPPORT
 		select_listen();
+#endif
 	}
 
 end:	
