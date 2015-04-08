@@ -14,12 +14,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
 #include "etimer.h"
 #include <signal.h>
 #include <sys/time.h>
 #include <tpool.h>
 #include <services/mevent.h>
+
+#ifdef TIMER_SUPPORT
 
 #define TIMER_MIN_INTERVAL	1
 
@@ -66,7 +67,9 @@ int timer_initial()
 		return -1;
 	}
 
+#ifdef COMM_CLIENT
 	set_upload_event();
+#endif
 
 	return 0;
 }
@@ -143,3 +146,5 @@ int del_timer_event(int timer_id)
 
 	return -1;
 }
+
+#endif

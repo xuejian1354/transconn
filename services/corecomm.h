@@ -19,9 +19,12 @@
 
 #include <mconfig.h>
 
+#ifdef SELECT_SUPPORT
+
 int select_init();
 void select_set(int fd);
 void select_clr(int fd);
 int select_listen();
 
+#endif
 #endif  //__CORECOMM_H__

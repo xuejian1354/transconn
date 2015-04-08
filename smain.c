@@ -21,23 +21,25 @@ int main(int argc, char **argv)
 	int tcp_port = TRANS_TCP_PORT;
 	int udp_port = TRANS_UDP_PORT;
 
-	unsigned char buf[MAXSIZE];
+	START_PARAMS(tcp_port, udp_port);
+
+#ifdef TIMER_SUPPORT
+	if(timer_initial() < 0)
+	{
+		return -1;
+	}
+#endif
+
+#ifdef THREAD_POOL_SUPPORT
+	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
+	{
+		return -1;
+	}
+#endif
 
 #ifdef SELECT_SUPPORT
 	select_init();
 #endif
-
-	if (argc > 1)
-		tcp_port = atoi(argv[1]);
-
-	if (argc > 2)
-		udp_port = atoi(argv[2]);
-
-	if (argc > 3)
-	{
-		DE_PRINTF("Usage:%s [TCP Port] [UDP Port]\n", TARGET_NAME);
-		return -1;
-	}
 
 #ifdef TRANS_TCP_SERVER
 	if (socket_tcp_server_init(tcp_port) < 0)
@@ -48,13 +50,6 @@ int main(int argc, char **argv)
 
 #ifdef TRANS_UDP_SERVICE
 	if (socket_udp_service_init(udp_port) < 0)
-	{
-		return -1;
-	}
-#endif
-
-#ifdef THREAD_POOL_SUPPORT
-	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
 	{
 		return -1;
 	}

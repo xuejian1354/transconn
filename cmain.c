@@ -20,27 +20,18 @@ int main(int argc, char **argv)
 {
 	char serial_port[16] = "/dev/ttyS1";
 	int udp_port = TRANS_UDP_REMOTE_PORT;
-
-	if(argc > 1)
-	{	
-		memset(serial_port, 0, sizeof(serial_port));
-		strcpy(serial_port, argv[1]);
-	}
-
-	if(argc > 2)
-		udp_port = atoi(argv[2]);
-
-	if(argc > 3)
-	{
-		DE_PRINTF("Usage: %s [Serial Port] [Server Port]\n", TARGET_NAME);
-		return -1;
-	}
-
-	DE_PRINTF("%s start!\n", TARGET_NAME);
-	DE_PRINTF("Serial Port:%s, UDP Port:%d\n", serial_port, udp_port);
+	
+	START_PARAMS(serial_port, udp_port);
 
 #ifdef TIMER_SUPPORT
 	if(timer_initial() < 0)
+	{
+		return -1;
+	}
+#endif
+
+#ifdef THREAD_POOL_SUPPORT
+	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
 	{
 		return -1;
 	}
@@ -55,13 +46,6 @@ int main(int argc, char **argv)
 
 #ifdef SELECT_SUPPORT
 	if(select_init() < 0)
-	{
-		return -1;
-	}
-#endif
-
-#ifdef THREAD_POOL_SUPPORT
-	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
 	{
 		return -1;
 	}

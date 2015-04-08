@@ -54,21 +54,21 @@ include $(TOPDIR)/include/include.mk
 
 $(SERVER_TARGET):$(inc_deps) server_comshow $(SERVER_OBJS)
 	$(call echocmd,TAR,$(SERVER_TARGET), \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) -o $@ $(SERVER_OBJS) $(STD_LDFLAGS) $(patsubst %,%-s,$(LDFLAGS)))
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) -O2 -o $@ $(SERVER_OBJS) $(STD_LDFLAGS) $(patsubst %,%-s,$(LDFLAGS)))
 	@$(STARGET_STRIP) $@
 
 $(CLIENT_TARGET):$(inc_deps) client_comshow $(CLIENT_OBJS)
 	$(call echocmd,TAR,$(CLIENT_TARGET), \
-	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -o $@ $(CLIENT_OBJS) $(LDPATH) $(STD_LDFLAGS) $(patsubst %,%-c,$(LDFLAGS)))
+	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ $(CLIENT_OBJS) $(LDPATH) $(STD_LDFLAGS) $(patsubst %,%-c,$(LDFLAGS)))
 	@$(CTARGET_STRIP) $@
 
 %-s.o:%.c mconfig/server_config
 	$(call echocmd,CC, $@, \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -o $@ -c $<)
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -O2 -o $@ -c $<)
 
 %-c.o:%.c mconfig/client_config
 	$(call echocmd,CC, $@, \
-	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -o $@ -c $<)
+	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ -c $<)
 
 $(eval $(call dependlibs-relations,$(SERVER_TARGET),$(LDFLAGS),-s))
 $(eval $(call dependlibs-relations,$(CLIENT_TARGET),$(LDFLAGS),-c))

@@ -34,4 +34,6 @@ typedef unsigned long   uint32;
 
 typedef uint8   byte;
 
+#define st(x)      do { x } while (0)
+
 #endif //__MTYPES_H__

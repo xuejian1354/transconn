@@ -21,4 +21,46 @@
 
 #define DE_PRINTF(args...)	printf(args)
 
+#ifdef COMM_CLIENT
+#define START_PARAMS(serial_port, udp_port)											\
+st(																					\
+	if(argc > 1)																	\
+	{																				\
+		memset(serial_port, 0, sizeof(serial_port));								\
+		strcpy(serial_port, argv[1]);												\
+	}																				\
+																					\
+	if(argc > 2)																	\
+		udp_port = atoi(argv[2]);													\
+																					\
+	if(argc > 3)																	\
+	{																				\
+		DE_PRINTF("Usage: %s [Serial Port] [Server Port]\n", TARGET_NAME);			\
+		return -1;																	\
+	}																				\
+																					\
+	DE_PRINTF("%s start!\n", TARGET_NAME);											\
+	DE_PRINTF("Serial Port:%s, UDP Port:%d\n", serial_port, udp_port);				\
+)
+
+#elif defined(COMM_SERVER)
+#define START_PARAMS(tcp_port, udp_port)											\
+st(																					\
+	if (argc > 1)																	\
+		tcp_port = atoi(argv[1]);													\
+																					\
+	if (argc > 2)																	\
+		udp_port = atoi(argv[2]);													\
+																					\
+	if (argc > 3)																	\
+	{																				\
+		DE_PRINTF("Usage:%s [TCP Port] [UDP Port]\n", TARGET_NAME);					\
+		return -1;																	\
+	}																				\
+)
+
+#else
+#define START_PARAMS(...)
+#endif
+
 #endif  //__DLOG_H__

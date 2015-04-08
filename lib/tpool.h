@@ -21,6 +21,7 @@
 #include <pthread.h>
 
 #ifdef THREAD_POOL_SUPPORT
+
 /* excute task list */
 typedef struct tpool_work {
     void *(*routine)(void *);	/* task func */

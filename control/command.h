@@ -20,6 +20,7 @@
 #include <mconfig.h>
 
 #ifdef DEBUG_CONSOLE_SUPPORT
+
 void create_console();
 #endif
 #endif  //__COMMAND_H__

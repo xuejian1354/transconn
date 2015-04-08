@@ -23,7 +23,7 @@ $(SERVER_LIBS):$(SLIBSRC_TARGETS)
 
 $(SLIBSRC_TARGETS):$(LIBSRC_FILES)
 	$(call echocmd,CC, $@, \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -o $@ -c $(patsubst %-s.o,%.c,$@))
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -O2 -o $@ -c $(patsubst %-s.o,%.c,$@))
 
 $(CLIENT_LIBS):$(CLIBSRC_TARGETS)
 	$(call echocmd,AR, $@, \
@@ -31,7 +31,7 @@ $(CLIENT_LIBS):$(CLIBSRC_TARGETS)
 
 $(CLIBSRC_TARGETS):$(LIBSRC_FILES)
 	$(call echocmd,CC, $@, \
-	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -o $@ -c $(patsubst %-c.o,%.c,$@))
+	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ -c $(patsubst %-c.o,%.c,$@))
 
 clean:
 	(find -name "*.[oa]" | xargs $(RM))

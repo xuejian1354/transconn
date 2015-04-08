@@ -18,6 +18,7 @@
 #include <pthread.h>
 
 #ifdef DEBUG_CONSOLE_SUPPORT
+
 void *console_control(void *p);
 int split_ip_target(char *dst, char *src, int len);
 void show_data(int type, char *data, int len);

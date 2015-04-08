@@ -14,10 +14,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
- #ifndef __ETIMER_H__
- #define __ETIMER_H__
+#ifndef __ETIMER_H__
+#define __ETIMER_H__
 
- #include <mconfig.h>
+#include <mconfig.h>
+
+#ifdef TIMER_SUPPORT
 
 typedef void *(*timer_callback_t)(void *);
 
@@ -41,5 +43,5 @@ typedef struct Timer_Event
 int timer_initial();
 int set_timer_event(timer_event_t *event);
 int del_timer_event(int timer_id);
- 
- #endif  //__ETIMER_H__
+#endif
+#endif  //__ETIMER_H__
