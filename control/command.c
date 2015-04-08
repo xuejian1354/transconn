@@ -40,7 +40,7 @@ void *console_control(void *p)
 	int temptype, dtype = 1;		// 1 string , 0 hex
 
 	char ipaddr[24] = {0};
-	sprintf(ipaddr, "%s:%d", SERVER_IP, TRANS_UDP_PORT);
+	GET_SERVER_IP(ipaddr);
 	
 	while(1)
 	{

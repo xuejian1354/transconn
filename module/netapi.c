@@ -240,10 +240,11 @@ void socket_udp_sendto(char *addr, char *data, int len)
 	sendto(udpfd, data, len, 0, 
 		(struct sockaddr *)&maddr, sizeof(struct sockaddr));
 
-	DE_PRINTF("UDP: send %d bytes to ip=%s:%u\n", \
-		len, inet_ntoa(maddr.sin_addr), ntohs(maddr.sin_port));
+	//DE_PRINTF("UDP: send %d bytes to ip=%s:%u\n", \
+		//len, inet_ntoa(maddr.sin_addr), ntohs(maddr.sin_port));
 
-	DE_PRINTF("data:%s\n\n", data);
+	//DE_PRINTF("data:%s\n", data);
+	//PRINT_HEX(data, len);
 }
 #endif
 

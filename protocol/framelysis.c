@@ -328,7 +328,7 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 	{
 	case HEAD_UC: 
 		p_uc = (uc_t *)frame;
-		frame_buffer = (fr_buffer_t *)calloc(sizeof(fr_buffer_t), 1);
+		frame_buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		frame_buffer->data = (uint8 *)calloc(FR_UC_DATA_FIX_LEN, sizeof(uint8));
 		frame_buffer->size = FR_UC_DATA_FIX_LEN;
 		
@@ -349,7 +349,7 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 		{
 			goto fr_package_err; 
 		}
-		frame_buffer = (fr_buffer_t *)calloc(sizeof(fr_buffer_t), 1);
+		frame_buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		frame_buffer->data = 
 			(uint8 *)calloc(FR_UO_DATA_FIX_LEN+p_uo->data_len, sizeof(uint8));
 		frame_buffer->size = FR_UO_DATA_FIX_LEN+p_uo->data_len;
@@ -366,7 +366,7 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 		
 	case HEAD_UH: 
 		p_uh = (uh_t *)frame;
-		frame_buffer = (fr_buffer_t *)calloc(sizeof(fr_buffer_t), 1);
+		frame_buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		frame_buffer->data = (uint8 *)calloc(FR_UH_DATA_FIX_LEN, sizeof(uint8));
 		frame_buffer->size = FR_UH_DATA_FIX_LEN;
 		
@@ -382,7 +382,7 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 		{
 			goto fr_package_err; 
 		}
-		frame_buffer = (fr_buffer_t *)calloc(sizeof(fr_buffer_t), 1);
+		frame_buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		frame_buffer->data = 
 			(uint8 *)calloc(FR_UR_DATA_FIX_LEN+p_ur->data_len, sizeof(uint8));
 		frame_buffer->size = FR_UR_DATA_FIX_LEN+p_ur->data_len;
@@ -402,7 +402,7 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 		{
 			goto fr_package_err; 
 		}
-		frame_buffer = (fr_buffer_t *)calloc(sizeof(fr_buffer_t), 1);
+		frame_buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		frame_buffer->data = 
 			(uint8 *)calloc(FR_DE_DATA_FIX_LEN+p_de->data_len, sizeof(uint8));
 		frame_buffer->size = FR_DE_DATA_FIX_LEN+p_de->data_len;

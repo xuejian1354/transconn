@@ -1,2 +1,2 @@
-SERVER_SRCS :=corecomm.c mevent.c
+SERVER_SRCS :=corecomm.c mevent.c globals.c
 CLIENT_SRCS :=corecomm.c mevent.c globals.c

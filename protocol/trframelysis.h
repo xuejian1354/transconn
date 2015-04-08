@@ -20,6 +20,28 @@
 
 #include <mconfig.h>
 
+//traversal frame head
+#define TR_HEAD_PI	"PI:"	//gw put info to server
+#define TR_HEAD_BI	"BI:"	//server back info to gw
+#define TR_HEAD_GP	"GP:"	//capps get ip port from server
+#define TR_HEAD_RP	"RP:"	//server return ip port to capps & gw
+#define TR_HEAD_GD	"GD:"	//get traversal connection
+#define TR_HEAD_RD	"RD:"	//return traversal connection
+#define TR_HEAD_DC	"DC:"	//down control
+#define TR_HEAD_UB	"UB:"	//up back
+
+#define TR_PI_DATA_FIX_LEN	23
+#define TR_BI_DATA_FIX_LEN	8
+#define TR_GP_DATA_FIX_LEN	31
+#define TR_RP_DATA_FIX_LEN	36
+#define TR_GD_DATA_FIX_LEN	7
+#define TR_RD_DATA_FIX_LEN	7
+#define TR_DC_DATA_FIX_LEN	7
+#define TR_UB_DATA_FIX_LEN	7
+
+#define TR_BUFFER_SIZE 	128
+#define TR_TAIL ":O\r\n"
+
 typedef enum
 {
 	TRHEAD_PI,
@@ -36,7 +58,7 @@ typedef enum
 typedef struct
 {
 	uint8 head[3];   //PI:
-	zidentify_no_t zidentify_no;
+	uint8 gw_no[16];
 	uint8 tail[4];    //:O/r/n
 }pi_t;
 
@@ -65,7 +87,7 @@ typedef struct
 	cidentify_no_t cidentify_no;
 	uint8 trans_type;
 	uint8 ipaddr[16];
-	uint8 port[2];
+	uint8 port[4];
 	uint8 tail[4];    //:O/r/n
 }rp_t;
 
@@ -84,6 +106,14 @@ typedef struct
 	uint8 tail[4];    //:O/r/n
 }dc_t, ub_t;
 
+typedef struct
+{
+	uint8 *data;
+	uint8 size;
+}tr_buffer_t;
+
 void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length);
+tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame);
+void get_trbuffer_free(tr_buffer_t *p);
  
 #endif  //__TRFRAMELYSIS_H__

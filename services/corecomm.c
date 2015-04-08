@@ -56,7 +56,6 @@ void select_clr(int fd)
 	FD_CLR(fd, &global_rdfs);
 }
 
-#ifdef COMM_SERVER
 int select_listen()
 {
 	int i, ret;
@@ -68,7 +67,7 @@ int select_listen()
 #endif
 	
 	fd_set current_rdfs = global_rdfs;
-	ret = select(maxfd+1, &current_rdfs, NULL, NULL, 0);
+	ret = pselect(maxfd+1, &current_rdfs, NULL, NULL, NULL, &sigmask);
 	if(ret > 0)
 	{
 #ifdef TRANS_UDP_SERVICE
@@ -99,37 +98,10 @@ int select_listen()
 	}
 	else if (ret < 0)
 	{
-		perror("select");
-		return -1;
-	}
-
-	return 0;
-}
-#endif
-
-#ifdef COMM_CLIENT
-int select_listen()
-{
-	int ret;
-	
-	fd_set current_rdfs = global_rdfs;
-	ret = pselect(maxfd+1, &current_rdfs, NULL, NULL, NULL, &sigmask);
-	if(ret > 0)
-	{
-#ifdef TRANS_UDP_SERVICE
-		if(FD_ISSET(get_udp_fd(), &current_rdfs))
-		{
-			socket_udp_recvfrom();
-		}
-#endif
-	}
-	else if (ret < 0)
-	{
 		perror("pselect");
 		return -1;
 	}
 
 	return 0;
 }
-#endif
 #endif

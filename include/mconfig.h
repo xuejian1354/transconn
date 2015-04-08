@@ -66,6 +66,11 @@
 //single frame max size
 #define MAXSIZE	128
 
+#define GET_SERVER_IP(ipaddr)								\
+st(															\
+	sprintf(ipaddr, "%s:%d", SERVER_IP, TRANS_UDP_PORT);	\
+)
+
 typedef byte zidentify_no_t[8];
 typedef byte cidentify_no_t[16];
 

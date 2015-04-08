@@ -162,7 +162,7 @@ int set_serial_params(int fd, uint32 speed, uint8 databit, uint8 stopbit, uint8 
 
 
 
-int serial_initial(char *dev)
+int serial_init(char *dev)
 {
 	int fd;
 	
@@ -315,6 +315,8 @@ serial_update:
 				mcount = 0;
 
                 analysis_zdev_frame(tmpFrame, dataLen);
+				printf("serial:%s\n", tmpFrame);
+				//PRINT_HEX(tmpFrame, dataLen);
 				memset(tmpFrame, 0, sizeof(tmpFrame));
             }
             i++;

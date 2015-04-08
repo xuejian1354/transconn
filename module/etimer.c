@@ -18,7 +18,6 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <tpool.h>
-#include <services/mevent.h>
 
 #ifdef TIMER_SUPPORT
 
@@ -32,15 +31,28 @@ void timer_func(int sig)
 	
 	while(t_event != NULL)
 	{
-		if((--t_event->interval_count) <= 0)
+		if(t_event->param.immediate != 0)
+		{
+			if(t_event->interval_count-- == t_event->param.interval)
+			{
+				tpool_add_work(t_event->timer_callback, t_event->param.arg);
+			}
+		}
+		else
+		{
+			t_event->param.count++;
+			t_event->interval_count--;
+			t_event->param.immediate = 1;
+		}
+		
+		if(t_event->interval_count <= 0)
 		{
 			t_event->interval_count = t_event->param.interval;
-			tpool_add_work(t_event->timer_callback, t_event->param.arg);
 		}
 		
 		if(!t_event->param.resident 
 			&& t_event->interval_count == t_event->param.interval
-			&& !(--(t_event->param.count)))
+			&& !(--t_event->param.count))
 		{
 			del_timer_event(t_event->timer_id);
 		}
@@ -50,7 +62,7 @@ void timer_func(int sig)
 }
 
 
-int timer_initial()
+int timer_init()
 {
 	p_event = NULL;
 	
@@ -66,11 +78,7 @@ int timer_initial()
 		perror("timer initial");
 		return -1;
 	}
-
-#ifdef COMM_CLIENT
-	set_upload_event();
-#endif
-
+	
 	return 0;
 }
 

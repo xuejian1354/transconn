@@ -1,5 +1,4 @@
-/*
- * mevent.h
+/* globals.h
  *
  * Copyright (C) 2013 loongsky development.
  *
@@ -14,17 +13,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
- #ifndef __MEVENT_H__
- #define __MEVENT_H__
-
- #include <mconfig.h>
- #include <module/etimer.h>
-
-#if defined(COMM_CLIENT) && defined(TIMER_SUPPORT)
-void set_upload_event();
-void set_zdev_check(uint16 net_addr);
-#endif
-void set_mevent(int id, 
-	timer_callback_t event_callback, timer_event_param_t *param);
+#ifndef __GLOBALS_H__
+#define __GLOBALS_H__
  
- #endif  //__MEVENT_H__
+#include <mconfig.h>
+
+void event_init();
+
+#endif	//__GLOBALS_H__

@@ -13,4 +13,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#include <mconfig.h>
+#include "globals.h"
+#include <services/mevent.h>
+
+void event_init()
+{
+#ifdef COMM_CLIENT
+
+#ifdef TIMER_SUPPORT
+	set_upload_event();
+#endif
+#endif
+}

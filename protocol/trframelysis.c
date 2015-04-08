@@ -17,28 +17,6 @@
 
 #include "trframelysis.h"
 
-//traversal frame head
-#define TR_HEAD_PI	"PI:"	//gw put info to server
-#define TR_HEAD_BI	"BI:"	//server back info to gw
-#define TR_HEAD_GP	"GP:"	//capps get ip port from server
-#define TR_HEAD_RP	"RP:"	//server return ip port to capps & gw
-#define TR_HEAD_GD	"GD:"	//get traversal connection
-#define TR_HEAD_RD	"RD:"	//return traversal connection
-#define TR_HEAD_DC	"DC:"	//down control
-#define TR_HEAD_UB	"UB:"	//up back
-
-#define TR_PI_DATA_FIX_LEN	15
-#define TR_BI_DATA_FIX_LEN	8
-#define TR_GP_DATA_FIX_LEN	31
-#define TR_RP_DATA_FIX_LEN	34
-#define TR_GD_DATA_FIX_LEN	7
-#define TR_RD_DATA_FIX_LEN	7
-#define TR_DC_DATA_FIX_LEN	7
-#define TR_UB_DATA_FIX_LEN	7
-
-#define TR_BUFFER_SIZE 	128
-#define TR_TAIL ":O\r\n"
-
 tr_head_type_t get_trhead_from_str(char *head)
 {
 	if(!strncmp(TR_HEAD_PI, head, 3))
@@ -93,8 +71,8 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 		{
 			pi_t *pi = (pi_t *)calloc(1, sizeof(pi_t));
 			memcpy(pi->head, buffer, 3);
-			memcpy(pi->zidentify_no, buffer+3, sizeof(zidentify_no_t));
-			memcpy(pi->tail, buffer+TR_PI_DATA_FIX_LEN-4, 4);
+			memcpy(pi->gw_no, buffer+3, 16);
+			memcpy(pi->tail, buffer+19, 4);
 
 			return (void *)pi;
 		}
@@ -139,7 +117,7 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 				buffer+3+sizeof(zidentify_no_t), sizeof(cidentify_no_t));
 			rp->trans_type = buffer[27];
 			memcpy(rp->ipaddr, buffer+28, length-TR_RP_DATA_FIX_LEN);
-			memcpy(rp->port, buffer+length-6, 2);
+			memcpy(rp->port, buffer+length-8, 4);
 			memcpy(rp->tail, buffer+length-4, 4);
 
 			return (void *)rp;
@@ -253,3 +231,143 @@ void get_trframe_free(tr_head_type_t head_type, void *p)
 	}
 }
 
+
+tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame)
+{
+	pi_t *p_pi; bi_t *p_bi; gp_t *p_gp; rp_t *p_rp;
+	gd_t *p_gd; rd_t *p_rd; dc_t *p_dc; ub_t *p_ub;
+	
+	tr_buffer_t *frame_buffer;
+	
+	if(frame == NULL)
+		goto  tr_package_err;
+	
+	switch(type)
+	{
+	case TRHEAD_PI: 
+		p_pi = (pi_t *)frame;
+		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
+		frame_buffer->size = TR_PI_DATA_FIX_LEN;
+		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
+		
+		memcpy(frame_buffer->data, p_pi->head, 3);
+		memcpy(frame_buffer->data+3, p_pi->gw_no, 16);
+		memcpy(frame_buffer->data+19, p_pi->tail, 4);
+
+		return frame_buffer;
+		
+	case TRHEAD_BI:
+		p_bi = (bi_t *)frame;
+		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
+		frame_buffer->size = TR_BI_DATA_FIX_LEN;
+		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
+		
+		memcpy(frame_buffer->data, p_bi->head, 3);
+		frame_buffer->data[3] = p_bi->trans_type;
+		memcpy(frame_buffer->data+4, p_bi->tail, 4);
+
+		return frame_buffer;
+		
+	case TRHEAD_GP:
+		p_gp = (gp_t *)frame;
+		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
+		frame_buffer->size = TR_GP_DATA_FIX_LEN;
+		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
+		
+		memcpy(frame_buffer->data, p_gp->head, 3);
+		memcpy(frame_buffer->data+3, p_gp->zidentify_no, sizeof(zidentify_no_t));
+		memcpy(frame_buffer->data+11, p_gp->cidentify_no, sizeof(cidentify_no_t));
+		memcpy(frame_buffer->data+27, p_gp->tail, 4);
+
+		return frame_buffer;
+		
+	case TRHEAD_RP:
+		p_rp = (rp_t *)frame;
+		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
+		frame_buffer->size = TR_RP_DATA_FIX_LEN+strlen(p_rp->ipaddr);
+		if(frame_buffer->size > TR_BUFFER_SIZE)
+		{
+			free(frame_buffer);
+			return NULL;
+		}
+		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
+		
+		memcpy(frame_buffer->data, p_rp->head, 3);
+		memcpy(frame_buffer->data+3, p_rp->zidentify_no, sizeof(zidentify_no_t));
+		memcpy(frame_buffer->data+11, p_rp->cidentify_no, sizeof(cidentify_no_t));
+		frame_buffer->data[27] = p_rp->trans_type;
+		memcpy(frame_buffer->data+28, p_rp->ipaddr, strlen(p_rp->ipaddr));
+		memcpy(frame_buffer->data+frame_buffer->size-8, p_rp->port, 4);
+		memcpy(frame_buffer->data+frame_buffer->size-4, p_rp->tail, 4);
+
+		return frame_buffer;
+		
+	case TRHEAD_GD:
+		p_gd = (gd_t *)frame;
+		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
+		frame_buffer->size = TR_GD_DATA_FIX_LEN;
+		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
+		
+		memcpy(frame_buffer->data, p_gd->head, 3);
+		memcpy(frame_buffer->data+3, p_gd->tail, 4);
+
+		return frame_buffer;
+		
+	case TRHEAD_RD:
+		p_rd = (rd_t *)frame;
+		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
+		frame_buffer->size = TR_RD_DATA_FIX_LEN;
+		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
+		
+		memcpy(frame_buffer->data, p_rd->head, 3);
+		memcpy(frame_buffer->data+3, p_rd->tail, 4);
+
+		return frame_buffer;
+		
+	case TRHEAD_DC:
+		p_dc = (dc_t *)frame;
+		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
+		frame_buffer->size = TR_DC_DATA_FIX_LEN+p_dc->datalen;
+		if(frame_buffer->size > TR_BUFFER_SIZE)
+		{
+			free(frame_buffer);
+			return NULL;
+		}
+		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
+		
+		memcpy(frame_buffer->data, p_dc->head, 3);
+		memcpy(frame_buffer->data+3, p_dc->data, p_dc->datalen);
+		memcpy(frame_buffer->data+frame_buffer->size-4, p_dc->tail, 4);
+
+		return frame_buffer;
+		
+	case TRHEAD_UB:
+		p_ub = (ub_t *)frame;
+		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
+		frame_buffer->size = TR_UB_DATA_FIX_LEN+p_ub->datalen;
+		if(frame_buffer->size > TR_BUFFER_SIZE)
+		{
+			free(frame_buffer);
+			return NULL;
+		}
+		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
+		
+		memcpy(frame_buffer->data, p_ub->head, 3);
+		memcpy(frame_buffer->data+3, p_ub->data, p_ub->datalen);
+		memcpy(frame_buffer->data+frame_buffer->size-4, p_ub->tail, 4);
+
+		return frame_buffer;
+	
+	default: goto  tr_package_err;
+	}
+
+tr_package_err:
+	return NULL;
+}
+
+
+void get_trbuffer_free(tr_buffer_t *p)
+{
+	free(p->data);
+	free(p);
+}

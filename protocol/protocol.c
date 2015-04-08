@@ -18,6 +18,7 @@
 #include <mincode.h>
 #include <module/serial.h>
 #include <protocol/trframelysis.h>
+#include <services/mevent.h>
 
 int add_zdevice_info(dev_info_t *m_dev);
 dev_info_t *query_zdevice_info(uint16 znet_addr);
@@ -36,6 +37,12 @@ static cli_list_t cli_list =
 {
 	NULL,
 };
+
+
+gw_info_t *get_gateway_info()
+{
+	return &gw_info;
+}
 
 
 #ifdef COMM_CLIENT
@@ -60,7 +67,7 @@ void analysis_zdev_frame(char *buf, int len)
 	{
 	case HEAD_UC:
 		uc = (uc_t *)p;
-		incode_ctoxs(gw_info.zidentity_no, uc->ext_addr, 16);
+		incode_ctoxs(gw_info.gw_no, uc->ext_addr, 16);
 		incode_ctox16(&gw_info.zpanid, uc->panid);
 		incode_ctox16(&gw_info.zchannel, uc->channel);
 		get_frame_free(HEAD_UC, uc);
@@ -73,6 +80,8 @@ void analysis_zdev_frame(char *buf, int len)
 		incode_ctox16(&dev_info->znet_addr, uo->short_addr);
 		dev_info->zapp_type = get_frapp_type_from_str(uo->ed_type);
 		dev_info->znet_type = get_frnet_type_from_str(&uo->type);
+
+		set_zdev_check(dev_info->znet_addr);
 		
 		if(add_zdevice_info(dev_info) != 0)
 		{
@@ -88,8 +97,12 @@ void analysis_zdev_frame(char *buf, int len)
 		if(dev_info == NULL)
 		{
 			uint8 mbuf[16] = {0};
-			sprintf(mbuf, "D:/SR/%0X:O\r\n", znet_addr);
+			sprintf(mbuf, "D:/SR/%04X:O\r\n", znet_addr);
 			serial_write(mbuf, 14);
+		}
+		else
+		{
+			set_zdev_check(znet_addr);
 		}
 		get_frame_free(HEAD_UH, uh);
 		break;
@@ -101,7 +114,7 @@ void analysis_zdev_frame(char *buf, int len)
 		if(dev_info == NULL)
 		{
 			uint8 mbuf[16] = {0};
-			sprintf(mbuf, "D:/SR/%0X:O\r\n", znet_addr);
+			sprintf(mbuf, "D:/SR/%04X:O\r\n", znet_addr);
 			serial_write(mbuf, 14);
 		}
 		get_frame_free(HEAD_UR, ur);
@@ -182,9 +195,8 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 
 int add_zdevice_info(dev_info_t *m_dev)
 {
-	dev_info_t *p_dev = gw_info.p_dev;
 	dev_info_t *pre_dev =  NULL;
-	dev_info_t *t_dev = p_dev;
+	dev_info_t *t_dev = gw_info.p_dev;
 
 	if(m_dev == NULL)
 	{
@@ -216,16 +228,16 @@ int add_zdevice_info(dev_info_t *m_dev)
 			if(pre_dev != NULL)
 			{
 				pre_dev->next = t_dev->next;
-				t_dev->next = p_dev;
-				p_dev = t_dev;
+				t_dev->next = gw_info.p_dev;
+				gw_info.p_dev = t_dev;
 			}
 			
 			return 1;
 		}
 	}
 
-	m_dev->next = p_dev;
-	p_dev = m_dev;
+	m_dev->next = gw_info.p_dev;
+	gw_info.p_dev = m_dev;
 
 	return 0;
 }
@@ -234,8 +246,7 @@ int add_zdevice_info(dev_info_t *m_dev)
 
 dev_info_t *query_zdevice_info(uint16 znet_addr)
 {
-	dev_info_t *p_dev = gw_info.p_dev;
-	dev_info_t *t_dev = p_dev;
+	dev_info_t *t_dev = gw_info.p_dev;
 
 
 	while(t_dev != NULL)
@@ -255,9 +266,8 @@ dev_info_t *query_zdevice_info(uint16 znet_addr)
 
 int del_zdevice_info(uint16 znet_addr)
 {
-	dev_info_t *p_dev = gw_info.p_dev;
 	dev_info_t *pre_dev =  NULL;
-	dev_info_t *t_dev = p_dev;
+	dev_info_t *t_dev = gw_info.p_dev;
 
 
 	while(t_dev != NULL)
@@ -275,7 +285,7 @@ int del_zdevice_info(uint16 znet_addr)
 			}
 			else
 			{
-				p_dev = t_dev->next;
+				gw_info.p_dev = t_dev->next;
 			}
 
 			free(t_dev);

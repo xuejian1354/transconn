@@ -26,7 +26,7 @@
 int serial_open(char *dev);
 int set_serial_params(int fd, 
 	uint32 speed, uint8 databit, uint8 stopbit, uint8 parity);
-int serial_initial(char *dev);
+int serial_init(char *dev);
 int serial_write(char *data, int datalen);
 void *uart_read_func(void *p);
 

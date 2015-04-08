@@ -28,6 +28,7 @@ typedef struct
 	int interval;
 	int count;
 	int resident;
+	int immediate;
 	void *arg;
 }timer_event_param_t;
 
@@ -40,7 +41,7 @@ typedef struct Timer_Event
 	struct Timer_Event *next;
 }timer_event_t;
 
-int timer_initial();
+int timer_init();
 int set_timer_event(timer_event_t *event);
 int del_timer_event(int timer_id);
 #endif

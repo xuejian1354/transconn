@@ -57,10 +57,23 @@ st(																					\
 		DE_PRINTF("Usage:%s [TCP Port] [UDP Port]\n", TARGET_NAME);					\
 		return -1;																	\
 	}																				\
+																					\
+	DE_PRINTF("%s start!\n", TARGET_NAME);											\
+	DE_PRINTF("TCP Port:%d, UDP Port:%d\n", tcp_port, udp_port);					\
 )
 
 #else
 #define START_PARAMS(...)
 #endif
+
+#define PRINT_HEX(data, len)			\
+st(										\
+	int x;								\
+	for(x=0; x<len; x++)				\
+	{									\
+		DE_PRINTF("%02X ", data[x]);	\
+	}									\
+	DE_PRINTF("\n");					\
+)
 
 #endif  //__DLOG_H__

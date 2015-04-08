@@ -34,7 +34,7 @@ typedef struct Dev_Info
 
 typedef struct
 {
-	zidentify_no_t zidentity_no;
+	zidentify_no_t gw_no;
 	uint16 zpanid;
 	uint16 zchannel;
 	dev_info_t *p_dev;
@@ -52,6 +52,8 @@ typedef struct
 	cli_info_t *cli_info;
 	int max_num;
 }cli_list_t;
+
+gw_info_t *get_gateway_info();
 
 #ifdef COMM_CLIENT
 void analysis_zdev_frame(char *buf, int len);

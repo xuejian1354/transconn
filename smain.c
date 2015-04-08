@@ -23,15 +23,15 @@ int main(int argc, char **argv)
 
 	START_PARAMS(tcp_port, udp_port);
 
-#ifdef TIMER_SUPPORT
-	if(timer_initial() < 0)
+#ifdef THREAD_POOL_SUPPORT
+	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
 	{
 		return -1;
 	}
 #endif
 
-#ifdef THREAD_POOL_SUPPORT
-	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
+#ifdef TIMER_SUPPORT
+	if(timer_init() < 0)
 	{
 		return -1;
 	}
@@ -55,8 +55,7 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	DE_PRINTF("%s start!\n", TARGET_NAME);
-	DE_PRINTF("TCP Port:%d, UDP Port:%d\n", tcp_port, udp_port);
+	event_init();
 
 #ifdef DEBUG_CONSOLE_SUPPORT
 	create_console();
