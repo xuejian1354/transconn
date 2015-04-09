@@ -28,8 +28,22 @@ int mach_init()
 	p_gw_info->zpanid = 0;
 	p_gw_info->zchannel = 0;
 	p_gw_info->p_dev = NULL;
+	p_gw_info->next = NULL;
 	
 	if(pthread_mutex_init(&(get_gateway_info()->lock), NULL) != 0)
+    {
+        fprintf(stderr, "%s: pthread_mutext_init failed, errno:%d, error:%s\n",
+            __FUNCTION__, errno, strerror(errno));
+        return -1;
+    }
+#endif
+
+#ifdef COMM_SERVER
+	gw_list_t *p_gw_list = get_gateway_list();
+	p_gw_list->p_gw = NULL;
+	p_gw_list->max_num = 0;
+
+	if(pthread_mutex_init(&(get_gateway_list()->lock), NULL) != 0)
     {
         fprintf(stderr, "%s: pthread_mutext_init failed, errno:%d, error:%s\n",
             __FUNCTION__, errno, strerror(errno));
@@ -42,10 +56,13 @@ int mach_init()
 
 void event_init()
 {
-#ifdef COMM_CLIENT
-
 #ifdef TIMER_SUPPORT
+#ifdef COMM_CLIENT
 	set_upload_event();
+#endif
+
+#ifdef COMM_SERVER
+	set_clients_listen();
 #endif
 #endif
 }

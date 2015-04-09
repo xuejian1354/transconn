@@ -26,7 +26,8 @@
 #endif
 
 //server ip address
-#define SERVER_IP	"115.28.214.50"
+//#define SERVER_IP	"115.28.214.50"
+#define SERVER_IP	"192.168.1.110"
 
 //max connection size of tcp
 #define TRANS_TCP_CONN_MAX_SIZE		1024

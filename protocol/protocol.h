@@ -22,7 +22,6 @@
 #include <arpa/inet.h>
 #include <protocol/framelysis.h>
 
-#ifdef COMM_CLIENT
 typedef struct Dev_Info
 {
 	zidentify_no_t zidentity_no;
@@ -33,14 +32,22 @@ typedef struct Dev_Info
 }dev_info_t;
 
 
-typedef struct
+typedef struct Gw_Info
 {
 	zidentify_no_t gw_no;
 	uint16 zpanid;
 	uint16 zchannel;
 	pthread_mutex_t lock;
 	dev_info_t *p_dev;
+	struct Gw_Info *next;
 }gw_info_t;
+
+typedef struct
+{
+	gw_info_t *p_gw;
+	pthread_mutex_t lock;
+	long max_num;
+}gw_list_t;
 
 typedef struct Cli_Info
 {
@@ -55,9 +62,19 @@ typedef struct
 	int max_num;
 }cli_list_t;
 
+#ifdef COMM_CLIENT
 gw_info_t *get_gateway_info();
 void analysis_zdev_frame(char *buf, int len);
-void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len);
 #endif
+
+#ifdef COMM_SERVER
+int add_gateway_info(gw_info_t *m_gw);
+gw_info_t *query_gateway_info(zidentify_no_t gw_no);
+int del_gateway_info(zidentify_no_t gw_no);
+
+gw_list_t *get_gateway_list();
+#endif
+
+void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len);
 
 #endif  //__PROTOCOL_H__

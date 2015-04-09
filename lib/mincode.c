@@ -16,7 +16,7 @@
  */
 #include "mincode.h"
 
-char ctox(char src)
+unsigned char ctox(char src)
 {
 	char temp = 0;
 
@@ -30,7 +30,7 @@ char ctox(char src)
 	return temp;
 }
 
-char atox(char *src, int len)
+unsigned char atox(char *src, int len)
 {
 	char temp=0, i=0, length;
 	length = len;
@@ -44,7 +44,7 @@ char atox(char *src, int len)
 	return temp;
 }
  
-void incode_ctoxs(char *dest ,char *src, int len)
+void incode_ctoxs(unsigned char *dest ,char *src, int len)
 {
 	int i, temp;
 	if(len<2 || dest==NULL || src==NULL)
@@ -63,7 +63,7 @@ void incode_ctoxs(char *dest ,char *src, int len)
 	 
 }
 
-void incode_xtocs(char *dest , char *src, int len)
+void incode_xtocs(char *dest , unsigned char *src, int len)
 {
     int i, temp;
 	if(len<1 || dest==NULL || src==NULL)

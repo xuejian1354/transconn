@@ -21,12 +21,12 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#ifdef TRANS_TCP_SERVER
-static int tcpfd;
-#endif
 #ifdef TRANS_UDP_SERVICE
 static int udpfd;
 static struct sockaddr_in m_addr, server_addr;
+#endif
+#ifdef TRANS_TCP_SERVER
+static int tcpfd;
 #endif
 
 #ifdef TRANS_TCP_SERVER
@@ -201,9 +201,7 @@ void socket_udp_recvfrom()
 	DE_PRINTF("data:%s\n", buf);
 #endif
 
-#ifdef COMM_CLIENT
 	analysis_capps_frame(&client_addr, buf, nbytes);
-#endif
 
 #ifdef TRANS_UDP_SESS_QUEUE
 	addto_udpsess_queue(&client_addr);

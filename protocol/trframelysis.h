@@ -30,8 +30,16 @@
 #define TR_HEAD_DC	"DC:"	//down control
 #define TR_HEAD_UB	"UB:"	//up back
 
-#define TR_PI_DATA_FIX_LEN	23
-#define TR_BI_DATA_FIX_LEN	8
+#define TR_TYPE_UDP	'1'
+#define TR_TYPE_TCP	'2'
+
+#define TR_FRAME_CON	'1'
+#define TR_FRAME_REG	'2'
+#define TR_FRAME_GET	'3'
+#define TR_FRAME_PUT	'4'
+
+#define TR_PI_DATA_FIX_LEN	25
+#define TR_BI_DATA_FIX_LEN	25
 #define TR_GP_DATA_FIX_LEN	31
 #define TR_RP_DATA_FIX_LEN	36
 #define TR_GD_DATA_FIX_LEN	7
@@ -39,7 +47,7 @@
 #define TR_DC_DATA_FIX_LEN	7
 #define TR_UB_DATA_FIX_LEN	7
 
-#define TR_BUFFER_SIZE 	128
+#define TR_BUFFER_SIZE 	1024
 #define TR_TAIL ":O\r\n"
 
 typedef enum
@@ -55,19 +63,39 @@ typedef enum
 	TRHEAD_NONE,
 }tr_head_type_t;
 
+typedef enum
+{
+	TRTYPE_UDP,
+	TRTYPE_TCP,
+	TRTYPE_NONE,
+}tr_trans_type_t;
+
+typedef enum
+{
+	TRFRAME_CON,
+	TRFRAME_REG,
+	TRFRAME_GET,
+	TRFRAME_PUT,
+	TRFRAME_NONE,
+}tr_frame_type_t;
+
 typedef struct
 {
-	uint8 head[3];   //PI:
-	uint8 gw_no[16];
-	uint8 tail[4];    //:O/r/n
+	uint8 sn[8];
+	tr_trans_type_t trans_type;
+	tr_frame_type_t fr_type;
+	uint16 data_len;
+	uint8 *data;
 }pi_t;
 
 
 typedef struct
 {
-	uint8 head[3];   //BI:
-	uint8 trans_type;
-	uint8 tail[4];
+	uint8 sn[8];
+	tr_trans_type_t trans_type;
+	tr_frame_type_t fr_type;
+	uint16 data_len;
+	uint8 *data;
 }bi_t;
 
 

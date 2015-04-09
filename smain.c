@@ -41,15 +41,15 @@ int main(int argc, char **argv)
 	select_init();
 #endif
 
-#ifdef TRANS_TCP_SERVER
-	if (socket_tcp_server_init(tcp_port) < 0)
+#ifdef TRANS_UDP_SERVICE
+	if (socket_udp_service_init(udp_port) < 0)
 	{
 		return -1;
 	}
 #endif
 
-#ifdef TRANS_UDP_SERVICE
-	if (socket_udp_service_init(udp_port) < 0)
+#ifdef TRANS_TCP_SERVER
+	if (socket_tcp_server_init(tcp_port) < 0)
 	{
 		return -1;
 	}

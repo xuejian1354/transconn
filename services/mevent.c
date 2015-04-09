@@ -18,18 +18,27 @@
 #include "mevent.h"
 #include <protocol/protocol.h>
 #include <protocol/trframelysis.h>
+#include <protocol/trrequest.h>
 
-#define GATEWAY_REFRESH_EVENT	0x01
-#define TIMER_UPLOAD_EVENT		0x02
-#define ZDEVICE_WATCH_EVENT		0x03
+#ifdef COMM_CLIENT
+#define GATEWAY_REFRESH_EVENT	0x0001
+#define TIMER_UPLOAD_EVENT		0x0002
+#define ZDEVICE_WATCH_EVENT		0x0003
+#endif
 
-#if defined(COMM_CLIENT) && defined(TIMER_SUPPORT)
+
+#ifdef COMM_SERVER
+#define SERVER_LISTEN_CLIENTS	0x0010
+#endif
+
+#ifdef TIMER_SUPPORT
+#ifdef COMM_CLIENT
 void *gateway_refresh(void *p);
 void *upload_event(void *p);
 void *zdev_watch(void *p);
 #endif
 
-#if defined(COMM_CLIENT) && defined(TIMER_SUPPORT)
+#ifdef COMM_CLIENT
 void *gateway_refresh(void *p)
 {
 	char *gw_refresh = "D:/SR/0000:O\r\n";
@@ -40,7 +49,7 @@ void *gateway_refresh(void *p)
 	timer_param.resident = 1;
 	timer_param.interval = 10;
 	timer_param.count = 0;
-	timer_param.immediate = 1;
+	timer_param.immediate = 0;
 	timer_param.arg = NULL;
 	
 	set_mevent(TIMER_UPLOAD_EVENT, upload_event, &timer_param);
@@ -50,23 +59,10 @@ void *gateway_refresh(void *p)
 
 void *upload_event(void *p)
 {
-	pi_t pi;
-	tr_buffer_t *buffer;
-
-	memcpy(pi.head, TR_HEAD_PI, 3);
-	incode_xtocs(pi.gw_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-	memcpy(pi.tail, TR_TAIL, 4);
-
-	if((buffer = get_trbuffer_alloc(TRHEAD_PI, &pi)) == NULL)
-	{
-		return NULL;
-	}
-	
 	char ipaddr[24] = {0};
 	GET_SERVER_IP(ipaddr);
-	
-	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
-	get_trbuffer_free(buffer);
+
+	send_pi_udp_request(ipaddr, TRFRAME_CON, NULL, 0);
 	
 	return NULL;
 }
@@ -106,6 +102,11 @@ void set_zdev_check(uint16 net_addr)
 }
 #endif
 
+#ifdef COMM_SERVER
+void set_clients_listen()
+{
+}
+#endif
 void set_mevent(int id, timer_callback_t event_callback, timer_event_param_t *param)
 {
 	timer_event_t *timer_event = calloc(1, sizeof(timer_event_t));
@@ -118,3 +119,4 @@ void set_mevent(int id, timer_callback_t event_callback, timer_event_param_t *pa
 		free(timer_event);
 	}
 }
+#endif

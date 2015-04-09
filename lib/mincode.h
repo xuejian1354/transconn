@@ -20,10 +20,10 @@
 
 #include <stdio.h>
 
-char ctox(char src);
-char atox(char *src, int len);
-void incode_ctoxs(char *dest , char *src, int len);
-void incode_xtocs(char *dest , char *src, int len);
+unsigned char ctox(char src);
+unsigned char atox(char *src, int len);
+void incode_ctoxs(unsigned char *dest , char *src, int len);
+void incode_xtocs(char *dest , unsigned char *src, int len);
 void incode_ctox16(short *dest, char *src);
 
 #endif //  __INCODE_H __

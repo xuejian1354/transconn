@@ -1,5 +1,5 @@
 /*
- * mevent.h
+ * trrequest.h
  *
  * Copyright (C) 2013 loongsky development.
  *
@@ -14,24 +14,18 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
- #ifndef __MEVENT_H__
- #define __MEVENT_H__
 
- #include <services/globals.h>
- #include <module/etimer.h>
+#ifndef __TRREQUEST_H__
+#define __TRREQUEST_H__
 
-#ifdef TIMER_SUPPORT
-#ifdef COMM_CLIENT
-void set_upload_event();
-void set_zdev_check(uint16 net_addr);
-#endif
+#include <services/globals.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <protocol/trframelysis.h>
 
-#ifdef COMM_SERVER
-void set_clients_listen();
-#endif
+void pi_handler(struct sockaddr_in *addr, pi_t *pi);
+void bi_handler(struct sockaddr_in *addr, bi_t *bi);
 
-void set_mevent(int id, 
-	timer_callback_t event_callback, timer_event_param_t *param);
-#endif
- 
- #endif  //__MEVENT_H__
+void send_pi_udp_request(char *ipaddr, tr_frame_type_t trfra, char *data, int len);
+void send_bi_udp_respond(char *ipaddr, tr_frame_type_t trfra, char *data, int len);
+#endif  //__TRREQUEST_H__
