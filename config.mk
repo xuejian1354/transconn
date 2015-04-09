@@ -14,6 +14,7 @@ endif
 export V
 
 $(shell find -name "*.[ch]" | xargs chmod -x)
+$(shell find -name "*_config" | xargs chmod -x)
 
 STARGET_CC := $(sprefix)gcc
 STARGET_LD := $(sprefix)ld
