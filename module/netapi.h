@@ -17,7 +17,7 @@
 #ifndef __NETAPI_H__
 #define __NETAPI_H__
 
-#include <mconfig.h>
+#include <services/globals.h>
 
 #ifdef TRANS_TCP_SERVER
 int get_tcp_fd();

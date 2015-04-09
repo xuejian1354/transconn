@@ -17,7 +17,7 @@
 #ifndef __FRAMELYSIS_H__
 #define __FRAMELYSIS_H__
 
-#include <mconfig.h>
+#include <services/globals.h>
 
 typedef enum
 {

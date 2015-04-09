@@ -74,7 +74,7 @@ void *upload_event(void *p)
 
 void *zdev_watch(void *p)
 {
-	uint16 znet_addr = (uint16)p;
+	uint16 znet_addr = (uint16)((int)p);
 	del_zdevice_info(znet_addr);
 }
 
@@ -100,7 +100,7 @@ void set_zdev_check(uint16 net_addr)
 	timer_param.interval = 35;
 	timer_param.count = 1;
 	timer_param.immediate = 0;
-	timer_param.arg = (void *)net_addr;
+	timer_param.arg = (void *)((int)net_addr);
 	
 	set_mevent((ZDEVICE_WATCH_EVENT<<16)+net_addr, zdev_watch, &timer_param);
 }

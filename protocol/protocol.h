@@ -17,11 +17,12 @@
 #ifndef __PROTOCOL_H__
 #define __PROTOCOL_H__
 
-#include <mconfig.h>
+#include <services/globals.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <protocol/framelysis.h>
 
+#ifdef COMM_CLIENT
 typedef struct Dev_Info
 {
 	zidentify_no_t zidentity_no;
@@ -55,8 +56,6 @@ typedef struct
 }cli_list_t;
 
 gw_info_t *get_gateway_info();
-
-#ifdef COMM_CLIENT
 void analysis_zdev_frame(char *buf, int len);
 void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len);
 #endif

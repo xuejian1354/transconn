@@ -20,7 +20,6 @@
 #include <protocol/trframelysis.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <string.h>
 
 #ifdef TRANS_TCP_SERVER
 static int tcpfd;
@@ -70,8 +69,10 @@ void socket_tcp_client_connect(int fd)
 
 	rw = accept(fd, (struct sockaddr *)&client_addr, &len);
 
+#ifdef DE_PRINT_TCP_PORT
 	DE_PRINTF("TCP:accept,ip=%s:%u\n\n", 
 		inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+#endif
 
 #ifdef TRANS_TCP_CONN_LIST
 	tcp_conn_t *m_list;
@@ -101,6 +102,7 @@ void socket_tcp_client_release(int fd)
 	select_clr(fd);
 #endif
 
+#ifdef DE_PRINT_TCP_PORT
 #ifdef TRANS_TCP_CONN_LIST
 	tcp_conn_t *m_list = queryfrom_tcpconn_list(fd);
 	if(m_list != NULL)
@@ -113,6 +115,7 @@ void socket_tcp_client_release(int fd)
 	delfrom_tcpconn_list(fd);
 #else
 	DE_PRINTF("TCP:release,fd=%d\n\n", fd);
+#endif
 #endif
 }
 
@@ -128,6 +131,7 @@ void socket_tcp_client_recv(int fd)
 	}
 	else
 	{
+#ifdef DE_PRINT_TCP_PORT
 #ifdef TRANS_TCP_CONN_LIST
 		tcp_conn_t *m_list = queryfrom_tcpconn_list(fd);
 		if(m_list != NULL)
@@ -138,6 +142,7 @@ void socket_tcp_client_recv(int fd)
 		}
 #endif
 		DE_PRINTF("data:%s\n", buf);
+#endif
 	}
 }
 #endif
@@ -189,10 +194,12 @@ void socket_udp_recvfrom()
 	nbytes = recvfrom(udpfd, buf, sizeof(buf), 0, 
 				(struct sockaddr *)&client_addr, &socklen);
 
+#ifdef DE_PRINT_UDP_PORT
 	DE_PRINTF("UDP:receive %d bytes, from ip=%s:%u\n", 
 		nbytes, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
 	DE_PRINTF("data:%s\n", buf);
+#endif
 
 #ifdef COMM_CLIENT
 	analysis_capps_frame(&client_addr, buf, nbytes);
@@ -240,11 +247,13 @@ void socket_udp_sendto(char *addr, char *data, int len)
 	sendto(udpfd, data, len, 0, 
 		(struct sockaddr *)&maddr, sizeof(struct sockaddr));
 
-	//DE_PRINTF("UDP: send %d bytes to ip=%s:%u\n", \
-		//len, inet_ntoa(maddr.sin_addr), ntohs(maddr.sin_port));
+#ifdef DE_PRINT_UDP_PORT
+	DE_PRINTF("UDP: send %d bytes to ip=%s:%u\n", \
+		len, inet_ntoa(maddr.sin_addr), ntohs(maddr.sin_port));
 
-	//DE_PRINTF("data:%s\n", data);
+	DE_PRINTF("data:%s\n", data);
 	//PRINT_HEX(data, len);
+#endif
 }
 #endif
 

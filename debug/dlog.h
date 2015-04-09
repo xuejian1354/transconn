@@ -17,7 +17,7 @@
 #ifndef __DLOG_H__
 #define __DLOG_H__
 
-#include <mconfig.h>
+#include <debug/dconfig.h>
 
 #define DE_PRINTF(args...)	printf(args)
 

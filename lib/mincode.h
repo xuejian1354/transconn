@@ -18,12 +18,12 @@
 #ifndef __INCODE_H__
 #define __INCODE_H__
 
-#include <mconfig.h>
+#include <stdio.h>
 
-uint8 ctox(uint8 src);
-uint8 atox(uint8 *src, uint8 len);
-void incode_ctoxs(uint8 *dest ,uint8 *src, uint8 len);
-void incode_xtocs(uint8 *dest , uint8 *src,uint8 len);
-void incode_ctox16(uint16 *dest, uint8 *src);
+char ctox(char src);
+char atox(char *src, int len);
+void incode_ctoxs(char *dest , char *src, int len);
+void incode_xtocs(char *dest , char *src, int len);
+void incode_ctox16(short *dest, char *src);
 
 #endif //  __INCODE_H __

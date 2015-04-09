@@ -17,7 +17,7 @@
 #ifndef __CORECOMM_H__
 #define __CORECOMM_H__
 
-#include <mconfig.h>
+#include <services/globals.h>
 
 #ifdef SELECT_SUPPORT
 

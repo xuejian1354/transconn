@@ -21,6 +21,13 @@
 
 int mach_init()
 {
+#ifdef COMM_CLIENT
+	gw_info_t *p_gw_info = get_gateway_info();
+
+	memset(p_gw_info->gw_no, 0, sizeof(p_gw_info->gw_no));
+	p_gw_info->zpanid = 0;
+	p_gw_info->zchannel = 0;
+	p_gw_info->p_dev = NULL;
 	
 	if(pthread_mutex_init(&(get_gateway_info()->lock), NULL) != 0)
     {
@@ -28,6 +35,7 @@ int mach_init()
             __FUNCTION__, errno, strerror(errno));
         return -1;
     }
+#endif
 
 	return 0;
 }

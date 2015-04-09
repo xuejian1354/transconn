@@ -16,9 +16,9 @@
  */
 #include "mincode.h"
 
-uint8 ctox(uint8 src)
+char ctox(char src)
 {
-	uint8 temp = 0;
+	char temp = 0;
 
 	if(src>='0' && src<='9')
 		temp = src-'0';
@@ -30,9 +30,9 @@ uint8 ctox(uint8 src)
 	return temp;
 }
 
-uint8 atox(uint8 *src, uint8 len)
+char atox(char *src, int len)
 {
-	uint8 temp=0, i=0, length;
+	char temp=0, i=0, length;
 	length = len;
 
 	while(length--)
@@ -44,7 +44,7 @@ uint8 atox(uint8 *src, uint8 len)
 	return temp;
 }
  
-void incode_ctoxs(uint8 *dest ,uint8 *src, uint8 len)
+void incode_ctoxs(char *dest ,char *src, int len)
 {
 	int i, temp;
 	if(len<2 || dest==NULL || src==NULL)
@@ -63,7 +63,7 @@ void incode_ctoxs(uint8 *dest ,uint8 *src, uint8 len)
 	 
 }
 
-void incode_xtocs(uint8 *dest , uint8 *src,uint8 len)
+void incode_xtocs(char *dest , char *src, int len)
 {
     int i, temp;
 	if(len<1 || dest==NULL || src==NULL)
@@ -96,9 +96,9 @@ void incode_xtocs(uint8 *dest , uint8 *src,uint8 len)
 }
 
 
-void incode_ctox16(uint16 *dest, uint8 *src)
+void incode_ctox16(short *dest, char *src)
 {
-	uint8 dsts[2];
+	char dsts[2];
 	incode_ctoxs(dsts, src, 4);
 	*dest = dsts[0]<<8;
 	*dest += dsts[1];

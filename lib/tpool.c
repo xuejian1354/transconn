@@ -14,15 +14,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#include <unistd.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <stdio.h>
-
 #include "tpool.h"
-
-#ifdef THREAD_POOL_SUPPORT
 
 static tpool_t *tpool = NULL;
 
@@ -170,4 +162,3 @@ int tpool_add_work(void *(*routine)(void *), void *arg)
 
     return 0;
 }
-#endif

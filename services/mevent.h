@@ -17,7 +17,7 @@
  #ifndef __MEVENT_H__
  #define __MEVENT_H__
 
- #include <mconfig.h>
+ #include <services/globals.h>
  #include <module/etimer.h>
 
 #if defined(COMM_CLIENT) && defined(TIMER_SUPPORT)

@@ -17,7 +17,7 @@
 #ifndef __COMMAND_H__
 #define __COMMAND_H__
 
-#include <mconfig.h>
+#include <services/globals.h>
 
 #ifdef DEBUG_CONSOLE_SUPPORT
 

@@ -17,7 +17,7 @@
 #ifndef __NETLIST_H__
 #define __NETLIST_H__
 
-#include <mconfig.h>
+#include <services/globals.h>
 #include <arpa/inet.h>
 
 #ifdef TRANS_TCP_CONN_LIST
@@ -36,6 +36,7 @@ typedef struct TCPConnList
 }tcp_conn_list_t;
 #endif
 
+#ifdef TRANS_UDP_SESS_QUEUE
 typedef struct UDPSessQueue
 {
 	int head;
@@ -44,6 +45,7 @@ typedef struct UDPSessQueue
 	const int max_size;
 	struct sockaddr_in client_addrs[TRANS_UDP_SESS_MAX_SIZE];
 }udp_sess_queue_t;
+#endif
 
 #ifdef TRANS_TCP_CONN_LIST
 int addto_tcpconn_list(tcp_conn_t *list);

@@ -17,10 +17,11 @@
 #ifndef __T_POOL_H__
 #define __T_POOL_H__
 
-#include <mconfig.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
 #include <pthread.h>
-
-#ifdef THREAD_POOL_SUPPORT
 
 /* excute task list */
 typedef struct tpool_work {
@@ -42,5 +43,4 @@ typedef struct tpool {
 int tpool_create(int max_thr_num);
 void tpool_destroy();
 int tpool_add_work(void *(*routine)(void *), void *arg);
-#endif
 #endif //__TPOOL_H__

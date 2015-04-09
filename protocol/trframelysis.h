@@ -18,7 +18,7 @@
 #ifndef __TRFRAMELYSIS_H__
 #define __TRFRAMELYSIS_H__
 
-#include <mconfig.h>
+#include <services/globals.h>
 
 //traversal frame head
 #define TR_HEAD_PI	"PI:"	//gw put info to server

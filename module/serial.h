@@ -17,7 +17,7 @@
 #ifndef __SERIAL_H__
 #define __SERIAL_H__
 
-#include <mconfig.h>
+#include <services/globals.h>
 
 #ifdef SERIAL_SUPPORT
 

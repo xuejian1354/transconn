@@ -1,5 +1,5 @@
 /*
- * mconfig.h
+ * dconfig.h
  *
  * Copyright (C) 2013 loongsky development.
  *
@@ -14,21 +14,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#ifndef __MCONFIG_H__
-#define __MCONFIG_H__
+#ifndef __DCONFIG_H__
+#define __DCONFIG_H__
 
-#include <mtypes.h>
+#include <mconfig.h>
 
-//#define COMM_SERVER
-//#define COMM_CLIENT
+#define DE_PRINT_UDP_PORT
+#define DE_PRINT_TCP_PORT
+//#define DE_PRINT_SERIAL_PORT
 
-//#define TRANS_TCP_SERVER
-//#define TRANS_UDP_SERVICE
-//#define THREAD_POOL_SUPPORT
-//#define TIMER_SUPPORT
-//#define SERIAL_SUPPORT
-//#define SELECT_SUPPORT
-//#define DEBUG_CONSOLE_SUPPORT
-
-#endif //__MCONFIG_H__
+#endif //__DCONFIG_H__
 

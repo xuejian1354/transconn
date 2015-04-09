@@ -20,32 +20,19 @@
 #include <protocol/trframelysis.h>
 #include <services/mevent.h>
 
+#ifdef COMM_CLIENT
 int add_zdevice_info(dev_info_t *m_dev);
 dev_info_t *query_zdevice_info(uint16 znet_addr);
 int del_zdevice_info(uint16 znet_addr);
 
-
-static gw_info_t gw_info = 
-{
-	{0},
-	0,
-	0,
-	NULL,
-};
-
-static cli_list_t cli_list = 
-{
-	NULL,
-};
-
+static gw_info_t gw_info;
+static cli_list_t cli_list;
 
 gw_info_t *get_gateway_info()
 {
 	return &gw_info;
 }
 
-
-#ifdef COMM_CLIENT
 void analysis_zdev_frame(char *buf, int len)
 {
 	uc_t *uc; uo_t *uo; uh_t *uh;
@@ -191,7 +178,6 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 		break;
 	}
 }
-#endif
 
 int add_zdevice_info(dev_info_t *m_dev)
 {
@@ -301,3 +287,4 @@ int del_zdevice_info(uint16 znet_addr)
 
 	return -1;
 }
+#endif

@@ -17,7 +17,7 @@
 #ifndef __ETIMER_H__
 #define __ETIMER_H__
 
-#include <mconfig.h>
+#include <services/globals.h>
 
 #ifdef TIMER_SUPPORT
 

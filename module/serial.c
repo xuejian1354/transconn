@@ -188,6 +188,10 @@ int serial_init(char *dev)
 
 int serial_write(char *data, int datalen)
 {
+#ifdef DE_PRINT_SERIAL_PORT
+	DE_PRINTF("serial write:%s\n", data);
+	//PRINT_HEX(data, datalen);
+#endif
 	return write(serial_id, data, datalen);
 }
 
@@ -315,8 +319,10 @@ serial_update:
 				mcount = 0;
 
                 analysis_zdev_frame(tmpFrame, dataLen);
-				printf("serial:%s\n", tmpFrame);
+#ifdef DE_PRINT_SERIAL_PORT
+				DE_PRINTF("serial read:%s\n", tmpFrame);
 				//PRINT_HEX(tmpFrame, dataLen);
+#endif
 				memset(tmpFrame, 0, sizeof(tmpFrame));
             }
             i++;
