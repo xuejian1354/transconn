@@ -96,10 +96,23 @@ void incode_xtocs(char *dest , unsigned char *src, int len)
 }
 
 
-void incode_ctox16(short *dest, char *src)
+void incode_ctox16(unsigned short *dest, char *src)
 {
 	char dsts[2];
 	incode_ctoxs(dsts, src, 4);
 	*dest = dsts[0]<<8;
 	*dest += dsts[1];
+}
+
+
+unsigned long gen_rand(unsigned char *seed)
+{
+	int i;
+	unsigned long ra = 0;
+	for(i=0; i<8; i+=2)
+	{
+		ra += seed[i]<<(i<<2);
+	}
+
+	return ra;
 }

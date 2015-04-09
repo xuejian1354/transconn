@@ -29,6 +29,7 @@
 
 #ifdef COMM_SERVER
 #define SERVER_LISTEN_CLIENTS	0x0010
+#define GATEWAY_WATCH_EVENT		0x0020
 #endif
 
 #ifdef TIMER_SUPPORT
@@ -62,11 +63,10 @@ void *upload_event(void *p)
 	char ipaddr[24] = {0};
 	GET_SERVER_IP(ipaddr);
 
-	send_pi_udp_request(ipaddr, TRFRAME_CON, NULL, 0);
+	send_pi_udp_request(ipaddr, TRFRAME_CON, NULL, 0, NULL);
 	
 	return NULL;
 }
-
 
 void *zdev_watch(void *p)
 {
@@ -103,8 +103,27 @@ void set_zdev_check(uint16 net_addr)
 #endif
 
 #ifdef COMM_SERVER
+void *gateway_watch(void *p)
+{
+	printf("del gateway from list\n");
+	del_gateway_info(p);
+}
+
 void set_clients_listen()
 {
+}
+
+void set_gateway_check(zidentify_no_t gw_no, int rand)
+{
+	timer_event_param_t timer_param;
+
+	timer_param.resident = 0;
+	timer_param.interval = 15;
+	timer_param.count = 1;
+	timer_param.immediate = 0;
+	timer_param.arg = (void *)gw_no;
+	
+	set_mevent(rand, gateway_watch, &timer_param);
 }
 #endif
 void set_mevent(int id, timer_callback_t event_callback, timer_event_param_t *param)

@@ -26,6 +26,8 @@
 void pi_handler(struct sockaddr_in *addr, pi_t *pi);
 void bi_handler(struct sockaddr_in *addr, bi_t *bi);
 
-void send_pi_udp_request(char *ipaddr, tr_frame_type_t trfra, char *data, int len);
-void send_bi_udp_respond(char *ipaddr, tr_frame_type_t trfra, char *data, int len);
+void send_pi_udp_request(char *ipaddr, 
+	tr_frame_type_t trfra, char *data, int len, uint8 *sn);
+void send_bi_udp_respond(char *ipaddr, 
+	tr_frame_type_t trfra, char *data, int len, uint8 *sn);
 #endif  //__TRREQUEST_H__

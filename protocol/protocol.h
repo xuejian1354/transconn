@@ -37,6 +37,7 @@ typedef struct Gw_Info
 	zidentify_no_t gw_no;
 	uint16 zpanid;
 	uint16 zchannel;
+	uint32 rand;
 	pthread_mutex_t lock;
 	dev_info_t *p_dev;
 	struct Gw_Info *next;

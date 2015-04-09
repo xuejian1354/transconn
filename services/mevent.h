@@ -28,6 +28,7 @@ void set_zdev_check(uint16 net_addr);
 
 #ifdef COMM_SERVER
 void set_clients_listen();
+void set_gateway_check(zidentify_no_t gw_no, int rand);
 #endif
 
 void set_mevent(int id, 

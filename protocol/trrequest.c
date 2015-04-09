@@ -36,11 +36,12 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 
 			if(p_gw == NULL)
 			{
-				send_pi_udp_request(ipaddr, TRFRAME_GET, NULL, 0);
+				send_pi_udp_request(ipaddr, TRFRAME_GET, NULL, 0, pi->sn);
 			}
 			else
 			{
-				send_bi_udp_respond(ipaddr, TRFRAME_REG, NULL, 0);
+				set_gateway_check(p_gw->gw_no, p_gw->rand);
+				send_bi_udp_respond(ipaddr, TRFRAME_REG, NULL, 0, pi->sn);
 			}
 #endif
 			break;
@@ -48,10 +49,12 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 		case TRFRAME_GET:
 #ifdef COMM_CLIENT
 			p_gw = get_gateway_info();
+			p_gw->rand = gen_rand(pi->sn);
+			
 			gw_info_t mgw_info = *p_gw;
 			mgw_info.p_dev = NULL;
 			mgw_info.next = NULL;
-			send_bi_udp_respond(ipaddr, TRFRAME_PUT, (char *)&mgw_info, sizeof(mgw_info));
+			send_bi_udp_respond(ipaddr, TRFRAME_PUT, (char *)&mgw_info, sizeof(mgw_info), NULL);
 #endif
 			break;
 		}
@@ -77,7 +80,9 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 		{
 		case TRFRAME_REG:
 #ifdef COMM_CLIENT
-			printf("client conn respond\n");
+			p_gw = get_gateway_info();
+			p_gw->rand = gen_rand(bi->sn);
+			printf("client conn respond:%x\n", p_gw->rand);
 #endif
 			break;
 			
@@ -100,7 +105,8 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 	}
 }
 
-void send_pi_udp_request(char *ipaddr, tr_frame_type_t trfra, char *data, int len)
+void send_pi_udp_request(char *ipaddr, 
+	tr_frame_type_t trfra, char *data, int len, uint8 *sn)
 {
 	pi_t pi;
 	tr_buffer_t *buffer;
@@ -120,7 +126,7 @@ void send_pi_udp_request(char *ipaddr, tr_frame_type_t trfra, char *data, int le
 		
 	case TRFRAME_GET:
 #ifdef COMM_SERVER
-		memset(pi.sn, 0, sizeof(zidentify_no_t));
+		memcpy(pi.sn, sn, sizeof(zidentify_no_t));
 		break;
 #else
 		return;
@@ -148,7 +154,8 @@ void send_pi_udp_request(char *ipaddr, tr_frame_type_t trfra, char *data, int le
 }
 
 
-void send_bi_udp_respond(char *ipaddr, tr_frame_type_t trfra, char *data, int len)
+void send_bi_udp_respond(char *ipaddr, 
+	tr_frame_type_t trfra, char *data, int len, uint8 *sn)
 {
 	bi_t bi;
 	tr_buffer_t *buffer;
@@ -160,7 +167,7 @@ void send_bi_udp_respond(char *ipaddr, tr_frame_type_t trfra, char *data, int le
 
 	case TRFRAME_REG:
 #ifdef COMM_SERVER
-		memset(bi.sn, 0, sizeof(zidentify_no_t));
+		memcpy(bi.sn, sn, sizeof(zidentify_no_t));
 		break;
 #else
 		return;
