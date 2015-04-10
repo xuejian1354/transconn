@@ -38,12 +38,15 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 
 			if(p_gw == NULL)
 			{
-				send_pi_udp_request(ipaddr, TRFRAME_GET, NULL, 0, pi->sn);
+				send_pi_udp_request(ipaddr, TRFRAME_GET, ipaddr, strlen(ipaddr), pi->sn);
 			}
 			else
 			{
+				memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
+				memcpy(p_gw->ipaddr, pi->data, pi->data_len);
+				
 				set_gateway_check(p_gw->gw_no, p_gw->rand);
-				send_bi_udp_respond(ipaddr, TRFRAME_REG, NULL, 0, pi->sn);
+				send_bi_udp_respond(ipaddr, TRFRAME_REG, ipaddr, strlen(ipaddr), pi->sn);
 			}
 #endif
 			break;
@@ -52,9 +55,13 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 #ifdef COMM_CLIENT
 			p_gw = get_gateway_info();
 			p_gw->rand = gen_rand(pi->sn);
+			memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
+			memcpy(p_gw->ipaddr, pi->data, pi->data_len);
+			p_gw->ip_len = pi->data_len;
 			
 			buffer = get_gateway_buffer_alloc(p_gw);
-			send_bi_udp_respond(ipaddr, TRFRAME_PUT_GW, buffer, GATEWAY_BUFFER_SIZE, NULL);
+			send_bi_udp_respond(ipaddr, 
+				TRFRAME_PUT_GW, buffer, GATEWAY_BUFFER_FIX_SIZE+p_gw->ip_len, NULL);
 			get_gateway_buffer_free(buffer);
 
 			p_dev = p_gw->p_dev;
@@ -94,6 +101,9 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 #ifdef COMM_CLIENT
 			p_gw = get_gateway_info();
 			p_gw->rand = gen_rand(bi->sn);
+			memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
+			memcpy(p_gw->ipaddr, bi->data, bi->data_len);
+			p_gw->ip_len = bi->data_len;
 			printf("client conn respond:%x\n", p_gw->rand);
 #endif
 			break;
@@ -139,6 +149,37 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 	case TRTYPE_TCP:
 		break;
 	}
+}
+
+
+void gp_handler(struct sockaddr_in *addr, gp_t *gp)
+{
+	char ipaddr[24] = {0};
+	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	
+#ifdef COMM_SERVER
+	gw_info_t *p_gw = get_gateway_list()->p_gw;
+	while(p_gw != NULL)
+	{
+		dev_info_t *p_dev = p_gw->p_dev;
+		while(p_dev != NULL)
+		{
+			if(!memcmp(p_dev->zidentity_no, gp->zidentify_no, sizeof(zidentify_no_t)))
+			{
+				goto dev_match;
+			}
+		}
+	}
+
+	return;
+
+dev_match:
+	send_gp_udp_request(p_gw->ipaddr, ipaddr, strlen(ipaddr));
+	return;
+#endif
+
+#ifdef COMM_CLIENT
+#endif
 }
 
 void send_pi_udp_request(char *ipaddr, 
@@ -249,3 +290,7 @@ void send_bi_udp_respond(char *ipaddr,
 	get_trbuffer_free(buffer);
 }
 
+void send_gp_udp_request(char *ipaddr, char *data, int len)
+{
+	
+}

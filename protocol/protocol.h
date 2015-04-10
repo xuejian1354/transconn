@@ -22,7 +22,7 @@
 #include <arpa/inet.h>
 #include <protocol/framelysis.h>
 
-#define GATEWAY_BUFFER_SIZE		32
+#define GATEWAY_BUFFER_FIX_SIZE		32
 #define ZDEVICE_BUFFER_SIZE		23
 
 typedef struct Dev_Info
@@ -41,6 +41,8 @@ typedef struct Gw_Info
 	uint16 zpanid;
 	uint16 zchannel;
 	uint32 rand;
+	uint8 ipaddr[24];
+	uint8 ip_len;
 	pthread_mutex_t lock;
 	dev_info_t *p_dev;
 	struct Gw_Info *next;

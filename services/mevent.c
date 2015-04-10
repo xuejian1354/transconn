@@ -62,7 +62,9 @@ void *upload_event(void *p)
 	char ipaddr[24] = {0};
 	GET_SERVER_IP(ipaddr);
 
-	send_pi_udp_request(ipaddr, TRFRAME_CON, NULL, 0, NULL);
+	gw_info_t *gw_info = get_gateway_info();
+
+	send_pi_udp_request(ipaddr, TRFRAME_CON, gw_info->ipaddr, gw_info->ip_len, NULL);
 	
 	return NULL;
 }

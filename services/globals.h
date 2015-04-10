@@ -64,7 +64,7 @@ st(															\
 )
 
 typedef byte zidentify_no_t[8];
-typedef byte cidentify_no_t[16];
+typedef byte cidentify_no_t[8];
 
 int mach_init();
 void event_init();

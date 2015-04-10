@@ -27,6 +27,7 @@ int mach_init()
 	memset(p_gw_info->gw_no, 0, sizeof(p_gw_info->gw_no));
 	p_gw_info->zpanid = 0;
 	p_gw_info->zchannel = 0;
+	p_gw_info->ip_len = 0;
 	p_gw_info->p_dev = NULL;
 	p_gw_info->next = NULL;
 	

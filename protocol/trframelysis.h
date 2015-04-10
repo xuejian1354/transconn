@@ -41,8 +41,8 @@
 
 #define TR_PI_DATA_FIX_LEN	25
 #define TR_BI_DATA_FIX_LEN	25
-#define TR_GP_DATA_FIX_LEN	31
-#define TR_RP_DATA_FIX_LEN	36
+#define TR_GP_DATA_FIX_LEN	39
+#define TR_RP_DATA_FIX_LEN	39
 #define TR_GD_DATA_FIX_LEN	7
 #define TR_RD_DATA_FIX_LEN	7
 #define TR_DC_DATA_FIX_LEN	7
@@ -86,7 +86,7 @@ typedef struct
 	uint8 sn[8];
 	tr_trans_type_t trans_type;
 	tr_frame_type_t fr_type;
-	uint16 data_len;
+	int data_len;
 	uint8 *data;
 }pi_t;
 
@@ -103,23 +103,11 @@ typedef struct
 
 typedef struct
 {
-	uint8 head[3];   //gp:
 	zidentify_no_t zidentify_no;
 	cidentify_no_t cidentify_no;
-	uint8 tail[4];    //:O/r/n
-}gp_t;
-
-
-typedef struct
-{
-	uint8 head[3];   //rp:
-	zidentify_no_t zidentify_no;
-	cidentify_no_t cidentify_no;
-	uint8 trans_type;
-	uint8 ipaddr[16];
-	uint8 port[4];
-	uint8 tail[4];    //:O/r/n
-}rp_t;
+	uint16 data_len;
+	uint8 *data;
+}gp_t,rp_t;
 
 
 typedef struct

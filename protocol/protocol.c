@@ -52,11 +52,12 @@ gw_list_t *get_gateway_list()
 
 uint8 *get_gateway_buffer_alloc(gw_info_t *gw_info)
 {
-	uint8 *gw_buffer = (uint8 *)calloc(1, GATEWAY_BUFFER_SIZE);
+	uint8 *gw_buffer = (uint8 *)calloc(1, GATEWAY_BUFFER_FIX_SIZE+gw_info->ip_len);
 	incode_xtocs(gw_buffer, gw_info->gw_no, 8);
 	incode_xtoc16(gw_buffer+16, gw_info->zpanid);
 	incode_xtoc16(gw_buffer+20, gw_info->zchannel);
 	incode_xtoc32(gw_buffer+24, gw_info->rand);
+	memcpy(gw_info->ipaddr+32, gw_info->ipaddr, gw_info->ip_len);
 
 	return gw_buffer;
 }
@@ -69,7 +70,7 @@ void get_gateway_buffer_free(uint8 *p)
 
 gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
 {
-	if(length < GATEWAY_BUFFER_SIZE || length > TR_BUFFER_SIZE)
+	if(length < GATEWAY_BUFFER_FIX_SIZE || length > TR_BUFFER_SIZE)
 	{
 		return NULL;
 	}
@@ -79,7 +80,9 @@ gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
 	incode_ctox16(&gw_info->zpanid, buffer+16);
 	incode_ctox16(&gw_info->zchannel, buffer+20);
 	incode_ctox32(&gw_info->rand, buffer+24);
-
+	gw_info->ip_len = length-GATEWAY_BUFFER_FIX_SIZE;
+	memset(gw_info->ipaddr, 0, sizeof(gw_info->ipaddr));
+	memcpy(gw_info->ipaddr, buffer+32, gw_info->ip_len);
 	if(pthread_mutex_init(&gw_info->lock, NULL) != 0)
     {
 		free(gw_info);
@@ -293,7 +296,8 @@ void analysis_zdev_frame(char *buf, int len)
 		gw_info.rand = gen_rand(gw_info.gw_no);
 		
 		buffer = get_gateway_buffer_alloc(&gw_info);
-		send_bi_udp_respond(ipaddr, TRFRAME_PUT_GW, buffer, GATEWAY_BUFFER_SIZE, NULL);
+		send_bi_udp_respond(ipaddr, 
+			TRFRAME_PUT_GW, buffer, GATEWAY_BUFFER_FIX_SIZE+gw_info.ip_len, NULL);
 		get_gateway_buffer_free(buffer);
 	
 		get_frame_free(HEAD_UC, uc);
@@ -473,6 +477,7 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 		
 	case TRHEAD_GP:
 		gp = (gp_t *)p;
+		gp_handler(addr, gp);
 		get_trframe_free(TRHEAD_GP, p);
 		break;
 		
@@ -531,6 +536,10 @@ int add_gateway_info(gw_info_t *m_gw)
 		{
 			t_gw->zpanid = m_gw->zpanid;
 			t_gw->zchannel = m_gw->zchannel;
+			t_gw->rand = m_gw->rand;
+			t_gw->ip_len = m_gw->ip_len;
+			memset(t_gw->ipaddr, 0, sizeof(t_gw->ipaddr));
+			memcpy(t_gw->ipaddr, m_gw->ipaddr, m_gw->ip_len);
 
 			if(pre_gw != NULL)
 			{

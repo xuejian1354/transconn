@@ -30,4 +30,5 @@ void send_pi_udp_request(char *ipaddr,
 	tr_frame_type_t trfra, char *data, int len, uint8 *sn);
 void send_bi_udp_respond(char *ipaddr, 
 	tr_frame_type_t trfra, char *data, int len, uint8 *sn);
+void send_gp_udp_request(char *ipaddr, char *data, int len);
 #endif  //__TRREQUEST_H__
