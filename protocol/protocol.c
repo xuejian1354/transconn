@@ -99,12 +99,12 @@ void get_gateway_frame_free(gw_info_t *p)
 	{
 		dev_info_t *pre_dev = p->p_dev;
 		dev_info_t *pdev = p->p_dev;
-		
-		while(pdev->next != NULL)
+
+		while(pdev != NULL)
 		{
+			pre_dev = pdev;
 			pdev = pdev->next;
 			free(pre_dev);
-			pre_dev = pdev;
 		}
 	}
 	
@@ -268,7 +268,11 @@ void analysis_zdev_frame(char *buf, int len)
 	ur_t *ur; de_t *de;
 	
 	dev_info_t *dev_info;
+	uint8 *buffer;
 	uint16 znet_addr;
+
+	char ipaddr[24] = {0};
+	GET_SERVER_IP(ipaddr);
 	
 	fr_head_type_t head_type = get_frhead_from_str(buf);
 	
@@ -286,6 +290,12 @@ void analysis_zdev_frame(char *buf, int len)
 		incode_ctoxs(gw_info.gw_no, uc->ext_addr, 16);
 		incode_ctox16(&gw_info.zpanid, uc->panid);
 		incode_ctox16(&gw_info.zchannel, uc->channel);
+		gw_info.rand = gen_rand(gw_info.gw_no);
+		
+		buffer = get_gateway_buffer_alloc(&gw_info);
+		send_bi_udp_respond(ipaddr, TRFRAME_PUT_GW, buffer, GATEWAY_BUFFER_SIZE, NULL);
+		get_gateway_buffer_free(buffer);
+	
 		get_frame_free(HEAD_UC, uc);
 		break;
 		
@@ -303,6 +313,13 @@ void analysis_zdev_frame(char *buf, int len)
 		{
 			free(dev_info);
 		}
+		else
+		{
+			buffer = get_zdev_buffer_alloc(dev_info);
+			send_bi_udp_respond(ipaddr, TRFRAME_PUT_DEV, buffer, ZDEVICE_BUFFER_SIZE, NULL);
+			get_zdev_buffer_free(buffer);
+		}
+		
 		get_frame_free(HEAD_UO, uo);
 		break;
 		
@@ -572,7 +589,7 @@ int del_gateway_info(zidentify_no_t gw_no)
 			t_gw = t_gw->next;
 		}
 		else
-		{
+		{	
 			pthread_mutex_lock(&gw_list.lock);
 			if(pre_gw != NULL)
 			{
@@ -583,6 +600,16 @@ int del_gateway_info(zidentify_no_t gw_no)
 				gw_list.p_gw = t_gw->next;
 			}
 			pthread_mutex_unlock(&gw_list.lock);
+
+			dev_info_t *pre_dev = t_gw->p_dev;
+			dev_info_t *pdev = t_gw->p_dev;
+			
+			while(pdev != NULL)
+			{
+				pre_dev = pdev;
+				pdev = pdev->next;
+				free(pre_dev);
+			}
 
 			free(t_gw);
 			return 0;

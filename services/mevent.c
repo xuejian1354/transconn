@@ -42,8 +42,7 @@ void *zdev_watch(void *p);
 #ifdef COMM_CLIENT
 void *gateway_refresh(void *p)
 {
-	char *gw_refresh = "D:/SR/0000:O\r\n";
-	serial_write(gw_refresh, 14);
+	serial_write("D:/BR/0000:O\r\n", 14);
 
 	timer_event_param_t timer_param;
 	

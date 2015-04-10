@@ -100,19 +100,24 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 			
 		case TRFRAME_PUT_GW:
 #ifdef COMM_SERVER
-			printf("server get gw info\n");
-			p_gw = get_gateway_frame_alloc(bi->data, bi->data_len);
-			
-			if(p_gw != NULL && add_gateway_info(p_gw) != 0)
+			p_gw = get_gateway_frame_alloc(bi->data, bi->data_len);			
+			if(p_gw != NULL)
 			{
-				get_gateway_frame_free(p_gw);
+				set_gateway_check(p_gw->gw_no, p_gw->rand);
+				if(add_gateway_info(p_gw) != 0)
+				{
+					get_gateway_frame_free(p_gw);
+				}
+				else
+				{
+					printf("server get gw info\n");
+				}
 			}
 #endif
 			break;
 
 		case TRFRAME_PUT_DEV:
 #ifdef COMM_SERVER
-			printf("server get dev info\n");
 			if((p_gw=query_gateway_info(bi->sn)) != NULL)
 			{
 				p_dev = get_zdev_frame_alloc(bi->data, bi->data_len);
@@ -120,6 +125,10 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 				if(p_dev != NULL && add_zdev_info(p_gw, p_dev) != 0)
 				{
 					get_zdev_frame_free(p_dev);
+				}
+				else
+				{
+					printf("server get dev info\n");
 				}
 			}
 #endif
