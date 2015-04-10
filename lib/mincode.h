@@ -25,6 +25,9 @@ unsigned char atox(char *src, int len);
 void incode_ctoxs(unsigned char *dest , char *src, int len);
 void incode_xtocs(char *dest , unsigned char *src, int len);
 void incode_ctox16(unsigned short *dest, char *src);
-unsigned long gen_rand(unsigned char *seed);
+void incode_xtoc16(char *dest, unsigned short src);
+void incode_ctox32(unsigned int *dest, char *src);
+void incode_xtoc32(char *dest, unsigned int src);
+unsigned int gen_rand(unsigned char *seed);
 
 #endif //  __INCODE_H __

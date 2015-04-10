@@ -33,10 +33,11 @@
 #define TR_TYPE_UDP	'1'
 #define TR_TYPE_TCP	'2'
 
-#define TR_FRAME_CON	'1'
-#define TR_FRAME_REG	'2'
-#define TR_FRAME_GET	'3'
-#define TR_FRAME_PUT	'4'
+#define TR_FRAME_CON		'1'
+#define TR_FRAME_REG		'2'
+#define TR_FRAME_GET		'3'
+#define TR_FRAME_PUT_GW		'4'
+#define TR_FRAME_PUT_DEV	'5'
 
 #define TR_PI_DATA_FIX_LEN	25
 #define TR_BI_DATA_FIX_LEN	25
@@ -75,7 +76,8 @@ typedef enum
 	TRFRAME_CON,
 	TRFRAME_REG,
 	TRFRAME_GET,
-	TRFRAME_PUT,
+	TRFRAME_PUT_GW,
+	TRFRAME_PUT_DEV,
 	TRFRAME_NONE,
 }tr_frame_type_t;
 

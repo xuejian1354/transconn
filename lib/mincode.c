@@ -104,11 +104,42 @@ void incode_ctox16(unsigned short *dest, char *src)
 	*dest += dsts[1];
 }
 
+void incode_xtoc16(char *dest, unsigned short src)
+{
+	unsigned char val[2];
+	val[0] = (src>>8);
+	val[1] = (src&0xFF);
+	incode_xtocs(dest, val, 2);
+}
 
-unsigned long gen_rand(unsigned char *seed)
+void incode_ctox32(unsigned int *dest, char *src)
 {
 	int i;
-	unsigned long ra = 0;
+	char dsts[4];
+	incode_ctoxs(dsts, src, 8);
+
+	*dest = 0;
+	for(i=0; i<4; i++)
+	{
+		*dest += ((*dest)<<8)+dsts[i];
+	}
+}
+
+void incode_xtoc32(char *dest, unsigned int src)
+{
+	unsigned char val[4];
+	val[0] = ((src>>24)&0xFF);
+	val[1] = ((src>>16)&0xFF);
+	val[2] = ((src>>8)&0xFF);
+	val[3] = (src&0xFF);
+	
+	incode_xtocs(dest, val, 4);
+}
+
+unsigned int gen_rand(unsigned char *seed)
+{
+	int i;
+	unsigned int ra = 0;
 	for(i=0; i<8; i+=2)
 	{
 		ra += seed[i]<<(i<<2);

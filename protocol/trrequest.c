@@ -21,6 +21,8 @@
 void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 {
 	gw_info_t *p_gw;
+	dev_info_t *p_dev;
+	uint8 *buffer;
 
 	char ipaddr[24] = {0};
 	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
@@ -51,10 +53,19 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 			p_gw = get_gateway_info();
 			p_gw->rand = gen_rand(pi->sn);
 			
-			gw_info_t mgw_info = *p_gw;
-			mgw_info.p_dev = NULL;
-			mgw_info.next = NULL;
-			send_bi_udp_respond(ipaddr, TRFRAME_PUT, (char *)&mgw_info, sizeof(mgw_info), NULL);
+			buffer = get_gateway_buffer_alloc(p_gw);
+			send_bi_udp_respond(ipaddr, TRFRAME_PUT_GW, buffer, GATEWAY_BUFFER_SIZE, NULL);
+			get_gateway_buffer_free(buffer);
+
+			p_dev = p_gw->p_dev;
+			while(p_dev != NULL)
+			{
+				buffer = get_zdev_buffer_alloc(p_dev);
+				send_bi_udp_respond(ipaddr, TRFRAME_PUT_DEV, buffer, ZDEVICE_BUFFER_SIZE, NULL);
+				get_zdev_buffer_free(buffer);
+			
+				p_dev = p_dev->next;
+			}
 #endif
 			break;
 		}
@@ -69,6 +80,7 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 {
 	gw_info_t *p_gw;
+	dev_info_t *p_dev;
 
 	char ipaddr[24] = {0};
 	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
@@ -86,14 +98,29 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 #endif
 			break;
 			
-		case TRFRAME_PUT:
+		case TRFRAME_PUT_GW:
 #ifdef COMM_SERVER
 			printf("server get gw info\n");
-			p_gw = calloc(1, sizeof(gw_info_t));
-			memcpy(p_gw, bi->data, sizeof(p_gw));
-			if(add_gateway_info(p_gw) != 0)
+			p_gw = get_gateway_frame_alloc(bi->data, bi->data_len);
+			
+			if(p_gw != NULL && add_gateway_info(p_gw) != 0)
 			{
-				free(p_gw);
+				get_gateway_frame_free(p_gw);
+			}
+#endif
+			break;
+
+		case TRFRAME_PUT_DEV:
+#ifdef COMM_SERVER
+			printf("server get dev info\n");
+			if((p_gw=query_gateway_info(bi->sn)) != NULL)
+			{
+				p_dev = get_zdev_frame_alloc(bi->data, bi->data_len);
+			
+				if(p_dev != NULL && add_zdev_info(p_gw, p_dev) != 0)
+				{
+					get_zdev_frame_free(p_dev);
+				}
 			}
 #endif
 			break;
@@ -132,7 +159,10 @@ void send_pi_udp_request(char *ipaddr,
 		return;
 #endif
 		
-	case TRFRAME_PUT:
+	case TRFRAME_PUT_GW:
+		return;
+
+	case TRFRAME_PUT_DEV:
 		return;
 
 	default:
@@ -176,7 +206,15 @@ void send_bi_udp_respond(char *ipaddr,
 	case TRFRAME_GET:
 		return;
 		
-	case TRFRAME_PUT:
+	case TRFRAME_PUT_GW:
+#ifdef COMM_CLIENT
+		memcpy(bi.sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+		break;
+#else
+		return;
+#endif
+
+	case TRFRAME_PUT_DEV:
 #ifdef COMM_CLIENT
 		memcpy(bi.sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 		break;

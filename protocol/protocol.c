@@ -50,6 +50,217 @@ gw_list_t *get_gateway_list()
 }
 #endif
 
+uint8 *get_gateway_buffer_alloc(gw_info_t *gw_info)
+{
+	uint8 *gw_buffer = (uint8 *)calloc(1, GATEWAY_BUFFER_SIZE);
+	incode_xtocs(gw_buffer, gw_info->gw_no, 8);
+	incode_xtoc16(gw_buffer+16, gw_info->zpanid);
+	incode_xtoc16(gw_buffer+20, gw_info->zchannel);
+	incode_xtoc32(gw_buffer+24, gw_info->rand);
+
+	return gw_buffer;
+}
+
+
+void get_gateway_buffer_free(uint8 *p)
+{
+	free(p);
+}
+
+gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
+{
+	if(length < GATEWAY_BUFFER_SIZE || length > TR_BUFFER_SIZE)
+	{
+		return NULL;
+	}
+
+	gw_info_t *gw_info = (gw_info_t *)calloc(1, sizeof(gw_info_t));
+	incode_ctoxs(gw_info->gw_no, buffer, 16);
+	incode_ctox16(&gw_info->zpanid, buffer+16);
+	incode_ctox16(&gw_info->zchannel, buffer+20);
+	incode_ctox32(&gw_info->rand, buffer+24);
+
+	if(pthread_mutex_init(&gw_info->lock, NULL) != 0)
+    {
+		free(gw_info);
+        return NULL;
+    }
+	
+	gw_info->p_dev = NULL;
+	gw_info->next = NULL;
+
+	return gw_info;
+}
+
+
+void get_gateway_frame_free(gw_info_t *p)
+{
+	if(p->p_dev != NULL)
+	{
+		dev_info_t *pre_dev = p->p_dev;
+		dev_info_t *pdev = p->p_dev;
+		
+		while(pdev->next != NULL)
+		{
+			pdev = pdev->next;
+			free(pre_dev);
+			pre_dev = pdev;
+		}
+	}
+	
+	free(p);
+}
+
+
+uint8 *get_zdev_buffer_alloc(dev_info_t *dev_info)
+{
+	uint8 *dev_buffer = (uint8 *)calloc(1, ZDEVICE_BUFFER_SIZE);
+	incode_xtocs(dev_buffer, dev_info->zidentity_no, 8);
+	incode_xtoc16(dev_buffer+16, dev_info->znet_addr);
+	get_frapp_type_to_str(dev_buffer+20, dev_info->zapp_type);
+	dev_buffer[22] = get_frnet_type_to_ch(dev_info->znet_type);
+
+	return dev_buffer;
+}
+
+
+void get_zdev_buffer_free(uint8 *p)
+{
+	free(p);
+}
+
+dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length)
+{
+	if(length < ZDEVICE_BUFFER_SIZE || length > TR_BUFFER_SIZE)
+	{
+		return NULL;
+	}
+
+	dev_info_t *dev_info = (dev_info_t *)calloc(1, sizeof(dev_info_t));
+	incode_ctoxs(dev_info->zidentity_no, buffer, 16);
+	incode_ctox16(&dev_info->znet_addr, buffer+16);
+	dev_info->zapp_type = get_frapp_type_from_str(buffer+20);
+	dev_info->znet_type = get_frnet_type_from_str(buffer[22]);
+	dev_info->next = NULL;
+
+	return dev_info;
+}
+
+
+void get_zdev_frame_free(dev_info_t *p)
+{	
+	free(p);
+}
+
+int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev)
+{
+	dev_info_t *pre_dev =  NULL;
+	dev_info_t *t_dev = gw_info->p_dev;
+
+	if(m_dev == NULL)
+	{
+		return -1;
+	}
+	else
+	{
+		m_dev->next = NULL;
+	}
+
+	while(t_dev != NULL)
+	{
+		if(t_dev->znet_addr != m_dev->znet_addr)
+		{
+			pre_dev = t_dev;
+			t_dev = t_dev->next;
+		}
+		else
+		{
+			if(memcmp(t_dev->zidentity_no, m_dev->zidentity_no, 8)
+				|| t_dev->zapp_type != m_dev->zapp_type
+				|| t_dev->znet_type != m_dev->znet_type)
+			{
+				memcpy(t_dev->zidentity_no, m_dev->zidentity_no, 8);
+				t_dev->zapp_type = m_dev->zapp_type;
+				t_dev->znet_type = m_dev->znet_type;
+			}
+
+			if(pre_dev != NULL)
+			{
+				pthread_mutex_lock(&gw_info->lock);
+				pre_dev->next = t_dev->next;
+				t_dev->next = gw_info->p_dev;
+				gw_info->p_dev = t_dev;
+				pthread_mutex_unlock(&gw_info->lock);
+			}
+			
+			return 1;
+		}
+	}
+
+	pthread_mutex_lock(&gw_info->lock);
+	m_dev->next = gw_info->p_dev;
+	gw_info->p_dev = m_dev;
+	pthread_mutex_unlock(&gw_info->lock);
+
+	return 0;
+}
+
+
+
+dev_info_t *query_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
+{
+	dev_info_t *t_dev = gw_info->p_dev;
+
+
+	while(t_dev != NULL)
+	{
+		if(t_dev->znet_addr != znet_addr)
+		{
+			t_dev = t_dev->next;
+		}
+		else
+		{
+			return t_dev;
+		}
+	}
+
+	return NULL;
+}
+
+int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
+{
+	dev_info_t *pre_dev =  NULL;
+	dev_info_t *t_dev = gw_info->p_dev;
+
+
+	while(t_dev != NULL)
+	{
+		if(t_dev->znet_addr != znet_addr)
+		{
+			pre_dev = t_dev;
+			t_dev = t_dev->next;
+		}
+		else
+		{
+			pthread_mutex_lock(&gw_info->lock);
+			if(pre_dev != NULL)
+			{
+				pre_dev->next = t_dev->next;
+			}
+			else
+			{
+				gw_info->p_dev = t_dev->next;
+			}
+			pthread_mutex_unlock(&gw_info->lock);
+
+			free(t_dev);
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
 #ifdef COMM_CLIENT
 void analysis_zdev_frame(char *buf, int len)
 {
@@ -84,7 +295,7 @@ void analysis_zdev_frame(char *buf, int len)
 		incode_ctoxs(dev_info->zidentity_no, uo->ext_addr, 16);
 		incode_ctox16(&dev_info->znet_addr, uo->short_addr);
 		dev_info->zapp_type = get_frapp_type_from_str(uo->ed_type);
-		dev_info->znet_type = get_frnet_type_from_str(&uo->type);
+		dev_info->znet_type = get_frnet_type_from_str(uo->type);
 
 		set_zdev_check(dev_info->znet_addr);
 		
@@ -137,111 +348,17 @@ void analysis_zdev_frame(char *buf, int len)
 
 int add_zdevice_info(dev_info_t *m_dev)
 {
-	dev_info_t *pre_dev =  NULL;
-	dev_info_t *t_dev = gw_info.p_dev;
-
-	if(m_dev == NULL)
-	{
-		return -1;
-	}
-	else
-	{
-		m_dev->next = NULL;
-	}
-
-	while(t_dev != NULL)
-	{
-		if(t_dev->znet_addr != m_dev->znet_addr)
-		{
-			pre_dev = t_dev;
-			t_dev = t_dev->next;
-		}
-		else
-		{
-			if(memcmp(t_dev->zidentity_no, m_dev->zidentity_no, 8)
-				|| t_dev->zapp_type != m_dev->zapp_type
-				|| t_dev->znet_type != m_dev->znet_type)
-			{
-				memcpy(t_dev->zidentity_no, m_dev->zidentity_no, 8);
-				t_dev->zapp_type = m_dev->zapp_type;
-				t_dev->znet_type = m_dev->znet_type;
-			}
-
-			if(pre_dev != NULL)
-			{
-				pthread_mutex_lock(&gw_info.lock);
-				pre_dev->next = t_dev->next;
-				t_dev->next = gw_info.p_dev;
-				gw_info.p_dev = t_dev;
-				pthread_mutex_unlock(&gw_info.lock);
-			}
-			
-			return 1;
-		}
-	}
-
-	pthread_mutex_lock(&gw_info.lock);
-	m_dev->next = gw_info.p_dev;
-	gw_info.p_dev = m_dev;
-	pthread_mutex_unlock(&gw_info.lock);
-
-	return 0;
+	return add_zdev_info(&gw_info, m_dev);
 }
-
-
 
 dev_info_t *query_zdevice_info(uint16 znet_addr)
 {
-	dev_info_t *t_dev = gw_info.p_dev;
-
-
-	while(t_dev != NULL)
-	{
-		if(t_dev->znet_addr != znet_addr)
-		{
-			t_dev = t_dev->next;
-		}
-		else
-		{
-			return t_dev;
-		}
-	}
-
-	return NULL;
+	return query_zdev_info(&gw_info, znet_addr);
 }
 
 int del_zdevice_info(uint16 znet_addr)
 {
-	dev_info_t *pre_dev =  NULL;
-	dev_info_t *t_dev = gw_info.p_dev;
-
-
-	while(t_dev != NULL)
-	{
-		if(t_dev->znet_addr != znet_addr)
-		{
-			pre_dev = t_dev;
-			t_dev = t_dev->next;
-		}
-		else
-		{
-			pthread_mutex_lock(&gw_info.lock);
-			if(pre_dev != NULL)
-			{
-				pre_dev->next = t_dev->next;
-			}
-			else
-			{
-				gw_info.p_dev = t_dev->next;
-			}
-			pthread_mutex_unlock(&gw_info.lock);
-
-			free(t_dev);
-			return 0;
-		}
-	}
-
-	return -1;
+	return del_zdev_info(&gw_info, znet_addr);
 }
 #endif
 

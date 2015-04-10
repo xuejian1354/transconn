@@ -22,6 +22,9 @@
 #include <arpa/inet.h>
 #include <protocol/framelysis.h>
 
+#define GATEWAY_BUFFER_SIZE		32
+#define ZDEVICE_BUFFER_SIZE		23
+
 typedef struct Dev_Info
 {
 	zidentify_no_t zidentity_no;
@@ -67,6 +70,21 @@ typedef struct
 gw_info_t *get_gateway_info();
 void analysis_zdev_frame(char *buf, int len);
 #endif
+
+uint8 *get_gateway_buffer_alloc(gw_info_t *gw_info);
+void get_gateway_buffer_free(uint8 *p);
+gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length);
+void get_gateway_frame_free(gw_info_t *p);
+
+uint8 *get_zdev_buffer_alloc(dev_info_t *dev_info);
+void get_zdev_buffer_free(uint8 *p);
+dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length);
+void get_zdev_frame_free(dev_info_t *p);
+
+int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev);
+dev_info_t *query_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
+int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
+
 
 #ifdef COMM_SERVER
 int add_gateway_info(gw_info_t *m_gw);
