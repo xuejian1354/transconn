@@ -130,7 +130,18 @@ typedef struct
 	uint8 size;
 }tr_buffer_t;
 
+tr_head_type_t get_trhead_from_str(char *head);
+
+tr_trans_type_t get_trtrans_from_ch(char trans);
+char get_trtrans_to_ch(tr_trans_type_t trans);
+
+tr_frame_type_t get_trframe_from_ch(char trfra);
+char get_trframe_to_ch(tr_frame_type_t trfra);
+
+
 void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length);
+void get_trframe_free(tr_head_type_t head_type, void *p);
+
 tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame);
 void get_trbuffer_free(tr_buffer_t *p);
  

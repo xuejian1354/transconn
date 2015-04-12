@@ -131,20 +131,6 @@ fr_app_type_t get_frapp_type_from_str(char *app_type)
 	return FRAPP_NONE;
 }
 
-fr_net_type_t get_frnet_type_from_str(char net_type)
-{
-	if(FR_DEV_ROUTER == net_type)
-	{
-		return FRNET_ROUTER;
-	}
-	else if(FR_DEV_ENDDEV == net_type)
-	{
-		return FRNET_ENDDEV;
-	}
-
-	return FRNET_NONE;
-}
-
 int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 {
 	switch(app_type)
@@ -191,6 +177,20 @@ int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 	}
 
 	return 0;
+}
+
+fr_net_type_t get_frnet_type_from_str(char net_type)
+{
+	if(FR_DEV_ROUTER == net_type)
+	{
+		return FRNET_ROUTER;
+	}
+	else if(FR_DEV_ENDDEV == net_type)
+	{
+		return FRNET_ENDDEV;
+	}
+
+	return FRNET_NONE;
 }
 
 char get_frnet_type_to_ch(fr_net_type_t net_type)

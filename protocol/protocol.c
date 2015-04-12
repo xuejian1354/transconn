@@ -22,12 +22,6 @@
 #include <services/mevent.h>
 
 #ifdef COMM_CLIENT
-int add_zdevice_info(dev_info_t *m_dev);
-dev_info_t *query_zdevice_info(uint16 znet_addr);
-int del_zdevice_info(uint16 znet_addr);
-#endif
-
-#ifdef COMM_CLIENT
 static gw_info_t gw_info;
 static cli_list_t cli_list;
 #endif
@@ -49,6 +43,47 @@ gw_list_t *get_gateway_list()
 	return &gw_list;
 }
 #endif
+
+uint8 *get_zdev_buffer_alloc(dev_info_t *dev_info)
+{
+	uint8 *dev_buffer = (uint8 *)calloc(1, ZDEVICE_BUFFER_SIZE);
+	incode_xtocs(dev_buffer, dev_info->zidentity_no, 8);
+	incode_xtoc16(dev_buffer+16, dev_info->znet_addr);
+	get_frapp_type_to_str(dev_buffer+20, dev_info->zapp_type);
+	dev_buffer[22] = get_frnet_type_to_ch(dev_info->znet_type);
+
+	return dev_buffer;
+}
+
+
+void get_zdev_buffer_free(uint8 *p)
+{
+	free(p);
+}
+
+dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length)
+{
+	if(length < ZDEVICE_BUFFER_SIZE || length > TR_BUFFER_SIZE)
+	{
+		return NULL;
+	}
+
+	dev_info_t *dev_info = (dev_info_t *)calloc(1, sizeof(dev_info_t));
+	incode_ctoxs(dev_info->zidentity_no, buffer, 16);
+	incode_ctox16(&dev_info->znet_addr, buffer+16);
+	dev_info->zapp_type = get_frapp_type_from_str(buffer+20);
+	dev_info->znet_type = get_frnet_type_from_str(buffer[22]);
+	dev_info->next = NULL;
+
+	return dev_info;
+}
+
+
+void get_zdev_frame_free(dev_info_t *p)
+{	
+	free(p);
+}
+
 
 uint8 *get_gateway_buffer_alloc(gw_info_t *gw_info)
 {
@@ -114,46 +149,6 @@ void get_gateway_frame_free(gw_info_t *p)
 	free(p);
 }
 
-
-uint8 *get_zdev_buffer_alloc(dev_info_t *dev_info)
-{
-	uint8 *dev_buffer = (uint8 *)calloc(1, ZDEVICE_BUFFER_SIZE);
-	incode_xtocs(dev_buffer, dev_info->zidentity_no, 8);
-	incode_xtoc16(dev_buffer+16, dev_info->znet_addr);
-	get_frapp_type_to_str(dev_buffer+20, dev_info->zapp_type);
-	dev_buffer[22] = get_frnet_type_to_ch(dev_info->znet_type);
-
-	return dev_buffer;
-}
-
-
-void get_zdev_buffer_free(uint8 *p)
-{
-	free(p);
-}
-
-dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length)
-{
-	if(length < ZDEVICE_BUFFER_SIZE || length > TR_BUFFER_SIZE)
-	{
-		return NULL;
-	}
-
-	dev_info_t *dev_info = (dev_info_t *)calloc(1, sizeof(dev_info_t));
-	incode_ctoxs(dev_info->zidentity_no, buffer, 16);
-	incode_ctox16(&dev_info->znet_addr, buffer+16);
-	dev_info->zapp_type = get_frapp_type_from_str(buffer+20);
-	dev_info->znet_type = get_frnet_type_from_str(buffer[22]);
-	dev_info->next = NULL;
-
-	return dev_info;
-}
-
-
-void get_zdev_frame_free(dev_info_t *p)
-{	
-	free(p);
-}
 
 int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev)
 {
@@ -265,6 +260,139 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 }
 
 #ifdef COMM_CLIENT
+int add_zdevice_info(dev_info_t *m_dev)
+{
+	return add_zdev_info(&gw_info, m_dev);
+}
+
+dev_info_t *query_zdevice_info(uint16 znet_addr)
+{
+	return query_zdev_info(&gw_info, znet_addr);
+}
+
+int del_zdevice_info(uint16 znet_addr)
+{
+	return del_zdev_info(&gw_info, znet_addr);
+}
+#elif defined(COMM_SERVER)
+int add_gateway_info(gw_info_t *m_gw)
+{
+	gw_info_t *pre_gw =  NULL;
+	gw_info_t *t_gw = gw_list.p_gw;
+
+	if(m_gw == NULL)
+	{
+		return -1;
+	}
+	else
+	{
+		m_gw->next = NULL;
+	}
+
+	while(t_gw != NULL)
+	{
+		if(memcmp(t_gw->gw_no, m_gw->gw_no, sizeof(zidentify_no_t)))
+		{
+			pre_gw = t_gw;
+			t_gw = t_gw->next;
+		}
+		else
+		{
+			t_gw->zpanid = m_gw->zpanid;
+			t_gw->zchannel = m_gw->zchannel;
+			t_gw->rand = m_gw->rand;
+			t_gw->ip_len = m_gw->ip_len;
+			memset(t_gw->ipaddr, 0, sizeof(t_gw->ipaddr));
+			memcpy(t_gw->ipaddr, m_gw->ipaddr, m_gw->ip_len);
+
+			if(pre_gw != NULL)
+			{
+				pthread_mutex_lock(&gw_list.lock);
+				pre_gw->next = t_gw->next;
+				t_gw->next = gw_list.p_gw;
+				gw_list.p_gw = t_gw;
+				pthread_mutex_unlock(&gw_list.lock);
+			}
+			
+			return 1;
+		}
+	}
+
+	pthread_mutex_lock(&gw_list.lock);
+	m_gw->next = gw_list.p_gw;
+	gw_list.p_gw = m_gw;
+	pthread_mutex_unlock(&gw_list.lock);
+
+	return 0;
+}
+
+gw_info_t *query_gateway_info(zidentify_no_t gw_no)
+{
+	gw_info_t *t_gw = gw_list.p_gw;
+
+
+	while(t_gw != NULL)
+	{
+		if(memcmp(t_gw->gw_no, gw_no, sizeof(zidentify_no_t)))
+		{
+			t_gw = t_gw->next;
+		}
+		else
+		{
+			return t_gw;
+		}
+	}
+
+	return NULL;
+}
+
+int del_gateway_info(zidentify_no_t gw_no)
+{
+	gw_info_t *pre_gw =  NULL;
+	gw_info_t *t_gw = gw_list.p_gw;
+
+
+	while(t_gw != NULL)
+	{
+		if(memcmp(t_gw->gw_no, gw_no, sizeof(zidentify_no_t)))
+		{
+			pre_gw = t_gw;
+			t_gw = t_gw->next;
+		}
+		else
+		{	
+			pthread_mutex_lock(&gw_list.lock);
+			if(pre_gw != NULL)
+			{
+				pre_gw->next = t_gw->next;
+			}
+			else
+			{
+				gw_list.p_gw = t_gw->next;
+			}
+			pthread_mutex_unlock(&gw_list.lock);
+
+			dev_info_t *pre_dev = t_gw->p_dev;
+			dev_info_t *pdev = t_gw->p_dev;
+			
+			while(pdev != NULL)
+			{
+				pre_dev = pdev;
+				pdev = pdev->next;
+				free(pre_dev);
+			}
+
+			free(t_gw);
+			return 0;
+		}
+	}
+
+	return -1;
+}
+#endif
+
+
+#ifdef COMM_CLIENT
 void analysis_zdev_frame(char *buf, int len)
 {
 	uc_t *uc; uo_t *uo; uh_t *uh;
@@ -366,87 +494,8 @@ void analysis_zdev_frame(char *buf, int len)
 		break;
 	}
 }
-
-int add_zdevice_info(dev_info_t *m_dev)
-{
-	return add_zdev_info(&gw_info, m_dev);
-}
-
-dev_info_t *query_zdevice_info(uint16 znet_addr)
-{
-	return query_zdev_info(&gw_info, znet_addr);
-}
-
-int del_zdevice_info(uint16 znet_addr)
-{
-	return del_zdev_info(&gw_info, znet_addr);
-}
 #endif
 
-#ifdef COMM_CLIENT
-void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
-{
-  	pi_t *pi; bi_t *bi; gp_t *gp; rp_t *rp;
-	gd_t *gd; rd_t *rd; dc_t *dc; ub_t *ub;
-	
-	cli_info_t *cli_info;
-	tr_head_type_t head_type = get_trhead_from_str(buf);
-	void *p = get_trframe_alloc(head_type, buf, len);
-
-	if(p == NULL)
-	{
-		return;
-	}
-
-	switch(head_type)
-	{
-	case TRHEAD_PI:
-		pi = (pi_t *)p;
-		pi_handler(addr, pi);
-		get_trframe_free(TRHEAD_PI, p);
-		break;
-		
-	case TRHEAD_BI:
-		bi = (bi_t *)p;
-		bi_handler(addr, bi);
-		get_trframe_free(TRHEAD_BI, p);
-		break;
-		
-	case TRHEAD_GP:
-		gp = (gp_t *)p;
-		get_trframe_free(TRHEAD_GP, p);
-		break;
-		
-	case TRHEAD_RP:
-		rp = (rp_t *)p;
-		get_trframe_free(TRHEAD_RP, p);
-		break;
-		
-	case TRHEAD_GD:
-		gd = (gd_t *)p;
-		get_trframe_free(TRHEAD_GD, p);
-		break;
-		
-	case TRHEAD_RD:
-		rd = (rd_t *)p;
-		get_trframe_free(TRHEAD_RD, p);
-		break;
-		
-	case TRHEAD_DC:
-		dc = (dc_t *)p;
-		get_trframe_free(TRHEAD_DC, p);
-		break;
-		
-	case TRHEAD_UB:
-		ub = (ub_t *)p;
-		get_trframe_free(TRHEAD_UB, p);
-		break;
-
-	default:
-		break;
-	}
-}
-#elif defined(COMM_SERVER)
 void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 {
   	pi_t *pi; bi_t *bi; gp_t *gp; rp_t *rp;
@@ -483,26 +532,31 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 		
 	case TRHEAD_RP:
 		rp = (rp_t *)p;
+		rp_handler(addr, rp);
 		get_trframe_free(TRHEAD_RP, p);
 		break;
 		
 	case TRHEAD_GD:
 		gd = (gd_t *)p;
+		gd_handler(addr, gd);
 		get_trframe_free(TRHEAD_GD, p);
 		break;
 		
 	case TRHEAD_RD:
 		rd = (rd_t *)p;
+		rd_handler(addr, rd);
 		get_trframe_free(TRHEAD_RD, p);
 		break;
 		
 	case TRHEAD_DC:
 		dc = (dc_t *)p;
+		dc_handler(addr, dc);
 		get_trframe_free(TRHEAD_DC, p);
 		break;
 		
 	case TRHEAD_UB:
 		ub = (ub_t *)p;
+		ub_handler(addr, ub);
 		get_trframe_free(TRHEAD_UB, p);
 		break;
 
@@ -510,124 +564,3 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 		break;
 	}
 }
-
-int add_gateway_info(gw_info_t *m_gw)
-{
-	gw_info_t *pre_gw =  NULL;
-	gw_info_t *t_gw = gw_list.p_gw;
-
-	if(m_gw == NULL)
-	{
-		return -1;
-	}
-	else
-	{
-		m_gw->next = NULL;
-	}
-
-	while(t_gw != NULL)
-	{
-		if(memcmp(t_gw->gw_no, m_gw->gw_no, sizeof(zidentify_no_t)))
-		{
-			pre_gw = t_gw;
-			t_gw = t_gw->next;
-		}
-		else
-		{
-			t_gw->zpanid = m_gw->zpanid;
-			t_gw->zchannel = m_gw->zchannel;
-			t_gw->rand = m_gw->rand;
-			t_gw->ip_len = m_gw->ip_len;
-			memset(t_gw->ipaddr, 0, sizeof(t_gw->ipaddr));
-			memcpy(t_gw->ipaddr, m_gw->ipaddr, m_gw->ip_len);
-
-			if(pre_gw != NULL)
-			{
-				pthread_mutex_lock(&gw_list.lock);
-				pre_gw->next = t_gw->next;
-				t_gw->next = gw_list.p_gw;
-				gw_list.p_gw = t_gw;
-				pthread_mutex_unlock(&gw_list.lock);
-			}
-			
-			return 1;
-		}
-	}
-
-	pthread_mutex_lock(&gw_list.lock);
-	m_gw->next = gw_list.p_gw;
-	gw_list.p_gw = m_gw;
-	pthread_mutex_unlock(&gw_list.lock);
-
-	return 0;
-}
-
-
-
-gw_info_t *query_gateway_info(zidentify_no_t gw_no)
-{
-	gw_info_t *t_gw = gw_list.p_gw;
-
-
-	while(t_gw != NULL)
-	{
-		if(memcmp(t_gw->gw_no, gw_no, sizeof(zidentify_no_t)))
-		{
-			t_gw = t_gw->next;
-		}
-		else
-		{
-			return t_gw;
-		}
-	}
-
-	return NULL;
-}
-
-int del_gateway_info(zidentify_no_t gw_no)
-{
-	gw_info_t *pre_gw =  NULL;
-	gw_info_t *t_gw = gw_list.p_gw;
-
-
-	while(t_gw != NULL)
-	{
-		if(memcmp(t_gw->gw_no, gw_no, sizeof(zidentify_no_t)))
-		{
-			pre_gw = t_gw;
-			t_gw = t_gw->next;
-		}
-		else
-		{	
-			pthread_mutex_lock(&gw_list.lock);
-			if(pre_gw != NULL)
-			{
-				pre_gw->next = t_gw->next;
-			}
-			else
-			{
-				gw_list.p_gw = t_gw->next;
-			}
-			pthread_mutex_unlock(&gw_list.lock);
-
-			dev_info_t *pre_dev = t_gw->p_dev;
-			dev_info_t *pdev = t_gw->p_dev;
-			
-			while(pdev != NULL)
-			{
-				pre_dev = pdev;
-				pdev = pdev->next;
-				free(pre_dev);
-			}
-
-			free(t_gw);
-			return 0;
-		}
-	}
-
-	return -1;
-}
-#else
-void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
-{}
-#endif

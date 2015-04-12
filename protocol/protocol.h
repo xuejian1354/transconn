@@ -68,34 +68,40 @@ typedef struct
 	int max_num;
 }cli_list_t;
 
-#ifdef COMM_CLIENT
-gw_info_t *get_gateway_info();
-void analysis_zdev_frame(char *buf, int len);
-#endif
+uint8 *get_zdev_buffer_alloc(dev_info_t *dev_info);
+void get_zdev_buffer_free(uint8 *p);
+dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length);
+void get_zdev_frame_free(dev_info_t *p);
 
 uint8 *get_gateway_buffer_alloc(gw_info_t *gw_info);
 void get_gateway_buffer_free(uint8 *p);
 gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length);
 void get_gateway_frame_free(gw_info_t *p);
 
-uint8 *get_zdev_buffer_alloc(dev_info_t *dev_info);
-void get_zdev_buffer_free(uint8 *p);
-dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length);
-void get_zdev_frame_free(dev_info_t *p);
-
 int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev);
 dev_info_t *query_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
 int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
 
+#ifdef COMM_CLIENT
+gw_info_t *get_gateway_info();
+
+int add_zdevice_info(dev_info_t *m_dev);
+dev_info_t *query_zdevice_info(uint16 znet_addr);
+int del_zdevice_info(uint16 znet_addr);
+#endif
 
 #ifdef COMM_SERVER
+gw_list_t *get_gateway_list();
+
 int add_gateway_info(gw_info_t *m_gw);
 gw_info_t *query_gateway_info(zidentify_no_t gw_no);
 int del_gateway_info(zidentify_no_t gw_no);
-
-gw_list_t *get_gateway_list();
 #endif
 
+
+#ifdef COMM_CLIENT
+void analysis_zdev_frame(char *buf, int len);
+#endif
 void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len);
 
 #endif  //__PROTOCOL_H__

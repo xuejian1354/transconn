@@ -25,10 +25,21 @@
 
 void pi_handler(struct sockaddr_in *addr, pi_t *pi);
 void bi_handler(struct sockaddr_in *addr, bi_t *bi);
+void gp_handler(struct sockaddr_in *addr, gp_t *gp);
+void rp_handler(struct sockaddr_in *addr, rp_t *rp);
+void gd_handler(struct sockaddr_in *addr, gd_t *gd);
+void rd_handler(struct sockaddr_in *addr, rd_t *rd);
+void dc_handler(struct sockaddr_in *addr, dc_t *dc);
+void ub_handler(struct sockaddr_in *addr, ub_t *ub);
 
 void send_pi_udp_request(char *ipaddr, 
 	tr_frame_type_t trfra, char *data, int len, uint8 *sn);
 void send_bi_udp_respond(char *ipaddr, 
 	tr_frame_type_t trfra, char *data, int len, uint8 *sn);
 void send_gp_udp_request(char *ipaddr, char *data, int len);
+void send_rp_udp_respond(char *ipaddr, char *data, int len);
+void send_gd_udp_request(char *ipaddr, char *data, int len);
+void send_rd_udp_respond(char *ipaddr, char *data, int len);
+void send_dc_udp_request(char *ipaddr, char *data, int len);
+void send_ub_udp_respond(char *ipaddr, char *data, int len);
 #endif  //__TRREQUEST_H__

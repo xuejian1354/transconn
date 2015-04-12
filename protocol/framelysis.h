@@ -119,10 +119,13 @@ typedef struct
 }fr_buffer_t;
 
 fr_head_type_t get_frhead_from_str(char *head);
+
 fr_app_type_t get_frapp_type_from_str(char *app_type);
-fr_net_type_t get_frnet_type_from_str(char net_type);
 int get_frapp_type_to_str(char *dst, fr_app_type_t app_type);
+
+fr_net_type_t get_frnet_type_from_str(char net_type);
 char get_frnet_type_to_ch(fr_net_type_t net_type);
+
 
 void *get_frame_alloc(fr_head_type_t htype, uint8 buffer[], int length);
 void get_frame_free(fr_head_type_t htype, void *p);
