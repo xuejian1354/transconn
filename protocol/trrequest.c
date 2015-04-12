@@ -358,7 +358,23 @@ void send_gp_udp_request(char *ipaddr,
 void send_rp_udp_respond(char *ipaddr, 
 	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len)
 {
-	
+#ifdef COMM_CLIENT
+	rp_t rp;
+	tr_buffer_t *buffer;
+
+	memcpy(rp.zidentify_no, zidentify_no, sizeof(zidentify_no_t));
+	memcpy(rp.cidentify_no, cidentify_no, sizeof(cidentify_no_t));
+	rp.data = data;
+	rp.data_len = len;
+
+	if((buffer = get_trbuffer_alloc(TRHEAD_RP, &rp)) == NULL)
+	{
+		return;
+	}
+
+	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
+	get_trbuffer_free(buffer);
+#endif
 }
 
 void send_gd_udp_request(char *ipaddr, char *data, int len)
