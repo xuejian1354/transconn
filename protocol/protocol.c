@@ -282,7 +282,7 @@ int del_zdevice_info(uint16 znet_addr)
 
 int add_client_info(cli_info_t *m_info)
 {
-	cli_info_t *pre_cli =  NULL;
+	cli_info_t *pre_before, *pre_cli =  NULL;
 	cli_info_t *t_cli = cli_list.p_cli;
 
 	if(m_info == NULL)
@@ -298,6 +298,7 @@ int add_client_info(cli_info_t *m_info)
 	{
 		if(memcmp(t_cli->cidentify_no, m_info->cidentify_no, sizeof(cidentify_no_t)))
 		{
+			pre_before = pre_cli;
 			pre_cli = t_cli;
 			t_cli = t_cli->next;
 		}
@@ -322,6 +323,17 @@ int add_client_info(cli_info_t *m_info)
 	pthread_mutex_lock(&cli_list.lock);
 	m_info->next = cli_list.p_cli;
 	cli_list.p_cli = m_info;
+	if(cli_list.max_num >= GATEWAY_CLI_LIST_MAX_NUM)
+	{
+		if(pre_before != NULL)
+			pre_before->next = NULL;
+		
+		free(pre_cli);
+	}
+	else
+	{
+		cli_list.max_num++;
+	}
 	pthread_mutex_unlock(&cli_list.lock);
 
 	return 0;
@@ -369,6 +381,8 @@ int del_client_info(cidentify_no_t cidentify_no)
 			{
 				cli_list.p_cli = t_cli->next;
 			}
+			
+			cli_list.max_num--;
 			pthread_mutex_unlock(&cli_list.lock);
 
 			free(t_cli);
@@ -381,7 +395,7 @@ int del_client_info(cidentify_no_t cidentify_no)
 #elif defined(COMM_SERVER)
 int add_gateway_info(gw_info_t *m_gw)
 {
-	gw_info_t *pre_gw =  NULL;
+	gw_info_t *pre_before, *pre_gw =  NULL;
 	gw_info_t *t_gw = gw_list.p_gw;
 
 	if(m_gw == NULL)
@@ -397,6 +411,7 @@ int add_gateway_info(gw_info_t *m_gw)
 	{
 		if(memcmp(t_gw->gw_no, m_gw->gw_no, sizeof(zidentify_no_t)))
 		{
+			pre_before = pre_gw;
 			pre_gw = t_gw;
 			t_gw = t_gw->next;
 		}
@@ -425,6 +440,17 @@ int add_gateway_info(gw_info_t *m_gw)
 	pthread_mutex_lock(&gw_list.lock);
 	m_gw->next = gw_list.p_gw;
 	gw_list.p_gw = m_gw;
+	if(gw_list.max_num >= SERVER_GW_LIST_MAX_NUM)
+	{
+		if(pre_before != NULL)
+			pre_before->next = NULL;
+		
+		free(pre_gw);
+	}
+	else
+	{
+		gw_list.max_num++;
+	}
 	pthread_mutex_unlock(&gw_list.lock);
 
 	return 0;
@@ -474,6 +500,8 @@ int del_gateway_info(zidentify_no_t gw_no)
 			{
 				gw_list.p_gw = t_gw->next;
 			}
+			
+			gw_list.max_num--;
 			pthread_mutex_unlock(&gw_list.lock);
 
 			dev_info_t *pre_dev = t_gw->p_dev;
