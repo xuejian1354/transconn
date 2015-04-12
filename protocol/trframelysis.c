@@ -208,7 +208,7 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 		{
 			gp_t *gp = (gp_t *)calloc(1, sizeof(gp_t));
 			incode_ctoxs(gp->zidentify_no, buffer+3, 16);
-			incode_ctoxs(gp->zidentify_no, buffer+19, 16);
+			incode_ctoxs(gp->cidentify_no, buffer+19, 16);
 			if(length-TR_GP_DATA_FIX_LEN > 0)
 			{
 				gp->data_len = length-TR_GP_DATA_FIX_LEN;
@@ -232,7 +232,7 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 		{
 			rp_t *rp = (rp_t *)calloc(1, sizeof(rp_t));
 			incode_ctoxs(rp->zidentify_no, buffer+3, 16);
-			incode_ctoxs(rp->zidentify_no, buffer+19, 16);
+			incode_ctoxs(rp->cidentify_no, buffer+19, 16);
 			if(length-TR_RP_DATA_FIX_LEN > 0)
 			{
 				rp->data_len = length-TR_RP_DATA_FIX_LEN;
@@ -255,8 +255,8 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 			&& !memcmp(buffer+TR_GD_DATA_FIX_LEN-4, TR_TAIL, 4))
 		{
 			gd_t *gd = (gd_t *)calloc(1, sizeof(gd_t));
-			memcpy(gd->head, buffer, 3);
-			memcpy(gd->tail, buffer+3, 4);
+			incode_ctoxs(gd->zidentify_no, buffer+3, 16);
+			incode_ctoxs(gd->cidentify_no, buffer+19, 16);
 
 			return (void *)gd;
 		}
@@ -267,8 +267,8 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 			&& !memcmp(buffer+TR_RD_DATA_FIX_LEN-4, TR_TAIL, 4))
 		{
 			rd_t *rd = (rd_t *)calloc(1, sizeof(rd_t));
-			memcpy(rd->head, buffer, 3);
-			memcpy(rd->tail, buffer+3, 4);
+			incode_ctoxs(rd->zidentify_no, buffer+3, 16);
+			incode_ctoxs(rd->cidentify_no, buffer+19, 16);
 
 			return (void *)rd;
 		}
@@ -279,19 +279,17 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 			&& !memcmp(buffer+TR_DC_DATA_FIX_LEN-4, TR_TAIL, 4))
 		{
 			dc_t *dc = (dc_t *)calloc(1, sizeof(dc_t));
-			memcpy(dc->head, buffer, 3);
-			memcpy(dc->tail, buffer+3, 4);
 
 			if(length-TR_DC_DATA_FIX_LEN > 0)
 			{
 				uint8 *data_buffer = (uint8 *)calloc(length-TR_DC_DATA_FIX_LEN, sizeof(uint8));
 				memcpy(data_buffer, buffer+3, length-TR_DC_DATA_FIX_LEN);
-				dc->datalen = length-TR_DC_DATA_FIX_LEN;
+				dc->data_len = length-TR_DC_DATA_FIX_LEN;
 				dc->data = data_buffer;
 			}
 			else
 			{
-				dc->datalen = 0;
+				dc->data_len = 0;
 				dc->data = NULL;
 			}
 
@@ -304,19 +302,17 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 			&& !memcmp(buffer+TR_UB_DATA_FIX_LEN-4, TR_TAIL, 4))
 		{
 			ub_t *ub = (ub_t *)calloc(1, sizeof(ub_t));
-			memcpy(ub->head, buffer, 3);
-			memcpy(ub->tail, buffer+3, 4);
 
 			if(length-TR_UB_DATA_FIX_LEN > 0)
 			{
 				uint8 *data_buffer = (uint8 *)calloc(length-TR_UB_DATA_FIX_LEN, sizeof(uint8));
 				memcpy(data_buffer, buffer+3, length-TR_UB_DATA_FIX_LEN);
-				ub->datalen = length-TR_UB_DATA_FIX_LEN;
+				ub->data_len = length-TR_UB_DATA_FIX_LEN;
 				ub->data = data_buffer;
 			}
 			else
 			{
-				ub->datalen = 0;
+				ub->data_len = 0;
 				ub->data = NULL;
 			}
 
@@ -471,8 +467,10 @@ tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame)
 		frame_buffer->size = TR_GD_DATA_FIX_LEN;
 		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
 		
-		memcpy(frame_buffer->data, p_gd->head, 3);
-		memcpy(frame_buffer->data+3, p_gd->tail, 4);
+		memcpy(frame_buffer->data, TR_HEAD_GD, 3);
+		incode_xtocs(frame_buffer->data+3, p_rp->zidentify_no, 8);
+		incode_xtocs(frame_buffer->data+19, p_rp->cidentify_no, 8);
+		memcpy(frame_buffer->data+frame_buffer->size-4, TR_TAIL, 4);
 
 		return frame_buffer;
 		
@@ -482,15 +480,17 @@ tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame)
 		frame_buffer->size = TR_RD_DATA_FIX_LEN;
 		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
 		
-		memcpy(frame_buffer->data, p_rd->head, 3);
-		memcpy(frame_buffer->data+3, p_rd->tail, 4);
+		memcpy(frame_buffer->data, TR_HEAD_RD, 3);
+		incode_xtocs(frame_buffer->data+3, p_rp->zidentify_no, 8);
+		incode_xtocs(frame_buffer->data+19, p_rp->cidentify_no, 8);
+		memcpy(frame_buffer->data+frame_buffer->size-4, TR_TAIL, 4);
 
 		return frame_buffer;
 		
 	case TRHEAD_DC:
 		p_dc = (dc_t *)frame;
 		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
-		frame_buffer->size = TR_DC_DATA_FIX_LEN+p_dc->datalen;
+		frame_buffer->size = TR_DC_DATA_FIX_LEN+p_dc->data_len;
 		if(frame_buffer->size > TR_BUFFER_SIZE)
 		{
 			free(frame_buffer);
@@ -498,16 +498,16 @@ tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame)
 		}
 		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
 		
-		memcpy(frame_buffer->data, p_dc->head, 3);
-		memcpy(frame_buffer->data+3, p_dc->data, p_dc->datalen);
-		memcpy(frame_buffer->data+frame_buffer->size-4, p_dc->tail, 4);
+		memcpy(frame_buffer->data, TR_HEAD_DC, 3);
+		memcpy(frame_buffer->data+3, p_dc->data, p_dc->data_len);
+		memcpy(frame_buffer->data+frame_buffer->size-4, TR_TAIL, 4);
 
 		return frame_buffer;
 		
 	case TRHEAD_UB:
 		p_ub = (ub_t *)frame;
 		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
-		frame_buffer->size = TR_UB_DATA_FIX_LEN+p_ub->datalen;
+		frame_buffer->size = TR_UB_DATA_FIX_LEN+p_ub->data_len;
 		if(frame_buffer->size > TR_BUFFER_SIZE)
 		{
 			free(frame_buffer);
@@ -515,9 +515,9 @@ tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame)
 		}
 		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
 		
-		memcpy(frame_buffer->data, p_ub->head, 3);
-		memcpy(frame_buffer->data+3, p_ub->data, p_ub->datalen);
-		memcpy(frame_buffer->data+frame_buffer->size-4, p_ub->tail, 4);
+		memcpy(frame_buffer->data, TR_HEAD_UB, 3);
+		memcpy(frame_buffer->data+3, p_ub->data, p_ub->data_len);
+		memcpy(frame_buffer->data+frame_buffer->size-4, TR_TAIL, 4);
 
 		return frame_buffer;
 	

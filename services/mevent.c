@@ -24,6 +24,7 @@
 #define GATEWAY_REFRESH_EVENT	0x0001
 #define TIMER_UPLOAD_EVENT		0x0002
 #define ZDEVICE_WATCH_EVENT		0x0003
+#define CLIENT_STAND_EVENT		0x0004
 #endif
 
 
@@ -36,6 +37,7 @@
 #ifdef COMM_CLIENT
 void *gateway_refresh(void *p);
 void *upload_event(void *p);
+void *stand_event(void *p);
 void *zdev_watch(void *p);
 #endif
 
@@ -53,6 +55,9 @@ void *gateway_refresh(void *p)
 	timer_param.arg = NULL;
 	
 	set_mevent(TIMER_UPLOAD_EVENT, upload_event, &timer_param);
+
+	timer_param.interval = 11;
+	set_mevent(CLIENT_STAND_EVENT, stand_event, &timer_param);
 	
 	return NULL;
 }
@@ -65,6 +70,21 @@ void *upload_event(void *p)
 	gw_info_t *gw_info = get_gateway_info();
 
 	send_pi_udp_request(ipaddr, TRFRAME_CON, gw_info->ipaddr, gw_info->ip_len, NULL);
+	
+	return NULL;
+}
+
+void *stand_event(void *p)
+{
+ 	cli_info_t *p_cli = get_client_list()->p_cli;
+
+	while(p_cli != NULL)
+	{
+		send_gd_udp_request(p_cli->ipaddr, 
+			get_gateway_info()->gw_no, p_cli->cidentify_no);
+		
+		p_cli = p_cli->next;
+	}
 	
 	return NULL;
 }
