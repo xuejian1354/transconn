@@ -57,7 +57,7 @@ uint8 *get_gateway_buffer_alloc(gw_info_t *gw_info)
 	incode_xtoc16(gw_buffer+16, gw_info->zpanid);
 	incode_xtoc16(gw_buffer+20, gw_info->zchannel);
 	incode_xtoc32(gw_buffer+24, gw_info->rand);
-	memcpy(gw_info->ipaddr+32, gw_info->ipaddr, gw_info->ip_len);
+	memcpy(gw_buffer+32, gw_info->ipaddr, gw_info->ip_len);
 
 	return gw_buffer;
 }
