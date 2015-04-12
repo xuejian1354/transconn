@@ -36,8 +36,10 @@ void send_pi_udp_request(char *ipaddr,
 	tr_frame_type_t trfra, char *data, int len, uint8 *sn);
 void send_bi_udp_respond(char *ipaddr, 
 	tr_frame_type_t trfra, char *data, int len, uint8 *sn);
-void send_gp_udp_request(char *ipaddr, char *data, int len);
-void send_rp_udp_respond(char *ipaddr, char *data, int len);
+void send_gp_udp_request(char *ipaddr, 
+	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len);
+void send_rp_udp_respond(char *ipaddr, 
+	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len);
 void send_gd_udp_request(char *ipaddr, char *data, int len);
 void send_rd_udp_respond(char *ipaddr, char *data, int len);
 void send_dc_udp_request(char *ipaddr, char *data, int len);

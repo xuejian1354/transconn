@@ -24,6 +24,7 @@
 
 #define GATEWAY_BUFFER_FIX_SIZE		32
 #define ZDEVICE_BUFFER_SIZE		23
+#define IP_ADDR_MAX_SIZE	24
 
 typedef struct Dev_Info
 {
@@ -58,14 +59,16 @@ typedef struct
 typedef struct Cli_Info
 {
 	cidentify_no_t cidentify_no;
-	struct sockaddr_in sock_addr;
+	uint8 ipaddr[IP_ADDR_MAX_SIZE];
+	uint8 ip_len;
 	struct Cli_Info *next;
 }cli_info_t;
 
 typedef struct
 {
-	cli_info_t *cli_info;
-	int max_num;
+	cli_info_t *p_cli;
+	pthread_mutex_t lock;
+	long max_num;
 }cli_list_t;
 
 uint8 *get_zdev_buffer_alloc(dev_info_t *dev_info);
@@ -84,10 +87,15 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
 
 #ifdef COMM_CLIENT
 gw_info_t *get_gateway_info();
+cli_list_t *get_client_list();
 
 int add_zdevice_info(dev_info_t *m_dev);
 dev_info_t *query_zdevice_info(uint16 znet_addr);
 int del_zdevice_info(uint16 znet_addr);
+
+int add_client_info(cli_info_t *m_info);
+cli_info_t *query_client_info(cidentify_no_t cidentify_no);
+int del_client_info(cidentify_no_t cidentify_no);
 #endif
 
 #ifdef COMM_SERVER

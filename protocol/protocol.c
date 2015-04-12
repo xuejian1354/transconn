@@ -35,6 +35,11 @@ gw_info_t *get_gateway_info()
 {
 	return &gw_info;
 }
+
+cli_list_t *get_client_list()
+{
+	return &cli_list;
+}
 #endif
 
 #ifdef COMM_SERVER
@@ -273,6 +278,105 @@ dev_info_t *query_zdevice_info(uint16 znet_addr)
 int del_zdevice_info(uint16 znet_addr)
 {
 	return del_zdev_info(&gw_info, znet_addr);
+}
+
+int add_client_info(cli_info_t *m_info)
+{
+	cli_info_t *pre_cli =  NULL;
+	cli_info_t *t_cli = cli_list.p_cli;
+
+	if(m_info == NULL)
+	{
+		return -1;
+	}
+	else
+	{
+		m_info->next = NULL;
+	}
+
+	while(t_cli != NULL)
+	{
+		if(memcmp(t_cli->cidentify_no, m_info->cidentify_no, sizeof(cidentify_no_t)))
+		{
+			pre_cli = t_cli;
+			t_cli = t_cli->next;
+		}
+		else
+		{
+			memset(t_cli->ipaddr, 0, sizeof(t_cli->ipaddr));
+			memcpy(t_cli->ipaddr, m_info->ipaddr, m_info->ip_len);
+
+			if(pre_cli != NULL)
+			{
+				pthread_mutex_lock(&cli_list.lock);
+				pre_cli->next = t_cli->next;
+				t_cli->next = cli_list.p_cli;
+				cli_list.p_cli = t_cli;
+				pthread_mutex_unlock(&cli_list.lock);
+			}
+			
+			return 1;
+		}
+	}
+
+	pthread_mutex_lock(&cli_list.lock);
+	m_info->next = cli_list.p_cli;
+	cli_list.p_cli = m_info;
+	pthread_mutex_unlock(&cli_list.lock);
+
+	return 0;
+}
+
+cli_info_t *query_client_info(cidentify_no_t cidentify_no)
+{
+	cli_info_t *t_cli = cli_list.p_cli;
+
+	while(t_cli != NULL)
+	{
+		if(memcmp(t_cli->cidentify_no, cidentify_no, sizeof(cidentify_no_t)))
+		{
+			t_cli = t_cli->next;
+		}
+		else
+		{
+			return t_cli;
+		}
+	}
+
+	return NULL;
+}
+
+int del_client_info(cidentify_no_t cidentify_no)
+{
+	cli_info_t *pre_cli =  NULL;
+	cli_info_t *t_cli = cli_list.p_cli;
+
+	while(t_cli != NULL)
+	{
+		if(memcmp(t_cli->cidentify_no, cidentify_no, sizeof(cidentify_no_t)))
+		{
+			pre_cli = t_cli;
+			t_cli = t_cli->next;
+		}
+		else
+		{
+			pthread_mutex_lock(&cli_list.lock);
+			if(pre_cli != NULL)
+			{
+				pre_cli->next = t_cli->next;
+			}
+			else
+			{
+				cli_list.p_cli = t_cli->next;
+			}
+			pthread_mutex_unlock(&cli_list.lock);
+
+			free(t_cli);
+			return 0;
+		}
+	}
+
+	return -1;
 }
 #elif defined(COMM_SERVER)
 int add_gateway_info(gw_info_t *m_gw)

@@ -37,6 +37,17 @@ int mach_init()
             __FUNCTION__, errno, strerror(errno));
         return -1;
     }
+
+	cli_list_t *p_cli_list = get_client_list();
+	p_cli_list->p_cli = NULL;
+	p_cli_list->max_num = 0;
+
+	if(pthread_mutex_init(&(get_client_list()->lock), NULL) != 0)
+    {
+        fprintf(stderr, "%s: pthread_mutext_init failed, errno:%d, error:%s\n",
+            __FUNCTION__, errno, strerror(errno));
+        return -1;
+    }
 #endif
 
 #ifdef COMM_SERVER
