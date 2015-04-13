@@ -306,6 +306,7 @@ int add_client_info(cli_info_t *m_info)
 		{
 			memset(t_cli->ipaddr, 0, sizeof(t_cli->ipaddr));
 			memcpy(t_cli->ipaddr, m_info->ipaddr, m_info->ip_len);
+			t_cli->check_count = m_info->check_count;
 
 			if(pre_cli != NULL)
 			{

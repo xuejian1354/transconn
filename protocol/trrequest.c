@@ -199,6 +199,7 @@ dev_match:
 	memcpy(m_info->cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
 	memcpy(m_info->ipaddr, gp->data, gp->data_len);
 	m_info->ip_len = gp->data_len;
+	m_info->check_count = 3;
 	m_info->next = NULL;
 	
 	if(add_client_info(m_info) != 0)
@@ -206,13 +207,33 @@ dev_match:
 		free(m_info);
 	}
 
-	send_rp_udp_respond(m_info->ipaddr, get_gateway_info()->gw_no, m_info->cidentify_no,
-		get_gateway_info()->ipaddr, get_gateway_info()->ip_len);
+	send_rp_udp_respond(m_info->ipaddr, get_gateway_info()->gw_no, 
+		gp->cidentify_no, m_info->ipaddr, m_info->ip_len);
+
+	set_rp_check(m_info);
 #endif
 }
 
 void rp_handler(struct sockaddr_in *addr, rp_t *rp)
-{}
+{
+	char ipaddr[24] = {0};
+	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	
+#ifdef COMM_CLIENT
+	if(memcmp(get_gateway_info()->gw_no, rp->zidentify_no, sizeof(zidentify_no_t))
+		|| rp->data_len > IP_ADDR_MAX_SIZE)
+	{
+		return;
+	}
+
+	set_rp_check(NULL);
+#endif
+
+#ifdef COMM_SERVER
+	send_rp_udp_respond(rp->data, 
+		rp->zidentify_no, rp->cidentify_no, ipaddr, strlen(ipaddr));
+#endif
+}
 
 void gd_handler(struct sockaddr_in *addr, gd_t *gd)
 {
@@ -233,7 +254,14 @@ void rd_handler(struct sockaddr_in *addr, rd_t *rd)
 {}
 
 void dc_handler(struct sockaddr_in *addr, dc_t *dc)
-{}
+{
+	char ipaddr[24] = {0};
+	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	
+#ifdef COMM_CLIENT
+	send_ub_udp_respond(ipaddr, dc->data, dc->data_len);
+#endif
+}
 
 void ub_handler(struct sockaddr_in *addr, ub_t *ub)
 {}

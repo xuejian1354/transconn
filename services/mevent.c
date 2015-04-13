@@ -25,6 +25,7 @@
 #define TIMER_UPLOAD_EVENT		0x0002
 #define ZDEVICE_WATCH_EVENT		0x0003
 #define CLIENT_STAND_EVENT		0x0004
+#define RP_CHECK_EVENT			0x0005
 #endif
 
 
@@ -39,6 +40,7 @@ void *gateway_refresh(void *p);
 void *upload_event(void *p);
 void *stand_event(void *p);
 void *zdev_watch(void *p);
+void *rp_watch(void *p);
 #endif
 
 #ifdef COMM_CLIENT
@@ -95,6 +97,31 @@ void *zdev_watch(void *p)
 	del_zdevice_info(znet_addr);
 }
 
+void *rp_watch(void *p)
+{
+	cli_info_t *p_cli = (cli_info_t *)p;
+	
+	if(p_cli->check_count-- != 0)
+	{
+		send_rp_udp_respond(p_cli->ipaddr, get_gateway_info()->gw_no, 
+			p_cli->cidentify_no, p_cli->ipaddr, p_cli->ip_len);
+		
+		set_rp_check(p_cli);
+	}
+	else
+	{
+		char ipaddr[24] = {0};
+		GET_SERVER_IP(ipaddr);
+
+		send_rp_udp_respond(ipaddr, get_gateway_info()->gw_no, 
+			p_cli->cidentify_no, p_cli->ipaddr, p_cli->ip_len);
+
+		memset(p_cli->ipaddr, 0, sizeof(p_cli->ipaddr));
+		memcpy(p_cli->ipaddr, ipaddr, strlen(ipaddr));
+		p_cli->ip_len = strlen(ipaddr);
+	}
+}
+
 void set_upload_event()
 {
 	timer_event_param_t timer_param;
@@ -120,6 +147,26 @@ void set_zdev_check(uint16 net_addr)
 	timer_param.arg = (void *)((int)net_addr);
 	
 	set_mevent((ZDEVICE_WATCH_EVENT<<16)+net_addr, zdev_watch, &timer_param);
+}
+
+
+void set_rp_check(cli_info_t *p_cli)
+{
+	timer_event_param_t timer_param;
+
+	timer_param.resident = 0;
+	timer_param.interval = 1;
+	timer_param.count = 1;
+	timer_param.immediate = 0;
+	timer_param.arg = (void *)p_cli;
+
+	if(p_cli == NULL)
+	{
+		timer_param.interval = 0;
+		timer_param.count = 0;
+	}
+	
+	set_mevent(RP_CHECK_EVENT, rp_watch, &timer_param);
 }
 #endif
 

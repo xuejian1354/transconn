@@ -61,6 +61,7 @@ typedef struct Cli_Info
 	cidentify_no_t cidentify_no;
 	uint8 ipaddr[IP_ADDR_MAX_SIZE];
 	uint8 ip_len;
+	int check_count;
 	struct Cli_Info *next;
 }cli_info_t;
 

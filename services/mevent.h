@@ -19,11 +19,13 @@
 
  #include <services/globals.h>
  #include <module/etimer.h>
+ #include <protocol/protocol.h>
 
 #ifdef TIMER_SUPPORT
 #ifdef COMM_CLIENT
 void set_upload_event();
 void set_zdev_check(uint16 net_addr);
+void set_rp_check(cli_info_t *p_cli);
 #endif
 
 #ifdef COMM_SERVER
