@@ -492,7 +492,6 @@ void send_rp_udp_respond(char *ipaddr,
 void send_gd_udp_request(char *ipaddr, 
 	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no)
 {
-#ifdef COMM_CLIENT
 	gd_t gd;
 	tr_buffer_t *buffer;
 
@@ -506,13 +505,11 @@ void send_gd_udp_request(char *ipaddr,
 
 	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
 	get_trbuffer_free(buffer);
-#endif
 }
 
 void send_rd_udp_respond(char *ipaddr, 
 	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no)
 {
-#ifdef COMM_CLIENT
 	rd_t rd;
 	tr_buffer_t *buffer;
 
@@ -526,13 +523,11 @@ void send_rd_udp_respond(char *ipaddr,
 
 	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
 	get_trbuffer_free(buffer);
-#endif
 }
 
 void send_dc_udp_request(char *ipaddr, 
 	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len)
 {
-#ifdef COMM_CLIENT
 	dc_t dc;
 	tr_buffer_t *buffer;
 
@@ -548,13 +543,11 @@ void send_dc_udp_request(char *ipaddr,
 
 	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
 	get_trbuffer_free(buffer);
-#endif
 }
 
 void send_ub_udp_respond(char *ipaddr, 
 	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len)
 {
-#ifdef COMM_CLIENT
 	ub_t ub;
 	tr_buffer_t *buffer;
 
@@ -570,5 +563,4 @@ void send_ub_udp_respond(char *ipaddr,
 
 	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
 	get_trbuffer_free(buffer);
-#endif	
 }
