@@ -3,3 +3,4 @@ transconn
 connect_listen
 .Makefile.swp
 include/*/
+tests/client
