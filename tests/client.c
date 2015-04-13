@@ -151,7 +151,7 @@ void *client_control(void *p)
 		{
 			incode_ctoxs(zidentify_no, data, 16);
 			incode_ctoxs(cidentify_no, "1122334455667788", 16);
-			send_gd_udp_request(server_ipaddr, zidentify_no, cidentify_no);
+			send_gp_udp_request(server_ipaddr, zidentify_no, cidentify_no, NULL, 0);
 		}
 		else if(!strncmp("dc", cmd, 2) && strlen(cmd)==2)
 		{

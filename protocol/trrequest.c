@@ -105,7 +105,6 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 			memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
 			memcpy(p_gw->ipaddr, bi->data, bi->data_len);
 			p_gw->ip_len = bi->data_len;
-			printf("client conn respond:%x\n", p_gw->rand);
 #endif
 			break;
 			
@@ -118,10 +117,6 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 				if(add_gateway_info(p_gw) != 0)
 				{
 					get_gateway_frame_free(p_gw);
-				}
-				else
-				{
-					printf("server get gw info\n");
 				}
 			}
 #endif
@@ -136,10 +131,6 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 				if(p_dev != NULL && add_zdev_info(p_gw, p_dev) != 0)
 				{
 					get_zdev_frame_free(p_dev);
-				}
-				else
-				{
-					printf("server get dev info\n");
 				}
 			}
 #endif
@@ -164,6 +155,7 @@ void gp_handler(struct sockaddr_in *addr, gp_t *gp)
 	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 	m_info->ip_len = strlen(ipaddr);
 	m_info->check_count = 0;
+	m_info->check_conn = 0;
 	m_info->next = NULL;
 	
 	if(add_client_info(m_info) != 0)
@@ -201,8 +193,7 @@ dev_match:
 #endif
 
 #ifdef COMM_CLIENT
-	if(memcmp(get_gateway_info()->gw_no, gp->zidentify_no, sizeof(zidentify_no_t))
-		|| gp->data_len > IP_ADDR_MAX_SIZE)
+	if(gp->data_len > IP_ADDR_MAX_SIZE)
 	{
 		return;
 	}
@@ -212,6 +203,7 @@ dev_match:
 	memcpy(m_info->ipaddr, gp->data, gp->data_len);
 	m_info->ip_len = gp->data_len;
 	m_info->check_count = 3;
+	m_info->check_conn = 1;
 	m_info->next = NULL;
 	
 	if(add_client_info(m_info) != 0)
@@ -242,12 +234,15 @@ void rp_handler(struct sockaddr_in *addr, rp_t *rp)
 #endif
 
 #ifdef COMM_SERVER
-	send_rp_udp_respond(rp->data, 
-		rp->zidentify_no, rp->cidentify_no, ipaddr, strlen(ipaddr));
+	if(rp->data != NULL)
+	{
+		send_rp_udp_respond(rp->data, 
+			rp->zidentify_no, rp->cidentify_no, ipaddr, strlen(ipaddr));
+	}
 #endif
 
 #ifdef CLIENT_TEST
-	send_rp_udp_respond(rp->data, 
+	send_rp_udp_respond(ipaddr, 
 		rp->zidentify_no, rp->cidentify_no, NULL, 0);
 #endif
 }
@@ -273,6 +268,10 @@ void gd_handler(struct sockaddr_in *addr, gd_t *gd)
 
 void rd_handler(struct sockaddr_in *addr, rd_t *rd)
 {
+#ifdef COMM_CLIENT
+	cli_info_t *p_cli = query_client_info(rd->cidentify_no);
+	set_cli_check(p_cli);
+#endif
 }
 
 void dc_handler(struct sockaddr_in *addr, dc_t *dc)
@@ -470,7 +469,6 @@ void send_gp_udp_request(char *ipaddr,
 void send_rp_udp_respond(char *ipaddr, 
 	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len)
 {
-#ifdef COMM_CLIENT
 	rp_t rp;
 	tr_buffer_t *buffer;
 
@@ -486,7 +484,6 @@ void send_rp_udp_respond(char *ipaddr,
 
 	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
 	get_trbuffer_free(buffer);
-#endif
 }
 
 void send_gd_udp_request(char *ipaddr, 

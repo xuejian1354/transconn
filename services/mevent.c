@@ -26,6 +26,7 @@
 #define ZDEVICE_WATCH_EVENT		0x0003
 #define CLIENT_STAND_EVENT		0x0004
 #define RP_CHECK_EVENT			0x0005
+#define CLIENT_WATCH_EVENT		0x0006
 #endif
 
 
@@ -40,6 +41,7 @@ void *gateway_refresh(void *p);
 void *upload_event(void *p);
 void *stand_event(void *p);
 void *zdev_watch(void *p);
+void *cli_watch(void *p);
 void *rp_watch(void *p);
 #endif
 
@@ -84,6 +86,12 @@ void *stand_event(void *p)
 	{
 		send_gd_udp_request(p_cli->ipaddr, 
 			get_gateway_info()->gw_no, p_cli->cidentify_no);
+
+		if(p_cli->check_conn)
+		{
+			set_cli_check(p_cli);
+			p_cli->check_conn = 0;
+		}
 		
 		p_cli = p_cli->next;
 	}
@@ -97,9 +105,20 @@ void *zdev_watch(void *p)
 	del_zdevice_info(znet_addr);
 }
 
+void *cli_watch(void *p)
+{
+	cli_info_t *p_cli = (cli_info_t *)p;
+	del_client_info(p_cli->cidentify_no);
+}
+
+
 void *rp_watch(void *p)
 {
 	cli_info_t *p_cli = (cli_info_t *)p;
+	if(p_cli == NULL)
+	{
+		return;
+	}
 	
 	if(p_cli->check_count-- != 0)
 	{
@@ -149,6 +168,24 @@ void set_zdev_check(uint16 net_addr)
 	set_mevent((ZDEVICE_WATCH_EVENT<<16)+net_addr, zdev_watch, &timer_param);
 }
 
+void set_cli_check(cli_info_t *p_cli)
+{
+	if(p_cli == NULL)
+	{
+		return;
+	}
+	
+	timer_event_param_t timer_param;
+
+	timer_param.resident = 0;
+	timer_param.interval = 15;
+	timer_param.count = 1;
+	timer_param.immediate = 0;
+	timer_param.arg = (void *)p_cli;
+
+	set_mevent((CLIENT_WATCH_EVENT<<16)+gen_rand(p_cli->cidentify_no), 
+		cli_watch, &timer_param);
+}
 
 void set_rp_check(cli_info_t *p_cli)
 {

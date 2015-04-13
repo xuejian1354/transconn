@@ -293,6 +293,7 @@ int add_client_info(cli_info_t *m_info)
 			memset(t_cli->ipaddr, 0, sizeof(t_cli->ipaddr));
 			memcpy(t_cli->ipaddr, m_info->ipaddr, m_info->ip_len);
 			t_cli->check_count = m_info->check_count;
+			t_cli->check_conn = m_info->check_conn;
 
 			if(pre_cli != NULL)
 			{
@@ -684,7 +685,7 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 		
 	case TRHEAD_RD:
 		rd = (rd_t *)p;
-		rd_handler(addr, rd);
+		rd_handler(addr, rd);		
 		get_trframe_free(TRHEAD_RD, p);
 		break;
 		

@@ -472,8 +472,8 @@ tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame)
 		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
 		
 		memcpy(frame_buffer->data, TR_HEAD_GD, 3);
-		incode_xtocs(frame_buffer->data+3, p_rp->zidentify_no, 8);
-		incode_xtocs(frame_buffer->data+19, p_rp->cidentify_no, 8);
+		incode_xtocs(frame_buffer->data+3, p_gd->zidentify_no, 8);
+		incode_xtocs(frame_buffer->data+19, p_gd->cidentify_no, 8);
 		memcpy(frame_buffer->data+frame_buffer->size-4, TR_TAIL, 4);
 
 		return frame_buffer;
@@ -485,8 +485,8 @@ tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame)
 		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
 		
 		memcpy(frame_buffer->data, TR_HEAD_RD, 3);
-		incode_xtocs(frame_buffer->data+3, p_rp->zidentify_no, 8);
-		incode_xtocs(frame_buffer->data+19, p_rp->cidentify_no, 8);
+		incode_xtocs(frame_buffer->data+3, p_rd->zidentify_no, 8);
+		incode_xtocs(frame_buffer->data+19, p_rd->cidentify_no, 8);
 		memcpy(frame_buffer->data+frame_buffer->size-4, TR_TAIL, 4);
 
 		return frame_buffer;

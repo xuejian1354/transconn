@@ -62,6 +62,7 @@ typedef struct Cli_Info
 	uint8 ipaddr[IP_ADDR_MAX_SIZE];
 	uint8 ip_len;
 	int check_count;
+	int check_conn;
 	struct Cli_Info *next;
 }cli_info_t;
 
