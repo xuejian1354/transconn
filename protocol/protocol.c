@@ -23,8 +23,9 @@
 
 #ifdef COMM_CLIENT
 static gw_info_t gw_info;
-static cli_list_t cli_list;
 #endif
+
+static cli_list_t cli_list;
 
 #ifdef COMM_SERVER
 static gw_list_t gw_list;
@@ -35,12 +36,13 @@ gw_info_t *get_gateway_info()
 {
 	return &gw_info;
 }
+#endif
 
 cli_list_t *get_client_list()
 {
 	return &cli_list;
 }
-#endif
+
 
 #ifdef COMM_SERVER
 gw_list_t *get_gateway_list()
@@ -264,22 +266,6 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 	return -1;
 }
 
-#ifdef COMM_CLIENT
-int add_zdevice_info(dev_info_t *m_dev)
-{
-	return add_zdev_info(&gw_info, m_dev);
-}
-
-dev_info_t *query_zdevice_info(uint16 znet_addr)
-{
-	return query_zdev_info(&gw_info, znet_addr);
-}
-
-int del_zdevice_info(uint16 znet_addr)
-{
-	return del_zdev_info(&gw_info, znet_addr);
-}
-
 int add_client_info(cli_info_t *m_info)
 {
 	cli_info_t *pre_before, *pre_cli =  NULL;
@@ -324,7 +310,11 @@ int add_client_info(cli_info_t *m_info)
 	pthread_mutex_lock(&cli_list.lock);
 	m_info->next = cli_list.p_cli;
 	cli_list.p_cli = m_info;
+#ifdef COMM_SERVER
+	if(cli_list.max_num >= SERVER_CLI_LIST_MAX_NUM)
+#else
 	if(cli_list.max_num >= GATEWAY_CLI_LIST_MAX_NUM)
+#endif
 	{
 		if(pre_before != NULL)
 			pre_before->next = NULL;
@@ -393,6 +383,23 @@ int del_client_info(cidentify_no_t cidentify_no)
 
 	return -1;
 }
+
+#ifdef COMM_CLIENT
+int add_zdevice_info(dev_info_t *m_dev)
+{
+	return add_zdev_info(&gw_info, m_dev);
+}
+
+dev_info_t *query_zdevice_info(uint16 znet_addr)
+{
+	return query_zdev_info(&gw_info, znet_addr);
+}
+
+int del_zdevice_info(uint16 znet_addr)
+{
+	return del_zdev_info(&gw_info, znet_addr);
+}
+
 #elif defined(COMM_SERVER)
 int add_gateway_info(gw_info_t *m_gw)
 {

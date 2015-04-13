@@ -92,8 +92,11 @@ void *client_control(void *p)
 	int i, usrlen, datalen;
 	int temptype, dtype = 1;		// 1 string , 0 hex
 
-	char ipaddr[24] = {0};
-	GET_SERVER_IP(ipaddr);
+	char server_ipaddr[24] = {0};
+	GET_SERVER_IP(server_ipaddr);
+
+	zidentify_no_t zidentify_no;
+	cidentify_no_t cidentify_no;
 	
 	while(1)
 	{
@@ -146,11 +149,14 @@ void *client_control(void *p)
 #ifdef TRANS_UDP_SERVICE
 		if(!strncmp("gp", cmd, 2) && strlen(cmd)==2)
 		{
-			
+			incode_ctoxs(zidentify_no, data, 16);
+			incode_ctoxs(cidentify_no, "1122334455667788", 16);
+			send_gd_udp_request(server_ipaddr, zidentify_no, cidentify_no);
 		}
 		else if(!strncmp("dc", cmd, 2) && strlen(cmd)==2)
 		{
-			
+			send_dc_udp_request(server_ipaddr, 
+				zidentify_no, cidentify_no, data, datalen);
 		}
 		else 
 #endif

@@ -88,16 +88,18 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
 
 #ifdef COMM_CLIENT
 gw_info_t *get_gateway_info();
-cli_list_t *get_client_list();
 
 int add_zdevice_info(dev_info_t *m_dev);
 dev_info_t *query_zdevice_info(uint16 znet_addr);
 int del_zdevice_info(uint16 znet_addr);
+#endif
+
+cli_list_t *get_client_list();
 
 int add_client_info(cli_info_t *m_info);
 cli_info_t *query_client_info(cidentify_no_t cidentify_no);
 int del_client_info(cidentify_no_t cidentify_no);
-#endif
+
 
 #ifdef COMM_SERVER
 gw_list_t *get_gateway_list();
