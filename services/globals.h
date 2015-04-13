@@ -76,4 +76,8 @@ typedef byte cidentify_no_t[8];
 int mach_init();
 void event_init();
 
+#ifdef CLIENT_TEST
+void set_target_ip(char *ipaddr, int len);
+#endif
+
 #endif	//__GLOBALS_H__

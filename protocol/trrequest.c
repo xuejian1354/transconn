@@ -242,6 +242,8 @@ void rp_handler(struct sockaddr_in *addr, rp_t *rp)
 #endif
 
 #ifdef CLIENT_TEST
+	set_target_ip(ipaddr, strlen(ipaddr));
+
 	send_rp_udp_respond(ipaddr, 
 		rp->zidentify_no, rp->cidentify_no, NULL, 0);
 #endif

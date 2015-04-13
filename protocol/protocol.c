@@ -643,14 +643,15 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 	gd_t *gd; rd_t *rd; dc_t *dc; ub_t *ub;
 	
 	cli_info_t *cli_info;
+	
 	tr_head_type_t head_type = get_trhead_from_str(buf);
 	void *p = get_trframe_alloc(head_type, buf, len);
-
+	
 	if(p == NULL)
 	{
 		return;
 	}
-
+	
 	switch(head_type)
 	{
 	case TRHEAD_PI:

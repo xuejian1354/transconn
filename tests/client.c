@@ -20,6 +20,8 @@
 void *client_control(void *p);
 int strtox(unsigned char *dst, char *pst, int size);
 
+static char target_ipaddr[24] = {0};
+
 int main(int argc, char **argv)
 {
 	pthread_t pthr;
@@ -94,6 +96,7 @@ void *client_control(void *p)
 
 	char server_ipaddr[24] = {0};
 	GET_SERVER_IP(server_ipaddr);
+	GET_SERVER_IP(target_ipaddr);
 
 	zidentify_no_t zidentify_no;
 	cidentify_no_t cidentify_no;
@@ -155,7 +158,7 @@ void *client_control(void *p)
 		}
 		else if(!strncmp("dc", cmd, 2) && strlen(cmd)==2)
 		{
-			send_dc_udp_request(server_ipaddr, 
+			send_dc_udp_request(target_ipaddr, 
 				zidentify_no, cidentify_no, data, datalen);
 		}
 		else 
@@ -184,6 +187,17 @@ void *client_control(void *p)
 		}
 nextconsoleio:;
 	}
+}
+
+void set_target_ip(char *ipaddr, int len)
+{
+	if(ipaddr == NULL)
+	{
+		return;
+	}
+	
+	memset(target_ipaddr, 0, sizeof(target_ipaddr));
+	memcpy(target_ipaddr, ipaddr, len);
 }
 
 //char to hex
