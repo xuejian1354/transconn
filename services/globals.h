@@ -48,6 +48,9 @@
 //udp protocol using port
 #define TRANS_UDP_PORT	11576
 
+//client test use udp port
+#define TRANS_CLIENT_TEST_UDP_PORT	11577
+
 #ifdef COMM_CLIENT
 //udp protocol using port
 #define TRANS_UDP_SELF_PORT	11576
