@@ -162,7 +162,7 @@ int socket_udp_service_init(int port)
 	}
 
 	m_addr.sin_family = PF_INET;
-	m_addr.sin_port = htons(TRANS_UDP_PORT);
+	m_addr.sin_port = htons(port);
 	m_addr.sin_addr.s_addr = htonl(INADDR_ANY);//inet_addr("192.168.1.1");
 
 	server_addr.sin_family = PF_INET;

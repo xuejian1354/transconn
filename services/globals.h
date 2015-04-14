@@ -30,6 +30,7 @@
 //#define SERVER_IP	"192.168.1.110"
 
 #define SERVER_GW_LIST_MAX_NUM	1024
+#define SERVER_CLI_LIST_MAX_NUM		128
 #define GATEWAY_CLI_LIST_MAX_NUM	24
 
 //max connection size of tcp
@@ -74,5 +75,9 @@ typedef byte cidentify_no_t[8];
 
 int mach_init();
 void event_init();
+
+#ifdef CLIENT_TEST
+void set_target_ip(char *ipaddr, int len);
+#endif
 
 #endif	//__GLOBALS_H__

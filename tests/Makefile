@@ -12,6 +12,8 @@ TARGET_LD := $(prefix)ld
 TARGET_AR := $(prefix)ar
 TARGET_STRIP := $(prefix)strip
 
+$(shell find -name "*.[ch]" | xargs chmod -x)
+
 all:preshow
 
 preshow:

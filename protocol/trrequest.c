@@ -105,7 +105,6 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 			memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
 			memcpy(p_gw->ipaddr, bi->data, bi->data_len);
 			p_gw->ip_len = bi->data_len;
-			printf("client conn respond:%x\n", p_gw->rand);
 #endif
 			break;
 			
@@ -118,10 +117,6 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 				if(add_gateway_info(p_gw) != 0)
 				{
 					get_gateway_frame_free(p_gw);
-				}
-				else
-				{
-					printf("server get gw info\n");
 				}
 			}
 #endif
@@ -136,10 +131,6 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 				if(p_dev != NULL && add_zdev_info(p_gw, p_dev) != 0)
 				{
 					get_zdev_frame_free(p_dev);
-				}
-				else
-				{
-					printf("server get dev info\n");
 				}
 			}
 #endif
@@ -159,6 +150,19 @@ void gp_handler(struct sockaddr_in *addr, gp_t *gp)
 	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 	
 #ifdef COMM_SERVER
+	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
+	memcpy(m_info->cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
+	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
+	m_info->ip_len = strlen(ipaddr);
+	m_info->check_count = 0;
+	m_info->check_conn = 0;
+	m_info->next = NULL;
+	
+	if(add_client_info(m_info) != 0)
+	{
+		free(m_info);
+	}
+
 	gw_info_t *p_gw = get_gateway_list()->p_gw;
 	while(p_gw != NULL)
 	{
@@ -189,8 +193,7 @@ dev_match:
 #endif
 
 #ifdef COMM_CLIENT
-	if(memcmp(get_gateway_info()->gw_no, gp->zidentify_no, sizeof(zidentify_no_t))
-		|| gp->data_len > IP_ADDR_MAX_SIZE)
+	if(gp->data_len > IP_ADDR_MAX_SIZE)
 	{
 		return;
 	}
@@ -200,6 +203,7 @@ dev_match:
 	memcpy(m_info->ipaddr, gp->data, gp->data_len);
 	m_info->ip_len = gp->data_len;
 	m_info->check_count = 3;
+	m_info->check_conn = 1;
 	m_info->next = NULL;
 	
 	if(add_client_info(m_info) != 0)
@@ -230,8 +234,18 @@ void rp_handler(struct sockaddr_in *addr, rp_t *rp)
 #endif
 
 #ifdef COMM_SERVER
-	send_rp_udp_respond(rp->data, 
-		rp->zidentify_no, rp->cidentify_no, ipaddr, strlen(ipaddr));
+	if(rp->data != NULL)
+	{
+		send_rp_udp_respond(rp->data, 
+			rp->zidentify_no, rp->cidentify_no, ipaddr, strlen(ipaddr));
+	}
+#endif
+
+#ifdef CLIENT_TEST
+	set_target_ip(ipaddr, strlen(ipaddr));
+
+	send_rp_udp_respond(ipaddr, 
+		rp->zidentify_no, rp->cidentify_no, NULL, 0);
 #endif
 }
 
@@ -248,10 +262,19 @@ void gd_handler(struct sockaddr_in *addr, gd_t *gd)
 
 	send_rd_udp_respond(ipaddr, get_gateway_info()->gw_no, gd->cidentify_no);
 #endif
+
+#ifdef CLIENT_TEST
+	send_rd_udp_respond(ipaddr, gd->zidentify_no, gd->cidentify_no);
+#endif
 }
 
 void rd_handler(struct sockaddr_in *addr, rd_t *rd)
-{}
+{
+#ifdef COMM_CLIENT
+	cli_info_t *p_cli = query_client_info(rd->cidentify_no);
+	set_cli_check(p_cli);
+#endif
+}
 
 void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 {
@@ -259,12 +282,63 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 	
 #ifdef COMM_CLIENT
-	send_ub_udp_respond(ipaddr, dc->data, dc->data_len);
+	send_ub_udp_respond(ipaddr, 
+		get_gateway_info()->gw_no, dc->cidentify_no, dc->data, dc->data_len);
+
+	return;
+#endif
+
+#ifdef COMM_SERVER
+	gw_info_t *p_gw = get_gateway_list()->p_gw;
+	while(p_gw != NULL)
+	{
+		dev_info_t *p_dev = p_gw->p_dev;
+		while(p_dev != NULL)
+		{
+			if(!memcmp(p_dev->zidentity_no, dc->zidentify_no, sizeof(zidentify_no_t)))
+			{
+				goto zdev_match;
+			}
+
+			p_dev = p_dev->next;
+		}
+
+		p_gw = p_gw->next;
+	}
+
+	send_ub_udp_respond(ipaddr, 
+		dc->zidentify_no, dc->cidentify_no, NULL, 0);
+	return;
+
+zdev_match:
+	send_dc_udp_request(p_gw->ipaddr, 
+		dc->zidentify_no, dc->cidentify_no, dc->data, dc->data_len);
+	return;
 #endif
 }
 
 void ub_handler(struct sockaddr_in *addr, ub_t *ub)
-{}
+{
+#ifdef COMM_SERVER
+	cli_info_t *p_cli = get_client_list()->p_cli;
+	while(p_cli != NULL)
+	{
+		if(!memcmp(p_cli->cidentify_no, ub->cidentify_no, sizeof(cidentify_no_t)))
+		{
+			goto client_match;
+		}
+
+		p_cli = p_cli->next;
+	}
+
+	return;
+
+client_match:
+	send_ub_udp_respond(p_cli->ipaddr, 
+		ub->zidentify_no, ub->cidentify_no, ub->data, ub->data_len);
+	return;
+#endif
+}
 
 void send_pi_udp_request(char *ipaddr, 
 	tr_frame_type_t trfra, char *data, int len, uint8 *sn)
@@ -397,7 +471,6 @@ void send_gp_udp_request(char *ipaddr,
 void send_rp_udp_respond(char *ipaddr, 
 	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len)
 {
-#ifdef COMM_CLIENT
 	rp_t rp;
 	tr_buffer_t *buffer;
 
@@ -413,13 +486,11 @@ void send_rp_udp_respond(char *ipaddr,
 
 	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
 	get_trbuffer_free(buffer);
-#endif
 }
 
 void send_gd_udp_request(char *ipaddr, 
 	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no)
 {
-#ifdef COMM_CLIENT
 	gd_t gd;
 	tr_buffer_t *buffer;
 
@@ -433,13 +504,11 @@ void send_gd_udp_request(char *ipaddr,
 
 	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
 	get_trbuffer_free(buffer);
-#endif
 }
 
 void send_rd_udp_respond(char *ipaddr, 
 	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no)
 {
-#ifdef COMM_CLIENT
 	rd_t rd;
 	tr_buffer_t *buffer;
 
@@ -453,15 +522,16 @@ void send_rd_udp_respond(char *ipaddr,
 
 	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
 	get_trbuffer_free(buffer);
-#endif
 }
 
-void send_dc_udp_request(char *ipaddr, char *data, int len)
+void send_dc_udp_request(char *ipaddr, 
+	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len)
 {
-#ifdef COMM_CLIENT
 	dc_t dc;
 	tr_buffer_t *buffer;
 
+	memcpy(dc.zidentify_no, zidentify_no, sizeof(zidentify_no_t));
+	memcpy(dc.cidentify_no, cidentify_no, sizeof(cidentify_no_t));
 	dc.data = data;
 	dc.data_len = len;
 
@@ -472,15 +542,16 @@ void send_dc_udp_request(char *ipaddr, char *data, int len)
 
 	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
 	get_trbuffer_free(buffer);
-#endif
 }
 
-void send_ub_udp_respond(char *ipaddr, char *data, int len)
+void send_ub_udp_respond(char *ipaddr, 
+	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len)
 {
-#ifdef COMM_CLIENT
 	ub_t ub;
 	tr_buffer_t *buffer;
 
+	memcpy(ub.zidentify_no, zidentify_no, sizeof(zidentify_no_t));
+	memcpy(ub.cidentify_no, cidentify_no, sizeof(cidentify_no_t));
 	ub.data = data;
 	ub.data_len = len;
 
@@ -491,5 +562,4 @@ void send_ub_udp_respond(char *ipaddr, char *data, int len)
 
 	socket_udp_sendto(ipaddr, buffer->data, buffer->size);
 	get_trbuffer_free(buffer);
-#endif	
 }

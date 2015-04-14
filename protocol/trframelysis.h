@@ -45,8 +45,8 @@
 #define TR_RP_DATA_FIX_LEN	39
 #define TR_GD_DATA_FIX_LEN	39
 #define TR_RD_DATA_FIX_LEN	39
-#define TR_DC_DATA_FIX_LEN	7
-#define TR_UB_DATA_FIX_LEN	7
+#define TR_DC_DATA_FIX_LEN	39
+#define TR_UB_DATA_FIX_LEN	39
 
 #define TR_BUFFER_SIZE 	1024
 #define TR_TAIL ":O\r\n"
@@ -107,7 +107,7 @@ typedef struct
 	cidentify_no_t cidentify_no;
 	uint16 data_len;
 	uint8 *data;
-}gp_t,rp_t;
+}gp_t, rp_t, dc_t, ub_t;
 
 
 typedef struct
@@ -116,11 +116,6 @@ typedef struct
 	cidentify_no_t cidentify_no;
 }gd_t,rd_t;
 
-typedef struct
-{
-	uint8 *data;
-	uint8 data_len;
-}dc_t, ub_t;
 
 typedef struct
 {
