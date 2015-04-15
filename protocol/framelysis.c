@@ -16,33 +16,6 @@
  */
 #include "framelysis.h"
 
-//frame head
-#define FR_HEAD_UC	"UC:"	//coord up data
-#define FR_HEAD_UO	"UO:"	//device up data
-#define FR_HEAD_UH	"UH:"	//device heart beat
-#define FR_HEAD_DE	"D:"	//command
-#define FR_HEAD_UR	"UR:"	//command return
-#define FR_HEAD_UJ	"UJ:"	//permit join
-
-
-//net device type
-#define FR_DEV_COORD	'0'
-#define FR_DEV_ROUTER	'0'
-#define FR_DEV_ENDDEV	'1'
-
-//app device type
-#define FR_APP_CONNECTOR			"00"
-#define FR_APP_ENDNODE				"00"
-#define FR_APP_LIGHTSWITCH_ONE		"01"
-#define FR_APP_LIGHTSWITCH_TWO		"02"
-#define FR_APP_LIGHTSWITCH_THREE	"03"
-#define FR_APP_LIGHTSWITCH_FOUR		"04"
-#define FR_APP_ALARM				"11"
-#define FR_APP_IR_DETECTION			"12"
-#define FR_APP_DOOR_SENSOR			"13"
-#define FR_APP_IR_RELAY				"21"
-
-
 //command method
 #define FR_CMD_BROCAST_REFRESH	"/BR/"		//broadcast
 #define FR_CMD_SINGLE_REFRESH	"/SR/"		//single refresh
@@ -61,7 +34,6 @@
 #define FRAME_DATA_SIZE		32
 #define FRAME_BUFFER_SIZE 	64
 #define MAX_OPTDATA_SIZE	FRAME_DATA_SIZE
-#define FR_TAIL ":O\r\n"
 
 fr_head_type_t get_frhead_from_str(char *head)
 {
@@ -487,6 +459,10 @@ fr_package_err:
 
 void get_buffer_free(fr_buffer_t *p)
 {
-	free(p->data);
+	if(p != NULL)
+	{
+		free(p->data);
+	}
+	
 	free(p);
 }

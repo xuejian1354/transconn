@@ -15,6 +15,7 @@
  * GNU General Public License for more details.
  */
 #include <services/globals.h>
+#include <protocol/trframelysis.h>
 #include <pthread.h>
 
 void *client_control(void *p);
@@ -154,11 +155,11 @@ void *client_control(void *p)
 		{
 			incode_ctoxs(zidentify_no, data, 16);
 			incode_ctoxs(cidentify_no, "1122334455667788", 16);
-			send_gp_udp_request(server_ipaddr, zidentify_no, cidentify_no, NULL, 0);
+			send_gp_udp_request(server_ipaddr, TRINFO_NONE, zidentify_no, cidentify_no, NULL, 0);
 		}
 		else if(!strncmp("dc", cmd, 2) && strlen(cmd)==2)
 		{
-			send_dc_udp_request(target_ipaddr, 
+			send_dc_udp_request(target_ipaddr, TRINFO_DATA, 
 				zidentify_no, cidentify_no, data, datalen);
 		}
 		else 

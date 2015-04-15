@@ -39,14 +39,19 @@
 #define TR_FRAME_PUT_GW		'4'
 #define TR_FRAME_PUT_DEV	'5'
 
+#define TR_INFO_IP			'1'
+#define TR_INFO_DATA		'2'
+#define TR_INFO_UPDATE		'3'
+#define	TR_INFO_CUT			'4'
+
 #define TR_PI_DATA_FIX_LEN	25
 #define TR_BI_DATA_FIX_LEN	25
-#define TR_GP_DATA_FIX_LEN	39
-#define TR_RP_DATA_FIX_LEN	39
+#define TR_GP_DATA_FIX_LEN	40
+#define TR_RP_DATA_FIX_LEN	40
 #define TR_GD_DATA_FIX_LEN	39
 #define TR_RD_DATA_FIX_LEN	39
-#define TR_DC_DATA_FIX_LEN	39
-#define TR_UB_DATA_FIX_LEN	39
+#define TR_DC_DATA_FIX_LEN	40
+#define TR_UB_DATA_FIX_LEN	40
 
 #define TR_BUFFER_SIZE 	1024
 #define TR_TAIL ":O\r\n"
@@ -81,6 +86,15 @@ typedef enum
 	TRFRAME_NONE,
 }tr_frame_type_t;
 
+typedef enum
+{
+	TRINFO_IP,
+	TRINFO_DATA,
+	TRINFO_UPDATE,
+	TRINFO_CUT,
+	TRINFO_NONE,
+}tr_info_type_t;
+
 typedef struct
 {
 	uint8 sn[8];
@@ -105,6 +119,7 @@ typedef struct
 {
 	zidentify_no_t zidentify_no;
 	cidentify_no_t cidentify_no;
+	tr_info_type_t tr_info;
 	uint16 data_len;
 	uint8 *data;
 }gp_t, rp_t, dc_t, ub_t;
@@ -130,6 +145,9 @@ char get_trtrans_to_ch(tr_trans_type_t trans);
 
 tr_frame_type_t get_trframe_from_ch(char trfra);
 char get_trframe_to_ch(tr_frame_type_t trfra);
+
+tr_info_type_t get_trinfo_from_ch(char trinfo);
+char get_trinfo_to_ch(tr_info_type_t trinfo);
 
 
 void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length);

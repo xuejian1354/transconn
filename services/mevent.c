@@ -122,8 +122,8 @@ void *rp_watch(void *p)
 	
 	if(p_cli->check_count-- != 0)
 	{
-		send_rp_udp_respond(p_cli->ipaddr, get_gateway_info()->gw_no, 
-			p_cli->cidentify_no, p_cli->ipaddr, p_cli->ip_len);
+		send_rp_udp_respond(p_cli->ipaddr, TRINFO_UPDATE, 
+			get_gateway_info()->gw_no, p_cli->cidentify_no, NULL, 0);
 		
 		set_rp_check(p_cli);
 	}
@@ -132,7 +132,7 @@ void *rp_watch(void *p)
 		char ipaddr[24] = {0};
 		GET_SERVER_IP(ipaddr);
 
-		send_rp_udp_respond(ipaddr, get_gateway_info()->gw_no, 
+		send_rp_udp_respond(ipaddr, TRINFO_IP, get_gateway_info()->gw_no, 
 			p_cli->cidentify_no, p_cli->ipaddr, p_cli->ip_len);
 
 		memset(p_cli->ipaddr, 0, sizeof(p_cli->ipaddr));

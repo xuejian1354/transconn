@@ -92,6 +92,7 @@ gw_info_t *get_gateway_info();
 
 int add_zdevice_info(dev_info_t *m_dev);
 dev_info_t *query_zdevice_info(uint16 znet_addr);
+dev_info_t *query_zdevice_info_with_sn(zidentify_no_t zidentify_no);
 int del_zdevice_info(uint16 znet_addr);
 #endif
 

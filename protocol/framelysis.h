@@ -19,6 +19,34 @@
 
 #include <services/globals.h>
 
+//frame head
+#define FR_HEAD_UC	"UC:"	//coord up data
+#define FR_HEAD_UO	"UO:"	//device up data
+#define FR_HEAD_UH	"UH:"	//device heart beat
+#define FR_HEAD_DE	"D:"	//command
+#define FR_HEAD_UR	"UR:"	//command return
+#define FR_HEAD_UJ	"UJ:"	//permit join
+
+
+//net device type
+#define FR_DEV_COORD	'0'
+#define FR_DEV_ROUTER	'0'
+#define FR_DEV_ENDDEV	'1'
+
+//app device type
+#define FR_APP_CONNECTOR			"00"
+#define FR_APP_ENDNODE				"00"
+#define FR_APP_LIGHTSWITCH_ONE		"01"
+#define FR_APP_LIGHTSWITCH_TWO		"02"
+#define FR_APP_LIGHTSWITCH_THREE	"03"
+#define FR_APP_LIGHTSWITCH_FOUR		"04"
+#define FR_APP_ALARM				"11"
+#define FR_APP_IR_DETECTION			"12"
+#define FR_APP_DOOR_SENSOR			"13"
+#define FR_APP_IR_RELAY				"21"
+
+#define FR_TAIL ":O\r\n"
+
 typedef enum
 {
 	HEAD_UC,

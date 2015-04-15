@@ -396,6 +396,26 @@ dev_info_t *query_zdevice_info(uint16 znet_addr)
 	return query_zdev_info(&gw_info, znet_addr);
 }
 
+dev_info_t *query_zdevice_info_with_sn(zidentify_no_t zidentify_no)
+{
+	dev_info_t *t_dev = gw_info.p_dev;
+
+
+	while(t_dev != NULL)
+	{
+		if(memcmp(t_dev->zidentity_no, zidentify_no, sizeof(zidentify_no_t)))
+		{
+			t_dev = t_dev->next;
+		}
+		else
+		{
+			return t_dev;
+		}
+	}
+
+	return NULL;
+}
+
 int del_zdevice_info(uint16 znet_addr)
 {
 	return del_zdev_info(&gw_info, znet_addr);
