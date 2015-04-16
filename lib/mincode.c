@@ -98,7 +98,7 @@ void incode_xtocs(char *dest , unsigned char *src, int len)
 
 void incode_ctox16(unsigned short *dest, char *src)
 {
-	char dsts[2];
+	unsigned char dsts[2];
 	incode_ctoxs(dsts, src, 4);
 	*dest = dsts[0]<<8;
 	*dest += dsts[1];

@@ -184,7 +184,7 @@ void gp_handler(struct sockaddr_in *addr, gp_t *gp)
 		p_gw = p_gw->next;
 	}
 
-	send_rp_udp_respond(ipaddr, TRINFO_NONE, gp->zidentify_no, gp->cidentify_no, NULL, 0);
+	send_rp_udp_respond(ipaddr, TRINFO_DATA, gp->zidentify_no, gp->cidentify_no, NULL, 0);
 	return;
 
 dev_match:
@@ -247,8 +247,8 @@ dev_match:
 	
 	fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UO, &m_uo);
 	
-	send_rp_udp_respond(m_info->ipaddr, TRINFO_DATA, gp->zidentify_no, 
-		get_gateway_info()->gw_no, frbuffer->data, frbuffer->size);
+	send_rp_udp_respond(m_info->ipaddr, TRINFO_DATA, get_gateway_info()->gw_no, 
+		gp->cidentify_no, frbuffer->data, frbuffer->size);
 	
 	get_buffer_free(frbuffer);
 

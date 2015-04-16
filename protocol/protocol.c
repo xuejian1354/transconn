@@ -597,6 +597,7 @@ void analysis_zdev_frame(char *buf, int len)
 		dev_info = calloc(1, sizeof(dev_info_t));
 		incode_ctoxs(dev_info->zidentity_no, uo->ext_addr, 16);
 		incode_ctox16(&dev_info->znet_addr, uo->short_addr);
+		printf("trans type: %04X\n", dev_info->znet_addr);
 		dev_info->zapp_type = get_frapp_type_from_str(uo->ed_type);
 		dev_info->znet_type = get_frnet_type_from_str(uo->type);
 
