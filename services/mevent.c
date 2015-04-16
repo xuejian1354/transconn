@@ -84,8 +84,8 @@ void *stand_event(void *p)
 
 	while(p_cli != NULL)
 	{
-		send_gd_udp_request(p_cli->ipaddr, 
-			get_gateway_info()->gw_no, p_cli->cidentify_no);
+		send_gd_udp_request(p_cli->ipaddr, TRINFO_REG, 
+			get_gateway_info()->gw_no, p_cli->cidentify_no, NULL, 0);
 
 		if(p_cli->check_conn)
 		{

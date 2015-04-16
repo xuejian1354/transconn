@@ -456,14 +456,81 @@ void gd_handler(struct sockaddr_in *addr, gd_t *gd)
 {
 	char ipaddr[24] = {0};
 	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+
+#ifdef COMM_SERVER
+	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
+	memcpy(m_info->cidentify_no, gd->cidentify_no, sizeof(cidentify_no_t));
+	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
+	m_info->ip_len = strlen(ipaddr);
+	m_info->check_count = 0;
+	m_info->check_conn = 0;
+	m_info->next = NULL;
 	
-#ifdef COMM_CLIENT
-	if(memcmp(get_gateway_info()->gw_no, gd->zidentify_no, sizeof(zidentify_no_t)))
+	if(add_client_info(m_info) != 0)
+	{
+		free(m_info);
+	}
+
+	if(gd->tr_info != TRINFO_REG)
 	{
 		return;
 	}
 
-	send_rd_udp_respond(ipaddr, get_gateway_info()->gw_no, gd->cidentify_no);
+	gw_info_t *p_gw = get_gateway_list()->p_gw;
+	while(p_gw != NULL)
+	{
+		if(!memcmp(p_gw->gw_no, gd->zidentify_no, sizeof(zidentify_no_t)))
+		{
+			goto gdev_match;
+		}
+
+		p_gw = p_gw->next;
+	}
+
+	send_rd_udp_respond(ipaddr, TRINFO_DISMATCH, gd->zidentify_no, gd->cidentify_no, NULL, 0);
+	return;
+
+gdev_match:
+	send_gd_udp_request(p_gw->ipaddr, TRINFO_IP, 
+		gd->zidentify_no, gd->cidentify_no, ipaddr, strlen(ipaddr));
+
+	send_rd_udp_respond(ipaddr, TRINFO_FOUND, 
+		p_gw->gw_no, gd->cidentify_no, NULL, 0);
+	return;
+#endif
+	
+#ifdef COMM_CLIENT
+	if(gd->data_len > IP_ADDR_MAX_SIZE)
+	{
+		return;
+	}
+
+	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
+
+	if(gd->tr_info == TRINFO_IP)
+	{
+		memcpy(m_info->ipaddr, gd->data, gd->data_len);
+		m_info->ip_len = gd->data_len;
+	}
+	else if(gd->tr_info == TRINFO_REG)
+	{
+		memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
+		m_info->ip_len = strlen(ipaddr);
+	}
+	
+	memcpy(m_info->cidentify_no, gd->cidentify_no, sizeof(cidentify_no_t));	
+	m_info->check_count = 0;
+	m_info->check_conn = 0;
+	m_info->next = NULL;
+	
+	if(add_client_info(m_info) != 0)
+	{
+		free(m_info);
+	}
+
+	send_gd_udp_request(m_info->ipaddr, TRINFO_REG, 
+		get_gateway_info()->gw_no, gd->cidentify_no, NULL, 0);
+	
 #endif
 
 
@@ -473,14 +540,17 @@ void gd_handler(struct sockaddr_in *addr, gd_t *gd)
 }
 
 
-void send_gd_udp_request(char *ipaddr, 
-	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no)
+void send_gd_udp_request(char *ipaddr, tr_info_type_t trinfo,
+	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len)
 {
 	gd_t gd;
 	tr_buffer_t *buffer;
 
 	memcpy(gd.zidentify_no, zidentify_no, sizeof(zidentify_no_t));
 	memcpy(gd.cidentify_no, cidentify_no, sizeof(cidentify_no_t));
+	gd.tr_info = trinfo;
+	gd.data = data;
+	gd.data_len = len;
 
 	if((buffer = get_trbuffer_alloc(TRHEAD_GD, &gd)) == NULL)
 	{
@@ -501,14 +571,17 @@ void rd_handler(struct sockaddr_in *addr, rd_t *rd)
 }
 
 
-void send_rd_udp_respond(char *ipaddr, 
-	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no)
+void send_rd_udp_respond(char *ipaddr, tr_info_type_t trinfo,
+	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len)
 {
 	rd_t rd;
 	tr_buffer_t *buffer;
 
 	memcpy(rd.zidentify_no, zidentify_no, sizeof(zidentify_no_t));
 	memcpy(rd.cidentify_no, cidentify_no, sizeof(cidentify_no_t));
+	rd.tr_info = trinfo;
+	rd.data = data;
+	rd.data_len = len;
 
 	if((buffer = get_trbuffer_alloc(TRHEAD_RD, &rd)) == NULL)
 	{

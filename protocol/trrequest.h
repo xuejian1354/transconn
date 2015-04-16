@@ -40,12 +40,12 @@ void send_rp_udp_respond(char *ipaddr, tr_info_type_t trinfo,
 	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len);
 
 void gd_handler(struct sockaddr_in *addr, gd_t *gd);
-void send_gd_udp_request(char *ipaddr, 
-	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no);
+void send_gd_udp_request(char *ipaddr, tr_info_type_t trinfo,
+	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len);
 
 void rd_handler(struct sockaddr_in *addr, rd_t *rd);
-void send_rd_udp_respond(char *ipaddr, 
-	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no);
+void send_rd_udp_respond(char *ipaddr, tr_info_type_t trinfo,
+	zidentify_no_t zidentify_no, cidentify_no_t cidentify_no, char *data, int len);
 
 void dc_handler(struct sockaddr_in *addr, dc_t *dc);
 void send_dc_udp_request(char *ipaddr, tr_info_type_t trinfo,

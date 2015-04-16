@@ -43,13 +43,16 @@
 #define TR_INFO_DATA		'2'
 #define TR_INFO_UPDATE		'3'
 #define	TR_INFO_CUT			'4'
+#define TR_INFO_REG			'5'
+#define TR_INFO_FOUND		'6'
+#define TR_INFO_DISMATCH	'7'
 
 #define TR_PI_DATA_FIX_LEN	25
 #define TR_BI_DATA_FIX_LEN	25
 #define TR_GP_DATA_FIX_LEN	40
 #define TR_RP_DATA_FIX_LEN	40
-#define TR_GD_DATA_FIX_LEN	39
-#define TR_RD_DATA_FIX_LEN	39
+#define TR_GD_DATA_FIX_LEN	40
+#define TR_RD_DATA_FIX_LEN	40
 #define TR_DC_DATA_FIX_LEN	40
 #define TR_UB_DATA_FIX_LEN	40
 
@@ -92,6 +95,9 @@ typedef enum
 	TRINFO_DATA,
 	TRINFO_UPDATE,
 	TRINFO_CUT,
+	TRINFO_REG,
+	TRINFO_FOUND,
+	TRINFO_DISMATCH,
 	TRINFO_NONE,
 }tr_info_type_t;
 
@@ -122,14 +128,7 @@ typedef struct
 	tr_info_type_t tr_info;
 	uint16 data_len;
 	uint8 *data;
-}gp_t, rp_t, dc_t, ub_t;
-
-
-typedef struct
-{
-	zidentify_no_t zidentify_no;
-	cidentify_no_t cidentify_no;
-}gd_t,rd_t;
+}gp_t, rp_t, gd_t, rd_t, dc_t, ub_t;
 
 
 typedef struct

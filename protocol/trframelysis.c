@@ -157,6 +157,15 @@ tr_info_type_t get_trinfo_from_ch(char trinfo)
 	case TR_INFO_CUT:
 		return TRINFO_CUT;
 
+	case TR_INFO_REG:
+		return TRINFO_REG;
+
+	case TR_INFO_FOUND:
+		return TRINFO_FOUND;
+
+	case TR_INFO_DISMATCH:
+		return TRINFO_DISMATCH;
+
 	default:
 		break;
 	}
@@ -179,6 +188,15 @@ char get_trinfo_to_ch(tr_info_type_t trinfo)
 
 	case TRINFO_CUT:
 		return TR_INFO_CUT;
+
+	case TRINFO_REG:
+		return TR_INFO_REG;
+
+	case TRINFO_FOUND:
+		return TR_INFO_FOUND;
+
+	case TRINFO_DISMATCH:
+		return TR_INFO_DISMATCH;
 
 	default:
 		break;
@@ -300,11 +318,24 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 		
 	case TRHEAD_GD:
 		if(length>=TR_GD_DATA_FIX_LEN && !memcmp(buffer, TR_HEAD_GD, 3)
-			&& !memcmp(buffer+TR_GD_DATA_FIX_LEN-4, TR_TAIL, 4))
+			&& !memcmp(buffer+length-4, TR_TAIL, 4))
 		{
 			gd_t *gd = (gd_t *)calloc(1, sizeof(gd_t));
 			incode_ctoxs(gd->zidentify_no, buffer+3, 16);
 			incode_ctoxs(gd->cidentify_no, buffer+19, 16);
+			gd->tr_info = get_trinfo_from_ch(buffer[35]);
+			if(length-TR_GD_DATA_FIX_LEN > 0)
+			{
+				gd->data_len = length-TR_GD_DATA_FIX_LEN;
+				uint8 *data_buffer = (uint8 *)calloc(gd->data_len, sizeof(uint8));
+				memcpy(data_buffer, buffer+36, gd->data_len);
+				gd->data = data_buffer;
+			}
+			else
+			{
+				gd->data_len = 0;
+				gd->data = NULL;
+			}
 
 			return (void *)gd;
 		}
@@ -312,11 +343,24 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 		
 	case TRHEAD_RD:
 		if(length>=TR_RD_DATA_FIX_LEN && !memcmp(buffer, TR_HEAD_RD, 3)
-			&& !memcmp(buffer+TR_RD_DATA_FIX_LEN-4, TR_TAIL, 4))
+			&& !memcmp(buffer+length-4, TR_TAIL, 4))
 		{
 			rd_t *rd = (rd_t *)calloc(1, sizeof(rd_t));
 			incode_ctoxs(rd->zidentify_no, buffer+3, 16);
 			incode_ctoxs(rd->cidentify_no, buffer+19, 16);
+			rd->tr_info = get_trinfo_from_ch(buffer[35]);
+			if(length-TR_RD_DATA_FIX_LEN > 0)
+			{
+				rd->data_len = length-TR_RD_DATA_FIX_LEN;
+				uint8 *data_buffer = (uint8 *)calloc(rd->data_len, sizeof(uint8));
+				memcpy(data_buffer, buffer+36, rd->data_len);
+				rd->data = data_buffer;
+			}
+			else
+			{
+				rd->data_len = 0;
+				rd->data = NULL;
+			}
 
 			return (void *)rd;
 		}
@@ -404,7 +448,12 @@ void get_trframe_free(tr_head_type_t head_type, void *p)
 		break;
 		
 	case TRHEAD_GD:
+		free(((gd_t *)p)->data);
+		free(p);
+		break;
+		
 	case TRHEAD_RD:
+		free(((rd_t *)p)->data);
 		free(p);
 		break;
 		
@@ -518,12 +567,19 @@ tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame)
 	case TRHEAD_GD:
 		p_gd = (gd_t *)frame;
 		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
-		frame_buffer->size = TR_GD_DATA_FIX_LEN;
+		frame_buffer->size = TR_GD_DATA_FIX_LEN+p_gd->data_len;
+		if(frame_buffer->size > TR_BUFFER_SIZE)
+		{
+			free(frame_buffer);
+			goto tr_package_err;
+		}
 		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
 		
 		memcpy(frame_buffer->data, TR_HEAD_GD, 3);
 		incode_xtocs(frame_buffer->data+3, p_gd->zidentify_no, 8);
 		incode_xtocs(frame_buffer->data+19, p_gd->cidentify_no, 8);
+		frame_buffer->data[35] = get_trinfo_to_ch(p_gd->tr_info);
+		memcpy(frame_buffer->data+36, p_gd->data, p_gd->data_len);
 		memcpy(frame_buffer->data+frame_buffer->size-4, TR_TAIL, 4);
 
 		return frame_buffer;
@@ -531,12 +587,19 @@ tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame)
 	case TRHEAD_RD:
 		p_rd = (rd_t *)frame;
 		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
-		frame_buffer->size = TR_RD_DATA_FIX_LEN;
+		frame_buffer->size = TR_RD_DATA_FIX_LEN+p_rd->data_len;
+		if(frame_buffer->size > TR_BUFFER_SIZE)
+		{
+			free(frame_buffer);
+			goto tr_package_err;
+		}
 		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
 		
 		memcpy(frame_buffer->data, TR_HEAD_RD, 3);
 		incode_xtocs(frame_buffer->data+3, p_rd->zidentify_no, 8);
 		incode_xtocs(frame_buffer->data+19, p_rd->cidentify_no, 8);
+		frame_buffer->data[35] = get_trinfo_to_ch(p_rd->tr_info);
+		memcpy(frame_buffer->data+36, p_rd->data, p_rd->data_len);
 		memcpy(frame_buffer->data+frame_buffer->size-4, TR_TAIL, 4);
 
 		return frame_buffer;
