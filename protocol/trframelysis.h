@@ -39,6 +39,7 @@
 #define TR_FRAME_PUT_GW		'4'
 #define TR_FRAME_PUT_DEV	'5'
 
+#define TR_INFO_NONE		'0'
 #define TR_INFO_IP			'1'
 #define TR_INFO_DATA		'2'
 #define TR_INFO_UPDATE		'3'
@@ -46,6 +47,9 @@
 #define TR_INFO_REG			'5'
 #define TR_INFO_FOUND		'6'
 #define TR_INFO_DISMATCH	'7'
+#define TR_INFO_CONTROL		'8'
+#define TR_INFO_QUERY		'9'
+#define TR_INFO_REDATA		'A'
 
 #define TR_PI_DATA_FIX_LEN	25
 #define TR_BI_DATA_FIX_LEN	25
@@ -98,6 +102,9 @@ typedef enum
 	TRINFO_REG,
 	TRINFO_FOUND,
 	TRINFO_DISMATCH,
+	TRINFO_CONTROL,
+	TRINFO_QUERY,
+	TRINFO_REDATA,
 	TRINFO_NONE,
 }tr_info_type_t;
 

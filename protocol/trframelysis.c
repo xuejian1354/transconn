@@ -166,6 +166,15 @@ tr_info_type_t get_trinfo_from_ch(char trinfo)
 	case TR_INFO_DISMATCH:
 		return TRINFO_DISMATCH;
 
+	case TR_INFO_CONTROL:
+		return TRINFO_CONTROL;
+
+	case TR_INFO_QUERY:
+		return TRINFO_QUERY;
+
+	case TR_INFO_REDATA:
+		return TRINFO_REDATA;
+
 	default:
 		break;
 	}
@@ -198,11 +207,20 @@ char get_trinfo_to_ch(tr_info_type_t trinfo)
 	case TRINFO_DISMATCH:
 		return TR_INFO_DISMATCH;
 
+	case TRINFO_CONTROL:
+		return TR_INFO_CONTROL;
+
+	case TRINFO_QUERY:
+		return TR_INFO_QUERY;
+
+	case TRINFO_REDATA:
+		return TR_INFO_REDATA;
+
 	default:
 		break;
 	}
 
-	return '0';
+	return TR_INFO_NONE;
 }
 
 void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)

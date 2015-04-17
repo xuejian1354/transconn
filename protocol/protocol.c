@@ -597,9 +597,20 @@ void analysis_zdev_frame(char *buf, int len)
 		dev_info = calloc(1, sizeof(dev_info_t));
 		incode_ctoxs(dev_info->zidentity_no, uo->ext_addr, 16);
 		incode_ctox16(&dev_info->znet_addr, uo->short_addr);
-		printf("trans type: %04X\n", dev_info->znet_addr);
 		dev_info->zapp_type = get_frapp_type_from_str(uo->ed_type);
 		dev_info->znet_type = get_frnet_type_from_str(uo->type);
+
+#ifdef DE_ZDEVICE_RECORD
+		FILE *fp = NULL;
+		if((fp = fopen(RECORD_FILE, "a+")) != NULL)
+		{
+			char sn[20] = {0};
+			incode_xtocs(sn, dev_info->zidentity_no, 8);
+			fprintf(fp, "[zdevice]\nS/N: %s\nShort Addr: %04X\nDev Type: %02d\n\n", 
+				sn, dev_info->znet_addr, dev_info->zapp_type);
+			fclose(fp);
+		}
+#endif
 
 		set_zdev_check(dev_info->znet_addr);
 		

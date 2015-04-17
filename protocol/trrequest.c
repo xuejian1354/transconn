@@ -268,7 +268,7 @@ void gp_handler(struct sockaddr_in *addr, gp_t *gp)
 	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 	m_info->ip_len = strlen(ipaddr);
 	m_info->check_count = 0;
-	m_info->check_conn = 0;
+	m_info->check_conn = 1;
 	m_info->next = NULL;
 	
 	if(add_client_info(m_info) != 0)
@@ -463,7 +463,7 @@ void gd_handler(struct sockaddr_in *addr, gd_t *gd)
 	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 	m_info->ip_len = strlen(ipaddr);
 	m_info->check_count = 0;
-	m_info->check_conn = 0;
+	m_info->check_conn = 1;
 	m_info->next = NULL;
 	
 	if(add_client_info(m_info) != 0)
@@ -520,7 +520,7 @@ gdev_match:
 	
 	memcpy(m_info->cidentify_no, gd->cidentify_no, sizeof(cidentify_no_t));	
 	m_info->check_count = 0;
-	m_info->check_conn = 0;
+	m_info->check_conn = 1;
 	m_info->next = NULL;
 	
 	if(add_client_info(m_info) != 0)
@@ -599,8 +599,11 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 	
 #ifdef COMM_CLIENT
-	send_ub_udp_respond(ipaddr, TRINFO_DATA, 
-		get_gateway_info()->gw_no, dc->cidentify_no, dc->data, dc->data_len);
+	//send_ub_udp_respond(ipaddr, TRINFO_REDATA, 
+		//get_gateway_info()->gw_no, dc->cidentify_no, dc->data, dc->data_len);
+
+	serial_write(dc->data, dc->data_len);
+	//PRINT_HEX(dc->data, dc->data_len);
 
 	return;
 #endif
@@ -623,7 +626,7 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 		p_gw = p_gw->next;
 	}
 
-	send_ub_udp_respond(ipaddr, TRINFO_NONE, 
+	send_ub_udp_respond(ipaddr, TRINFO_DISMATCH, 
 		dc->zidentify_no, dc->cidentify_no, NULL, 0);
 	return;
 
