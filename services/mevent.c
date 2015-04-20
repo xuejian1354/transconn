@@ -70,10 +70,18 @@ void *upload_event(void *p)
 {
 	char ipaddr[24] = {0};
 	GET_SERVER_IP(ipaddr);
+	
+	dev_info_t *p_dev = get_gateway_info()->p_dev;
+	char buffer[ZDEVICE_MAX_NUM<<2] = {0};
+	char bsize = 0;
+	while(p_dev != NULL && bsize < (ZDEVICE_MAX_NUM<<2))
+	{
+		incode_xtoc16(buffer+bsize, p_dev->znet_addr);
+		bsize += 4;
+		p_dev = p_dev->next;
+	}
 
-	gw_info_t *gw_info = get_gateway_info();
-
-	send_pi_udp_request(ipaddr, TRFRAME_CON, gw_info->ipaddr, gw_info->ip_len, NULL);
+	send_pi_udp_request(ipaddr, TRFRAME_CON, buffer, bsize, NULL);
 	
 	return NULL;
 }
@@ -82,10 +90,20 @@ void *stand_event(void *p)
 {
  	cli_info_t *p_cli = get_client_list()->p_cli;
 
+	dev_info_t *p_dev = get_gateway_info()->p_dev;
+	char buffer[ZDEVICE_MAX_NUM<<4] = {0};
+	char bsize = 0;
+	while(p_dev != NULL && bsize < (ZDEVICE_MAX_NUM<<4))
+	{
+		incode_xtocs(buffer+bsize, p_dev->zidentity_no, 8);
+		bsize += 16;
+		p_dev = p_dev->next;
+	}
+
 	while(p_cli != NULL)
 	{
 		send_gd_udp_request(p_cli->ipaddr, TRINFO_REG, 
-			get_gateway_info()->gw_no, p_cli->cidentify_no, NULL, 0);
+			get_gateway_info()->gw_no, p_cli->cidentify_no, buffer, bsize);
 
 		if(p_cli->check_conn)
 		{

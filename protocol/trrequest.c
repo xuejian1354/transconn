@@ -43,7 +43,29 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 			else
 			{
 				memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
-				memcpy(p_gw->ipaddr, pi->data, pi->data_len);
+				memcpy(p_gw->ipaddr, ipaddr, strlen(ipaddr));
+
+				int zdevs_nums = pi->data_len/4;
+				if(zdevs_nums > 0 && zdevs_nums <= ZDEVICE_MAX_NUM)
+				{
+					p_dev = p_gw->p_dev;
+					while(p_dev != NULL)
+					{
+						int i;
+						for(i=0; i<zdevs_nums; i++)
+						{
+							uint16 znet_addr;
+							incode_ctox16(&znet_addr, pi->data+(i<<2));
+							if(p_dev->znet_addr == znet_addr)
+							{
+								goto next_zdev;
+							}
+						}
+
+						del_zdev_info(p_gw, p_dev->znet_addr);
+next_zdev:				p_dev = p_dev->next;
+					}
+				}
 				
 				set_gateway_check(p_gw->gw_no, p_gw->rand);
 				send_bi_udp_respond(ipaddr, TRFRAME_REG, ipaddr, strlen(ipaddr), pi->sn);
@@ -494,8 +516,19 @@ gdev_match:
 	send_gd_udp_request(p_gw->ipaddr, TRINFO_IP, 
 		gd->zidentify_no, gd->cidentify_no, ipaddr, strlen(ipaddr));
 
+	dev_info_t *p_dev = p_gw->p_dev;
+	char buffer[ZDEVICE_MAX_NUM<<4] = {0};
+	char bsize = 0;
+	while(p_dev != NULL && bsize < (ZDEVICE_MAX_NUM<<4))
+	{
+		incode_xtocs(buffer+bsize, p_dev->zidentity_no, 8);
+		bsize += 16;
+		p_dev = p_dev->next;
+	}
+
 	send_rd_udp_respond(ipaddr, TRINFO_FOUND, 
-		p_gw->gw_no, gd->cidentify_no, NULL, 0);
+		p_gw->gw_no, gd->cidentify_no, buffer, bsize);
+	
 	return;
 #endif
 	
@@ -528,8 +561,18 @@ gdev_match:
 		free(m_info);
 	}
 
+	dev_info_t *p_dev = get_gateway_info()->p_dev;
+	char buffer[ZDEVICE_MAX_NUM<<4] = {0};
+	char bsize = 0;
+	while(p_dev != NULL && bsize < (ZDEVICE_MAX_NUM<<4))
+	{
+		incode_xtocs(buffer+bsize, p_dev->zidentity_no, 8);
+		bsize += 16;
+		p_dev = p_dev->next;
+	}
+
 	send_gd_udp_request(m_info->ipaddr, TRINFO_REG, 
-		get_gateway_info()->gw_no, gd->cidentify_no, NULL, 0);
+		get_gateway_info()->gw_no, gd->cidentify_no, buffer, bsize);
 	
 #endif
 
