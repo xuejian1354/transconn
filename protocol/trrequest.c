@@ -66,6 +66,15 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 next_zdev:				p_dev = p_dev->next;
 					}
 				}
+				else if(zdevs_nums == 0)
+				{
+					p_dev = p_gw->p_dev;
+					while(p_dev != NULL)
+					{
+						del_zdev_info(p_gw, p_dev->znet_addr);
+						p_dev = p_dev->next;
+					}
+				}
 				
 				set_gateway_check(p_gw->gw_no, p_gw->rand);
 				send_bi_udp_respond(ipaddr, TRFRAME_REG, ipaddr, strlen(ipaddr), pi->sn);
