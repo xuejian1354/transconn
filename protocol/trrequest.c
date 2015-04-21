@@ -502,7 +502,7 @@ void gd_handler(struct sockaddr_in *addr, gd_t *gd)
 		free(m_info);
 	}
 
-	if(gd->tr_info != TRINFO_REG)
+	if(gd->tr_info != TRINFO_REG && gd->tr_info != TRINFO_HOLD)
 	{
 		return;
 	}
@@ -522,8 +522,16 @@ void gd_handler(struct sockaddr_in *addr, gd_t *gd)
 	return;
 
 gdev_match:
-	send_gd_udp_request(p_gw->ipaddr, TRINFO_IP, 
-		gd->zidentify_no, gd->cidentify_no, ipaddr, strlen(ipaddr));
+	if(gd->tr_info != TRINFO_HOLD)
+	{
+		send_gd_udp_request(p_gw->ipaddr, TRINFO_IP, 
+			gd->zidentify_no, gd->cidentify_no, ipaddr, strlen(ipaddr));
+	}
+	else
+	{
+		send_gd_udp_request(p_gw->ipaddr, TRINFO_HOLD, 
+			gd->zidentify_no, gd->cidentify_no, ipaddr, strlen(ipaddr));
+	}
 
 	dev_info_t *p_dev = p_gw->p_dev;
 	char buffer[ZDEVICE_MAX_NUM<<4] = {0};
@@ -549,15 +557,18 @@ gdev_match:
 
 	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
 
-	if(gd->tr_info == TRINFO_IP)
+	switch(gd->tr_info)
 	{
+	case TRINFO_IP:
 		memcpy(m_info->ipaddr, gd->data, gd->data_len);
 		m_info->ip_len = gd->data_len;
-	}
-	else if(gd->tr_info == TRINFO_REG)
-	{
+		break;
+
+	case TRINFO_HOLD:
+	case TRINFO_REG:
 		memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 		m_info->ip_len = strlen(ipaddr);
+		break;
 	}
 	
 	memcpy(m_info->cidentify_no, gd->cidentify_no, sizeof(cidentify_no_t));	
@@ -580,9 +591,13 @@ gdev_match:
 		p_dev = p_dev->next;
 	}
 
-	send_gd_udp_request(m_info->ipaddr, TRINFO_REG, 
-		get_gateway_info()->gw_no, gd->cidentify_no, buffer, bsize);
-	
+	if(gd->tr_info != TRINFO_HOLD)
+	{
+		send_gd_udp_request(m_info->ipaddr, TRINFO_REG, 
+			get_gateway_info()->gw_no, gd->cidentify_no, buffer, bsize);
+	}
+
+	return;
 #endif
 
 
@@ -729,7 +744,7 @@ void ub_handler(struct sockaddr_in *addr, ub_t *ub)
 	return;
 
 client_match:
-	send_ub_udp_respond(p_cli->ipaddr, TRINFO_DATA, 
+	send_ub_udp_respond(p_cli->ipaddr, ub->tr_info, 
 		ub->zidentify_no, ub->cidentify_no, ub->data, ub->data_len);
 	return;
 #endif

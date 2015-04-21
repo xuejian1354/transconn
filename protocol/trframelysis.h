@@ -45,11 +45,12 @@
 #define TR_INFO_UPDATE		'3'
 #define	TR_INFO_CUT			'4'
 #define TR_INFO_REG			'5'
-#define TR_INFO_FOUND		'6'
-#define TR_INFO_DISMATCH	'7'
-#define TR_INFO_CONTROL		'8'
-#define TR_INFO_QUERY		'9'
-#define TR_INFO_REDATA		'A'
+#define TR_INFO_HOLD		'6'
+#define TR_INFO_FOUND		'7'
+#define TR_INFO_DISMATCH	'8'
+#define TR_INFO_CONTROL		'9'
+#define TR_INFO_QUERY		'A'
+#define TR_INFO_REDATA		'B'
 
 #define TR_PI_DATA_FIX_LEN	25
 #define TR_BI_DATA_FIX_LEN	25
@@ -100,6 +101,7 @@ typedef enum
 	TRINFO_UPDATE,
 	TRINFO_CUT,
 	TRINFO_REG,
+	TRINFO_HOLD,
 	TRINFO_FOUND,
 	TRINFO_DISMATCH,
 	TRINFO_CONTROL,

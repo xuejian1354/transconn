@@ -160,6 +160,9 @@ tr_info_type_t get_trinfo_from_ch(char trinfo)
 	case TR_INFO_REG:
 		return TRINFO_REG;
 
+	case TR_INFO_HOLD:
+		return TRINFO_HOLD;
+
 	case TR_INFO_FOUND:
 		return TRINFO_FOUND;
 
@@ -200,6 +203,9 @@ char get_trinfo_to_ch(tr_info_type_t trinfo)
 
 	case TRINFO_REG:
 		return TR_INFO_REG;
+
+	case TRINFO_HOLD:
+		return TR_INFO_HOLD;
 
 	case TRINFO_FOUND:
 		return TR_INFO_FOUND;

@@ -100,10 +100,16 @@ void *stand_event(void *p)
 		p_dev = p_dev->next;
 	}
 
+	char ipaddr[24] = {0};
+	GET_SERVER_IP(ipaddr);
+
 	while(p_cli != NULL)
 	{
-		send_gd_udp_request(p_cli->ipaddr, TRINFO_REG, 
-			get_gateway_info()->gw_no, p_cli->cidentify_no, buffer, bsize);
+		if(memcmp(ipaddr, p_cli->ipaddr, p_cli->ip_len))
+		{
+			send_gd_udp_request(p_cli->ipaddr, TRINFO_REG, 
+				get_gateway_info()->gw_no, p_cli->cidentify_no, buffer, bsize);
+		}
 
 		if(p_cli->check_conn)
 		{
@@ -196,7 +202,7 @@ void set_cli_check(cli_info_t *p_cli)
 	timer_event_param_t timer_param;
 
 	timer_param.resident = 0;
-	timer_param.interval = 15;
+	timer_param.interval = 17;
 	timer_param.count = 1;
 	timer_param.immediate = 0;
 	timer_param.arg = (void *)p_cli;

@@ -655,6 +655,20 @@ void analysis_zdev_frame(char *buf, int len)
 			sprintf(mbuf, "D:/SR/%04X:O\r\n", znet_addr);
 			serial_write(mbuf, 14);
 		}
+		else
+		{
+			cli_info_t *p_cli = get_client_list()->p_cli;
+			while(p_cli != NULL)
+			{
+				fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UR, ur);
+				send_ub_udp_respond(p_cli->ipaddr, TRINFO_REDATA, 
+					get_gateway_info()->gw_no, p_cli->cidentify_no, 
+					frbuffer->data, frbuffer->size);
+
+				get_buffer_free(frbuffer);
+				p_cli = p_cli->next;
+			}
+		}
 		get_frame_free(HEAD_UR, ur);
 		break;
 		
