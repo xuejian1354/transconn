@@ -624,6 +624,18 @@ void analysis_zdev_frame(char *buf, int len)
 			send_bi_udp_respond(ipaddr, TRFRAME_PUT_DEV, buffer, ZDEVICE_BUFFER_SIZE, NULL);
 			get_zdev_buffer_free(buffer);
 		}
+
+		cli_info_t *p_cli = get_client_list()->p_cli;
+		while(p_cli != NULL)
+		{
+			fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UO, uo);
+			send_ub_udp_respond(p_cli->ipaddr, TRINFO_REDATA, 
+				get_gateway_info()->gw_no, p_cli->cidentify_no, 
+				frbuffer->data, frbuffer->size);
+
+			get_buffer_free(frbuffer);
+			p_cli = p_cli->next;
+		}
 		
 		get_frame_free(HEAD_UO, uo);
 		break;
