@@ -80,6 +80,7 @@ dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length)
 	incode_ctox16(&dev_info->znet_addr, buffer+16);
 	dev_info->zapp_type = get_frapp_type_from_str(buffer+20);
 	dev_info->znet_type = get_frnet_type_from_str(buffer[22]);
+	dev_info->zdev_opt = NULL;
 	dev_info->next = NULL;
 
 	return dev_info;
@@ -556,9 +557,6 @@ int del_gateway_info(zidentify_no_t gw_no)
 #ifdef COMM_CLIENT
 void analysis_zdev_frame(char *buf, int len)
 {
-	uc_t *uc; uo_t *uo; uh_t *uh;
-	ur_t *ur; de_t *de;
-	
 	dev_info_t *dev_info;
 	uint8 *buffer;
 	uint16 znet_addr;
@@ -578,7 +576,8 @@ void analysis_zdev_frame(char *buf, int len)
 	switch(head_type)
 	{
 	case HEAD_UC:
-		uc = (uc_t *)p;
+	{
+		uc_t *uc = (uc_t *)p;
 		incode_ctoxs(gw_info.gw_no, uc->ext_addr, 16);
 		incode_ctox16(&gw_info.zpanid, uc->panid);
 		incode_ctox16(&gw_info.zchannel, uc->channel);
@@ -590,10 +589,12 @@ void analysis_zdev_frame(char *buf, int len)
 		get_gateway_buffer_free(buffer);
 	
 		get_frame_free(HEAD_UC, uc);
-		break;
+	}
+	break;
 		
 	case HEAD_UO:
-		uo = (uo_t *)p;
+	{
+		uo_t *uo = (uo_t *)p;
 		dev_info = calloc(1, sizeof(dev_info_t));
 		incode_ctoxs(dev_info->zidentity_no, uo->ext_addr, 16);
 		incode_ctox16(&dev_info->znet_addr, uo->short_addr);
@@ -638,10 +639,12 @@ void analysis_zdev_frame(char *buf, int len)
 		}
 		
 		get_frame_free(HEAD_UO, uo);
-		break;
+	}
+	break;
 		
 	case HEAD_UH:
-		uh = (uh_t *)p;
+	{
+		uh_t *uh = (uh_t *)p;
 		incode_ctox16(&znet_addr, uh->short_addr);
 		dev_info = query_zdevice_info(znet_addr);
 		if(dev_info == NULL)
@@ -655,10 +658,12 @@ void analysis_zdev_frame(char *buf, int len)
 			set_zdev_check(znet_addr);
 		}
 		get_frame_free(HEAD_UH, uh);
-		break;
+	}
+	break;
 		
 	case HEAD_UR:
-		ur = (ur_t *)p;
+	{
+		ur_t *ur = (ur_t *)p;
 		incode_ctox16(&znet_addr, ur->short_addr);
 		dev_info = query_zdevice_info(znet_addr);
 		if(dev_info == NULL)
@@ -682,25 +687,24 @@ void analysis_zdev_frame(char *buf, int len)
 			}
 		}
 		get_frame_free(HEAD_UR, ur);
-		break;
+	}
+	break;
 		
 	case HEAD_DE:
-		de = (de_t *)p;
+	{
+		de_t *de = (de_t *)p;
 		get_frame_free(HEAD_DE, de);
-		break;
+	}
+	break;
 		
-	default:
-		break;
+	default: break;
 	}
 }
 #endif
 
 void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 {
-  	pi_t *pi; bi_t *bi; gp_t *gp; rp_t *rp;
-	gd_t *gd; rd_t *rd; dc_t *dc; ub_t *ub;
-	
-	cli_info_t *cli_info;
+  	cli_info_t *cli_info;
 	
 	tr_head_type_t head_type = get_trhead_from_str(buf);
 	void *p = get_trframe_alloc(head_type, buf, len);
@@ -713,54 +717,69 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 	switch(head_type)
 	{
 	case TRHEAD_PI:
-		pi = (pi_t *)p;
+	{
+		pi_t *pi = (pi_t *)p;
 		pi_handler(addr, pi);
 		get_trframe_free(TRHEAD_PI, p);
-		break;
+	}
+	break;
 		
 	case TRHEAD_BI:
-		bi = (bi_t *)p;
+	{
+		bi_t *bi = (bi_t *)p;
 		bi_handler(addr, bi);
 		get_trframe_free(TRHEAD_BI, p);
-		break;
+	}
+	break;
 		
 	case TRHEAD_GP:
-		gp = (gp_t *)p;
+	{
+		gp_t *gp = (gp_t *)p;
 		gp_handler(addr, gp);
 		get_trframe_free(TRHEAD_GP, p);
-		break;
+	}
+	break;
 		
 	case TRHEAD_RP:
-		rp = (rp_t *)p;
+	{
+		rp_t *rp = (rp_t *)p;
 		rp_handler(addr, rp);
 		get_trframe_free(TRHEAD_RP, p);
-		break;
+	}
+	break;
 		
 	case TRHEAD_GD:
-		gd = (gd_t *)p;
+	{
+		gd_t *gd = (gd_t *)p;
 		gd_handler(addr, gd);
 		get_trframe_free(TRHEAD_GD, p);
-		break;
+	}
+	break;
 		
 	case TRHEAD_RD:
-		rd = (rd_t *)p;
+	{
+		rd_t *rd = (rd_t *)p;
 		rd_handler(addr, rd);		
 		get_trframe_free(TRHEAD_RD, p);
-		break;
+	}
+	break;
 		
 	case TRHEAD_DC:
-		dc = (dc_t *)p;
+	{
+		dc_t *dc = (dc_t *)p;
 		dc_handler(addr, dc);
 		get_trframe_free(TRHEAD_DC, p);
-		break;
+	}
+	break;
 		
 	case TRHEAD_UB:
-		ub = (ub_t *)p;
+	{
+		ub_t *ub = (ub_t *)p;
 		ub_handler(addr, ub);
 		get_trframe_free(TRHEAD_UB, p);
-		break;
+	}
+	break;
 
-	default:
-		break;
+	default: break;
 	}
 }

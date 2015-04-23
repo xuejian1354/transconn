@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <protocol/framelysis.h>
+#include <protocol/devopt.h>
 
 #define GATEWAY_BUFFER_FIX_SIZE		32
 #define ZDEVICE_BUFFER_SIZE		23
@@ -32,6 +33,7 @@ typedef struct Dev_Info
 	uint16 znet_addr;
 	fr_app_type_t zapp_type;
 	fr_net_type_t znet_type;
+	dev_opt_t *zdev_opt;
 	struct Dev_Info *next;
 }dev_info_t;
 
