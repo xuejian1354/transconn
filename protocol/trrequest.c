@@ -717,9 +717,9 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 			fr_buffer_t *data_buffer = get_devopt_data_to_str(dev_info->zdev_opt);
 			de->data = data_buffer->data;
 			de->data_len = data_buffer->size;
-			
-			fr_buffer_t *buffer = get_buffer_alloc(HEAD_DE, de);
 
+			fr_buffer_t *buffer = get_buffer_alloc(HEAD_DE, de);
+			
 			de->data = dedata;
 			de->data_len = dedatalen;
 			get_buffer_free(data_buffer);

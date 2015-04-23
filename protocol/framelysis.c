@@ -348,11 +348,6 @@ void get_frame_free(fr_head_type_t htype, void *p)
 
 fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 {
-	uc_t *p_uc;
-	uo_t *p_uo;
-	uh_t *p_uh;
-	ur_t *p_ur;
-	de_t *p_de;
 	fr_buffer_t *frame_buffer;
 	
 	if(frame == NULL)
@@ -361,7 +356,8 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 	switch(htype)
 	{
 	case HEAD_UC: 
-		p_uc = (uc_t *)frame;
+	{
+		uc_t *p_uc = (uc_t *)frame;
 		frame_buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		frame_buffer->data = (uint8 *)calloc(FR_UC_DATA_FIX_LEN, sizeof(uint8));
 		frame_buffer->size = FR_UC_DATA_FIX_LEN;
@@ -376,9 +372,11 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 		memcpy(frame_buffer->data+34, p_uc->tail, 4);
 
 		return frame_buffer;
+	}
 		
 	case HEAD_UO: 
-		p_uo = (uo_t *)frame;
+	{
+		uo_t *p_uo = (uo_t *)frame;
 		if(p_uo->data_len > FRAME_DATA_SIZE)
 		{
 			goto fr_package_err; 
@@ -397,9 +395,11 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 		memcpy(frame_buffer->data+26+p_uo->data_len, p_uo->tail, 4);
 
 		return frame_buffer;
+	}
 		
 	case HEAD_UH: 
-		p_uh = (uh_t *)frame;
+	{
+		uh_t *p_uh = (uh_t *)frame;
 		frame_buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		frame_buffer->data = (uint8 *)calloc(FR_UH_DATA_FIX_LEN, sizeof(uint8));
 		frame_buffer->size = FR_UH_DATA_FIX_LEN;
@@ -409,9 +409,11 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 		memcpy(frame_buffer->data+7, p_uh->tail, 4);
 		
 		return frame_buffer;
+	}
 		
 	case HEAD_UR: 
-		p_ur = (ur_t *)frame;
+	{
+		ur_t *p_ur = (ur_t *)frame;
 		if(p_ur->data_len > FRAME_DATA_SIZE)
 		{
 			goto fr_package_err; 
@@ -429,25 +431,29 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 		memcpy(frame_buffer->data+10+p_ur->data_len, p_ur->tail, 4);
 
 		return frame_buffer;
+	}
 	
 	case HEAD_DE: 
-		p_de = (de_t *)frame;
+	{
+		de_t *p_de = (de_t *)frame;
 		if(p_de->data_len > FRAME_DATA_SIZE)
 		{
 			goto fr_package_err; 
 		}
 		frame_buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
-		frame_buffer->data = 
-			(uint8 *)calloc(FR_DE_DATA_FIX_LEN+p_de->data_len, sizeof(uint8));
 		frame_buffer->size = FR_DE_DATA_FIX_LEN+p_de->data_len;
+		frame_buffer->data = 
+			(uint8 *)calloc(frame_buffer->size, sizeof(uint8));
+		
 		
 		memcpy(frame_buffer->data, p_de->head, 2);
-		memcpy(frame_buffer->data+3, p_de->cmd, 4);
+		memcpy(frame_buffer->data+2, p_de->cmd, 4);
 		memcpy(frame_buffer->data+6, p_de->short_addr, 4);
 		memcpy(frame_buffer->data+10, p_de->data, p_de->data_len);
 		memcpy(frame_buffer->data+10+p_de->data_len, p_de->tail, 4);
 
 		return frame_buffer;
+	}
 
 	default: goto  fr_package_err;
 	}
