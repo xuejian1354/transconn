@@ -20,6 +20,32 @@
 #include <services/globals.h>
 #include <protocol/framelysis.h>
 
+#define DEVCONTROL_NONE		'0'
+#define DEVCONTROL_MANUAL	'1'
+#define DEVCONTROL_NET		'2'
+#define DEVCONTROL_BOTH		'3'
+
+#define DEVDETECT_LOW		'1'
+#define DEVDETECT_NORMAL	'2'
+
+#define DEVOPT_LIGHTSWITCH_ONE_FIX_SIZE		5
+#define DEVOPT_LIGHTSWITCH_TWO_FIX_SIZE		7
+#define DEVOPT_LIGHTSWITCH_THREE_FIX_SIZE	9
+#define DEVOPT_LIGHTSWITCH_FOUR_FIX_SIZE	11
+#define DEVOPT_ALARM_FIX_SIZE				3
+#define DEVOPT_IRRELAY_FIX_SIZE				3
+#define DEVOPT_IRDETECT_FIX_SIZE			5
+#define DEVOPT_DOORSENSOR_FIX_SIZE			5
+
+#define DEVOPT_LIGHTSWITCH_ONE_DATASTR_FIX_SIZE		2
+#define DEVOPT_LIGHTSWITCH_TWO_DATASTR_FIX_SIZE		4
+#define DEVOPT_LIGHTSWITCH_THREE_DATASTR_FIX_SIZE	6
+#define DEVOPT_LIGHTSWITCH_FOUR_DATASTR_FIX_SIZE	8
+#define DEVOPT_ALARM_DATASTR_FIX_SIZE				2
+#define DEVOPT_IRRELAY_DATASTR_FIX_SIZE				2
+#define DEVOPT_IRDETECT_DATASTR_FIX_SIZE			2
+#define DEVOPT_DOORSENSOR_DATASTR_FIX_SIZE			2
+
 typedef enum
 {
 	DEV_CONTROL_MANUAL,
@@ -36,7 +62,7 @@ typedef enum
 
 typedef struct Switch_Opt
 {
-	int nums;
+	uint8 nums;
 	union
 	{
 		uint8 one[1];
@@ -53,18 +79,18 @@ typedef struct Alarm_Opt
 
 typedef struct IRRelay_Opt
 {
-	int mode;
+	uint8 mode;
 }irrelay_opt_t;
 
 typedef struct IRDetect_Opt
 {
-	int setting;
+	uint8 setting;
 	uint8 status[1];
 }irdetect_opt_t;
 
 typedef struct DoorSensor_Opt
 {
-	int setting;
+	uint8 setting;
 	uint8 status[1];
 }doorsensor_opt_t;
 
@@ -89,8 +115,14 @@ typedef struct Dev_Opt
 	}device;
 }dev_opt_t;
 
+fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt);
+void *get_devopt_buffer_free(fr_buffer_t *p);
+
 dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len);
 void get_devopt_data_free(dev_opt_t *opt);
+
+int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len);
+fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt);
 
 int set_devopt_data(dev_opt_t *opt, uint8 *data, int len);
 int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src);

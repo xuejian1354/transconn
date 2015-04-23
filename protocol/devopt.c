@@ -16,6 +16,52 @@
  */
 #include "devopt.h"
 
+char get_devopt_method_xtoc(control_method_t m);
+control_method_t get_devopt_method_ctox(char c);
+char get_devop_power_xtoc(detect_power_t p);
+detect_power_t get_devop_power_ctox(char c);
+
+
+char get_devopt_method_xtoc(control_method_t m)
+{
+	switch(m)
+	{
+	case DEV_CONTROL_MANUAL: return DEVCONTROL_MANUAL;
+	case DEV_CONTROL_NET: return DEVCONTROL_NET;
+	case DEV_CONTROL_BOTH: return DEVCONTROL_BOTH;
+	default: return DEVCONTROL_NONE;
+	}
+}
+
+control_method_t get_devopt_method_ctox(char c)
+{
+	switch(c)
+	{
+	case DEVCONTROL_MANUAL: return DEV_CONTROL_MANUAL;
+	case DEVCONTROL_NET: return DEV_CONTROL_NET;
+	case DEVCONTROL_BOTH: return DEV_CONTROL_BOTH;
+	default: return DEV_CONTROL_NONE;
+	}
+}
+
+char get_devopt_power_xtoc(detect_power_t p)
+{
+	switch(p)
+	{
+	case DEV_DETECT_LOW: return DEVDETECT_LOW;
+	case DEV_DETECT_NORMAL: return DEVDETECT_NORMAL;
+	}
+}
+
+detect_power_t get_devopt_power_ctox(char c)
+{
+	switch(c)
+	{
+	case DEVDETECT_LOW: return DEV_DETECT_LOW;
+	case DEVDETECT_NORMAL: return DEV_DETECT_NORMAL;
+	}
+}
+
 dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 {
 	dev_opt_t *opt = NULL;
@@ -147,6 +193,199 @@ void get_devopt_data_free(dev_opt_t *opt)
 	free(opt);
 }
 
+int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
+{	
+	switch(opt->type)
+	{
+	case FRAPP_LIGHTSWITCH_ONE: 
+		if(len >= DEVOPT_LIGHTSWITCH_ONE_FIX_SIZE)
+		{
+			opt->common.method = get_devopt_method_ctox(data[0]);
+			incode_ctoxs(&opt->device.lightswitch.nums, data+1, 2);
+			incode_ctoxs(opt->device.lightswitch.data.one, data+3, 2);
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+		
+	case FRAPP_LIGHTSWITCH_TWO: 
+		if(len >= DEVOPT_LIGHTSWITCH_TWO_FIX_SIZE)
+		{
+			opt->common.method = get_devopt_method_ctox(data[0]);
+			incode_ctoxs(&opt->device.lightswitch.nums, data+1, 2);
+			incode_ctoxs(opt->device.lightswitch.data.two, data+3, 4);
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+		
+	case FRAPP_LIGHTSWITCH_THREE: 
+		if(len >= DEVOPT_LIGHTSWITCH_THREE_FIX_SIZE)
+		{
+			opt->common.method = get_devopt_method_ctox(data[0]);
+			incode_ctoxs(&opt->device.lightswitch.nums, data+1, 2);
+			incode_ctoxs(opt->device.lightswitch.data.three, data+3, 6);
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+		
+	case FRAPP_LIGHTSWITCH_FOUR: 
+		if(len >= DEVOPT_LIGHTSWITCH_FOUR_FIX_SIZE)
+		{
+			opt->common.method = get_devopt_method_ctox(data[0]);
+			incode_ctoxs(&opt->device.lightswitch.nums, data+1, 2);
+			incode_ctoxs(opt->device.lightswitch.data.four, data+3, 8);
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+		
+	case FRAPP_ALARM: 
+		if(len >= DEVOPT_ALARM_FIX_SIZE)
+		{
+			opt->common.method = get_devopt_method_ctox(data[0]);
+			incode_ctoxs(opt->device.alarm.data, data+1, 2);
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+		
+	case FRAPP_IR_DETECTION: 
+		if(len >= DEVOPT_IRDETECT_FIX_SIZE)
+		{
+			opt->common.power = get_devopt_power_ctox(data[0]);
+			incode_ctoxs(&opt->device.irdetect.setting, data+1, 2);
+			incode_ctoxs(opt->device.irdetect.status, data+3, 2);
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+		
+	case FRAPP_DOOR_SENSOR: 
+		if(len >= DEVOPT_DOORSENSOR_FIX_SIZE)
+		{
+			opt->common.power = get_devopt_power_ctox(data[0]);
+			incode_ctoxs(&opt->device.doorsensor.setting, data+1, 2);
+			incode_ctoxs(opt->device.doorsensor.status, data+3, 2);
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+
+	default: return -1;
+	}
+
+	return 0;
+}
+
+fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt)
+{
+	fr_buffer_t *buffer = NULL;
+	
+	switch(opt->type)
+	{
+	case FRAPP_LIGHTSWITCH_ONE: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTSWITCH_ONE_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		
+		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
+		incode_xtocs(buffer->data+1, &opt->device.lightswitch.nums, 1);
+		incode_xtocs(buffer->data+3, opt->device.lightswitch.data.one, 1);
+		return buffer;
+		
+	case FRAPP_LIGHTSWITCH_TWO: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTSWITCH_TWO_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		
+		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
+		incode_xtocs(buffer->data+1, &opt->device.lightswitch.nums, 1);
+		incode_xtocs(buffer->data+3, opt->device.lightswitch.data.two, 2);
+		return buffer;
+		
+	case FRAPP_LIGHTSWITCH_THREE: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTSWITCH_THREE_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		
+		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
+		incode_xtocs(buffer->data+1, &opt->device.lightswitch.nums, 1);
+		incode_xtocs(buffer->data+3, opt->device.lightswitch.data.three, 3);
+		return buffer;
+		
+	case FRAPP_LIGHTSWITCH_FOUR: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTSWITCH_FOUR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		
+		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
+		incode_xtocs(buffer->data+1, &opt->device.lightswitch.nums, 1);
+		incode_xtocs(buffer->data+3, opt->device.lightswitch.data.four, 4);
+		return buffer;
+		
+	case FRAPP_ALARM: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_ALARM_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		
+		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
+		incode_xtocs(buffer->data+1, opt->device.alarm.data, 1);
+		return buffer;
+		
+	case FRAPP_IR_DETECTION: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_IRDETECT_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		
+		buffer->data[0] = get_devopt_power_xtoc(opt->common.power);
+		incode_xtocs(buffer->data+1, &opt->device.irdetect.setting, 1);
+		incode_xtocs(buffer->data+3, opt->device.irdetect.status, 1);
+		return buffer;
+		
+	case FRAPP_DOOR_SENSOR: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_DOORSENSOR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		
+		buffer->data[0] = get_devopt_power_xtoc(opt->common.power);
+		incode_xtocs(buffer->data+1, &opt->device.doorsensor.setting, 1);
+		incode_xtocs(buffer->data+3, opt->device.doorsensor.status, 1);
+		return buffer;
+		
+	case FRAPP_IR_RELAY: 
+		return NULL;
+
+	default: return NULL;
+	}
+}
+
+
+void *get_devopt_buffer_free(fr_buffer_t *p)
+{
+	if(p != NULL)
+	{
+		free(p->data);
+	}
+	
+	free(p);
+}
+
 int set_devopt_data(dev_opt_t *opt, uint8 *data, int len)
 {	
 	switch(opt->type)
@@ -239,6 +478,66 @@ int set_devopt_data(dev_opt_t *opt, uint8 *data, int len)
 
 	return 0;
 }
+
+
+fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt)
+{	
+	fr_buffer_t *buffer = NULL;
+	switch(opt->type)
+	{
+	case FRAPP_LIGHTSWITCH_ONE: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTSWITCH_ONE_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		incode_xtocs(buffer->data, opt->device.lightswitch.data.one, 1);
+		return buffer;
+		
+	case FRAPP_LIGHTSWITCH_TWO: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTSWITCH_TWO_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		incode_xtocs(buffer->data, opt->device.lightswitch.data.two, 2);
+		return buffer;
+		
+	case FRAPP_LIGHTSWITCH_THREE: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTSWITCH_THREE_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		incode_xtocs(buffer->data, opt->device.lightswitch.data.three, 3);
+		return buffer;
+		
+	case FRAPP_LIGHTSWITCH_FOUR: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTSWITCH_FOUR_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		incode_xtocs(buffer->data, opt->device.lightswitch.data.four, 4);
+		return buffer;
+		
+	case FRAPP_ALARM: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_ALARM_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		incode_xtocs(buffer->data, opt->device.alarm.data, 1);
+		return buffer;
+		
+	case FRAPP_IR_DETECTION: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_IRDETECT_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		incode_xtocs(buffer->data, &opt->device.irdetect.setting, 1);
+		return buffer;
+		
+	case FRAPP_DOOR_SENSOR: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_DOORSENSOR_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		incode_xtocs(buffer->data, &opt->device.doorsensor.setting, 1);
+		return buffer;
+
+	default: return NULL;
+	}
+}
+
 
 int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 {	

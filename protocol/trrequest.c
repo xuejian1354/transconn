@@ -667,12 +667,73 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 	
 #ifdef COMM_CLIENT
-	//send_ub_udp_respond(ipaddr, TRINFO_REDATA, 
-		//get_gateway_info()->gw_no, dc->cidentify_no, dc->data, dc->data_len);
+	fr_head_type_t head_type = get_frhead_from_str(dc->data);
+	void *p = get_frame_alloc(head_type, dc->data, dc->data_len);
+	if(p == NULL)
+	{
+		return;
+	}
 
-	serial_write(dc->data, dc->data_len);
-	//PRINT_HEX(dc->data, dc->data_len);
+	switch(head_type)
+	{
+	case HEAD_UC:
+	{
+		uc_t *uc = (uc_t *)p;
+		get_frame_free(HEAD_UC, uc);
+	}
+	break;
+		
+	case HEAD_UO:
+	{
+		uo_t *uo = (uo_t *)p;
+		get_frame_free(HEAD_UO, uo);
+	}
+	break;
+		
+	case HEAD_UH:
+	{
+		uh_t *uh = (uh_t *)p;
+		get_frame_free(HEAD_UH, uh);
+	}
+	break;
+		
+	case HEAD_UR:
+	{
+		ur_t *ur = (ur_t *)p;
+		get_frame_free(HEAD_UR, ur);
+	}
+	break;
+		
+	case HEAD_DE:
+	{
+		de_t *de = (de_t *)p;
+		dev_info_t *dev_info = query_zdevice_info_with_sn(dc->zidentify_no);
+		if(dev_info != NULL)
+		{
+			set_devopt_fromstr(dev_info->zdev_opt, de->data, de->data_len);
+			uint8 *dedata = de->data;
+			uint8 dedatalen = de->data_len;
 
+			fr_buffer_t *data_buffer = get_devopt_data_to_str(dev_info->zdev_opt);
+			de->data = data_buffer->data;
+			de->data_len = data_buffer->size;
+			
+			fr_buffer_t *buffer = get_buffer_alloc(HEAD_DE, de);
+
+			de->data = dedata;
+			de->data_len = dedatalen;
+			get_buffer_free(data_buffer);
+			
+			serial_write(buffer->data, buffer->size);
+			get_buffer_free(buffer);
+		}
+		get_frame_free(HEAD_DE, de);
+	}
+	break;
+		
+	default: break;
+	}
+	
 	return;
 #endif
 

@@ -619,6 +619,26 @@ void analysis_zdev_frame(char *buf, int len)
 		}
 #endif
 		set_zdev_check(dev_info->znet_addr);
+
+		uint8 *uodata = uo->data;
+		uint8 uodatalen = uo->data_len;
+		fr_buffer_t *data_buffer = get_devopt_buffer_alloc(dev_info->zdev_opt);
+		uo->data = data_buffer->data;
+		uo->data_len = data_buffer->size;
+		fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UO, uo);
+		uo->data = uodata;
+		uo->data_len = uodatalen;
+		get_devopt_buffer_free(data_buffer);
+		cli_info_t *p_cli = get_client_list()->p_cli;
+		while(p_cli != NULL)
+		{
+			send_ub_udp_respond(p_cli->ipaddr, TRINFO_REDATA, 
+				get_gateway_info()->gw_no, p_cli->cidentify_no, 
+				frbuffer->data, frbuffer->size);
+
+			p_cli = p_cli->next;
+		}
+		get_buffer_free(frbuffer);
 		
 		if(add_zdevice_info(dev_info) != 0)
 		{
@@ -632,18 +652,6 @@ void analysis_zdev_frame(char *buf, int len)
 			get_zdev_buffer_free(buffer);
 		}
 
-		cli_info_t *p_cli = get_client_list()->p_cli;
-		while(p_cli != NULL)
-		{
-			fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UO, uo);
-			send_ub_udp_respond(p_cli->ipaddr, TRINFO_REDATA, 
-				get_gateway_info()->gw_no, p_cli->cidentify_no, 
-				frbuffer->data, frbuffer->size);
-
-			get_buffer_free(frbuffer);
-			p_cli = p_cli->next;
-		}
-		
 		get_frame_free(HEAD_UO, uo);
 	}
 	break;
@@ -686,18 +694,28 @@ void analysis_zdev_frame(char *buf, int len)
 			get_devopt_data_free(opt);
 
 			//devopt_de_print(dev_info->zdev_opt);
+
+			uint8 *urdata = ur->data;
+			uint8 urdatalen = ur->data_len;
+			fr_buffer_t *data_buffer = get_devopt_buffer_alloc(dev_info->zdev_opt);
+			ur->data = data_buffer->data;
+			ur->data_len = data_buffer->size;
+			
+			fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UR, ur);
+			ur->data = urdata;
+			ur->data_len = urdatalen;
+			get_devopt_buffer_free(data_buffer);
 			
 			cli_info_t *p_cli = get_client_list()->p_cli;
 			while(p_cli != NULL)
 			{
-				fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UR, ur);
 				send_ub_udp_respond(p_cli->ipaddr, TRINFO_REDATA, 
 					get_gateway_info()->gw_no, p_cli->cidentify_no, 
 					frbuffer->data, frbuffer->size);
 
-				get_buffer_free(frbuffer);
 				p_cli = p_cli->next;
 			}
+			get_buffer_free(frbuffer);
 		}
 		get_frame_free(HEAD_UR, ur);
 	}
