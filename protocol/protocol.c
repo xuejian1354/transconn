@@ -190,6 +190,8 @@ int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev)
 				t_dev->znet_type = m_dev->znet_type;
 			}
 
+			set_devopt_data_fromopt(t_dev->zdev_opt, m_dev->zdev_opt);
+
 			if(pre_dev != NULL)
 			{
 				pthread_mutex_lock(&gw_info->lock);
@@ -259,6 +261,7 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 			}
 			pthread_mutex_unlock(&gw_info->lock);
 
+			get_devopt_data_free(t_dev->zdev_opt);
 			free(t_dev);
 			return 0;
 		}
@@ -601,6 +604,9 @@ void analysis_zdev_frame(char *buf, int len)
 		dev_info->zapp_type = get_frapp_type_from_str(uo->ed_type);
 		dev_info->znet_type = get_frnet_type_from_str(uo->type);
 
+		dev_info->zdev_opt = get_devopt_data_alloc(dev_info->zapp_type, 
+													uo->data, uo->data_len);
+		
 #ifdef DE_ZDEVICE_RECORD
 		FILE *fp = NULL;
 		if((fp = fopen(RECORD_FILE, "a+")) != NULL)
@@ -612,11 +618,11 @@ void analysis_zdev_frame(char *buf, int len)
 			fclose(fp);
 		}
 #endif
-
 		set_zdev_check(dev_info->znet_addr);
 		
 		if(add_zdevice_info(dev_info) != 0)
 		{
+			get_devopt_data_free(dev_info->zdev_opt);
 			free(dev_info);
 		}
 		else
@@ -674,6 +680,13 @@ void analysis_zdev_frame(char *buf, int len)
 		}
 		else
 		{
+			dev_opt_t *opt = get_devopt_data_alloc(dev_info->zapp_type, 
+													ur->data, ur->data_len);
+			set_devopt_data_fromopt(dev_info->zdev_opt, opt);
+			get_devopt_data_free(opt);
+
+			//devopt_de_print(dev_info->zdev_opt);
+			
 			cli_info_t *p_cli = get_client_list()->p_cli;
 			while(p_cli != NULL)
 			{

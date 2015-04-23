@@ -39,15 +39,16 @@ typedef struct Switch_Opt
 	int nums;
 	union
 	{
-		int one;
-		int two[2];
-		int three[3];
+		uint8 one[1];
+		uint8 two[2];
+		uint8 three[3];
+		uint8 four[4];
 	}data;
 }switch_opt_t;
 
 typedef struct Alarm_Opt
 {
-	int data;
+	uint8 data[1];
 }alarm_opt_t;
 
 typedef struct IRRelay_Opt
@@ -58,13 +59,13 @@ typedef struct IRRelay_Opt
 typedef struct IRDetect_Opt
 {
 	int setting;
-	int status;
+	uint8 status[1];
 }irdetect_opt_t;
 
 typedef struct DoorSensor_Opt
 {
 	int setting;
-	int status;
+	uint8 status[1];
 }doorsensor_opt_t;
 
 
@@ -87,5 +88,13 @@ typedef struct Dev_Opt
 		doorsensor_opt_t doorsensor;
 	}device;
 }dev_opt_t;
+
+dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len);
+void get_devopt_data_free(dev_opt_t *opt);
+
+int set_devopt_data(dev_opt_t *opt, uint8 *data, int len);
+int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src);
+
+void devopt_de_print(dev_opt_t *opt);
 
 #endif	// __DEVOPT_H__

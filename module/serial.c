@@ -318,11 +318,11 @@ serial_update:
                 step = 0;
 				mcount = 0;
 
-                analysis_zdev_frame(tmpFrame, dataLen);
 #ifdef DE_PRINT_SERIAL_PORT
 				DE_PRINTF("serial read:%s\n", tmpFrame);
 				//PRINT_HEX(tmpFrame, dataLen);
 #endif
+				analysis_zdev_frame(tmpFrame, dataLen);
 				memset(tmpFrame, 0, sizeof(tmpFrame));
             }
             i++;

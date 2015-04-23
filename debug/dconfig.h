@@ -19,13 +19,16 @@
 
 #include <mconfig.h>
 
+#ifdef COMM_SERVER
 #define DE_PRINT_UDP_PORT
 #define DE_PRINT_TCP_PORT
-//#define DE_PRINT_SERIAL_PORT
+#endif
 
-#define DE_ZDEVICE_RECORD
+#ifdef COMM_CLIENT
+#define DE_PRINT_SERIAL_PORT
 
+//#define DE_ZDEVICE_RECORD
 #define RECORD_FILE		"/tmp/transconn_record.txt"
-
+#endif
 #endif //__DCONFIG_H__
 

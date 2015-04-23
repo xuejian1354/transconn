@@ -216,6 +216,7 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 			
 				if(p_dev != NULL && add_zdev_info(p_gw, p_dev) != 0)
 				{
+					get_devopt_data_free(p_dev->zdev_opt);
 					get_zdev_frame_free(p_dev);
 				}
 			}
