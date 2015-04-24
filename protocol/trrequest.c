@@ -711,22 +711,45 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 		if(dev_info != NULL)
 		{
 			set_devopt_fromstr(dev_info->zdev_opt, de->data, de->data_len);
-			uint8 *dedata = de->data;
-			uint8 dedatalen = de->data_len;
 
-			fr_buffer_t *data_buffer = get_devopt_data_to_str(dev_info->zdev_opt);
-			de->data = data_buffer->data;
-			de->data_len = data_buffer->size;
-
-			fr_buffer_t *buffer = get_buffer_alloc(HEAD_DE, de);
+			if(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR)
+			{
+				if(!dev_info->zdev_opt->device.doorsensor.setting)
+				{
+					ur_t ur;
+					memcpy(ur.head, FR_HEAD_UR, 3);
+					ur.type = get_frnet_type_to_ch(dev_info->znet_type);
+					get_frapp_type_to_str(ur.ed_type, dev_info->zapp_type);
+					incode_xtoc16(ur.short_addr, dev_info->znet_addr);
+					ur.data_len = de->data_len;
+					ur.data = de->data;
+					memcpy(ur.tail, FR_TAIL, 4);
+										
+					fr_buffer_t *frbuffer = get_switch_buffer_alloc(HEAD_UR, 
+											dev_info->zdev_opt, &ur);
 			
-			de->data = dedata;
-			de->data_len = dedatalen;
-			get_buffer_free(data_buffer);
+					cli_info_t *p_cli = get_client_list()->p_cli;
+					while(p_cli != NULL)
+					{
+						send_ub_udp_respond(p_cli->ipaddr, TRINFO_REDATA, 
+							get_gateway_info()->gw_no, p_cli->cidentify_no, 
+							frbuffer->data, frbuffer->size);
+
+						p_cli = p_cli->next;
+					}
+					get_buffer_free(frbuffer);
+					
+					goto Handle_UR_free;
+				}
+			}
+			
+			fr_buffer_t *buffer = get_switch_buffer_alloc(HEAD_DE, 
+												dev_info->zdev_opt, de);
 			
 			serial_write(buffer->data, buffer->size);
 			get_buffer_free(buffer);
 		}
+Handle_UR_free:
 		get_frame_free(HEAD_DE, de);
 	}
 	break;

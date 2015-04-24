@@ -61,6 +61,35 @@ fr_head_type_t get_frhead_from_str(char *head)
 	return HEAD_NONE;
 }
 
+int get_frhead_to_str(char *dst, fr_head_type_t head_type)
+{
+	switch(head_type)
+	{
+	case HEAD_UC:
+		strcpy(dst, FR_HEAD_UC);
+		break;
+
+	case HEAD_UO:
+		strcpy(dst, FR_HEAD_UO);
+		break;
+
+	case HEAD_UH:
+		strcpy(dst, FR_HEAD_UH);
+		break;
+
+	case HEAD_UR:
+		strcpy(dst, FR_HEAD_UR);
+		break;
+
+	case HEAD_DE:
+		strcpy(dst, FR_HEAD_DE);
+		break;
+
+	default: return -1;
+	}
+
+	return 0;
+}
 fr_app_type_t get_frapp_type_from_str(char *app_type)
 {
 	if(!strncmp(FR_APP_CONNECTOR, app_type, 2))

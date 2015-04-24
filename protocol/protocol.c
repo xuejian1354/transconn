@@ -620,15 +620,10 @@ void analysis_zdev_frame(char *buf, int len)
 #endif
 		set_zdev_check(dev_info->znet_addr);
 
-		uint8 *uodata = uo->data;
-		uint8 uodatalen = uo->data_len;
-		fr_buffer_t *data_buffer = get_devopt_buffer_alloc(dev_info->zdev_opt);
-		uo->data = data_buffer->data;
-		uo->data_len = data_buffer->size;
-		fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UO, uo);
-		uo->data = uodata;
-		uo->data_len = uodatalen;
-		get_devopt_buffer_free(data_buffer);
+
+		fr_buffer_t *frbuffer = get_switch_buffer_alloc(HEAD_UO, 
+											dev_info->zdev_opt, uo);
+		
 		cli_info_t *p_cli = get_client_list()->p_cli;
 		while(p_cli != NULL)
 		{
@@ -695,16 +690,16 @@ void analysis_zdev_frame(char *buf, int len)
 
 			//devopt_de_print(dev_info->zdev_opt);
 
-			uint8 *urdata = ur->data;
-			uint8 urdatalen = ur->data_len;
-			fr_buffer_t *data_buffer = get_devopt_buffer_alloc(dev_info->zdev_opt);
-			ur->data = data_buffer->data;
-			ur->data_len = data_buffer->size;
-			
-			fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UR, ur);
-			ur->data = urdata;
-			ur->data_len = urdatalen;
-			get_devopt_buffer_free(data_buffer);
+			if(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR)
+			{
+				if(!dev_info->zdev_opt->device.doorsensor.setting)
+				{
+					goto UR_FREE;
+				}
+			}
+
+			fr_buffer_t *frbuffer = get_switch_buffer_alloc(HEAD_UR, 
+											dev_info->zdev_opt, ur);
 			
 			cli_info_t *p_cli = get_client_list()->p_cli;
 			while(p_cli != NULL)
@@ -717,6 +712,7 @@ void analysis_zdev_frame(char *buf, int len)
 			}
 			get_buffer_free(frbuffer);
 		}
+UR_FREE:
 		get_frame_free(HEAD_UR, ur);
 	}
 	break;
@@ -812,5 +808,75 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 	break;
 
 	default: break;
+	}
+}
+
+fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type, 
+	dev_opt_t *opt, void *frame)
+{
+	uint8 *bdata;
+	uint8 blen;
+	
+	switch(head_type)
+	{
+	case HEAD_UO:
+	{
+		ur_t *p_uo = (ur_t *)frame;
+		bdata = p_uo->data;
+		blen = p_uo->data_len;
+
+		fr_buffer_t *data_buffer = get_devopt_buffer_alloc(opt);
+		p_uo->data = data_buffer->data;
+		p_uo->data_len = data_buffer->size;
+		
+		fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UO, p_uo);
+
+		p_uo->data = bdata;
+		p_uo->data_len = blen;
+		get_devopt_buffer_free(data_buffer);
+		
+		return frbuffer;
+	}
+	break;
+
+	case HEAD_UR:
+	{
+		ur_t *p_ur = (ur_t *)frame;
+		bdata = p_ur->data;
+		blen = p_ur->data_len;
+
+		fr_buffer_t *data_buffer = get_devopt_buffer_alloc(opt);
+		p_ur->data = data_buffer->data;
+		p_ur->data_len = data_buffer->size;
+		
+		fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UR, p_ur);
+
+		p_ur->data = bdata;
+		p_ur->data_len = blen;
+		get_devopt_buffer_free(data_buffer);
+		
+		return frbuffer;
+	}
+
+	case HEAD_DE:
+	{
+		de_t *p_de = (de_t *)frame;
+		bdata = p_de->data;
+		blen = p_de->data_len;
+
+		fr_buffer_t *data_buffer = get_devopt_data_to_str(opt);
+		p_de->data = data_buffer->data;
+		p_de->data_len = data_buffer->size;
+
+		fr_buffer_t *buffer = get_buffer_alloc(HEAD_DE, p_de);
+		
+		p_de->data = bdata;
+		p_de->data_len = blen;
+		get_buffer_free(data_buffer);
+
+		return buffer;
+	}
+
+	default: return NULL;
 	}
 }

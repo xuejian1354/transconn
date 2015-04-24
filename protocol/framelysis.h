@@ -147,6 +147,7 @@ typedef struct
 }fr_buffer_t;
 
 fr_head_type_t get_frhead_from_str(char *head);
+int get_frhead_to_str(char *dst, fr_head_type_t head_type);
 
 fr_app_type_t get_frapp_type_from_str(char *app_type);
 int get_frapp_type_to_str(char *dst, fr_app_type_t app_type);

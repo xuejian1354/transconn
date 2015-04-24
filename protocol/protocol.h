@@ -119,4 +119,7 @@ void analysis_zdev_frame(char *buf, int len);
 #endif
 void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len);
 
+fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type, 
+	dev_opt_t *opt, void *frame);
+
 #endif  //__PROTOCOL_H__
