@@ -41,9 +41,13 @@
 //max udp session size of udp
 #define TRANS_UDP_SESS_MAX_SIZE		1024
 
+#ifdef TRANS_TCP_SERVER
+#define TRANS_TCP_CONN_LIST
+#endif
 
-//#define TRANS_TCP_CONN_LIST
+#ifdef TRANS_UDP_SERVICE
 //#define TRANS_UDP_SESS_QUEUE
+#endif
 
 //tcp protocol using port
 #define TRANS_TCP_PORT	11566
@@ -65,7 +69,7 @@
 #define TRANS_THREAD_MAX_NUM	5
 
 //single frame max size
-#define MAXSIZE	128
+#define MAXSIZE	1024
 
 #define GET_SERVER_IP(ipaddr)								\
 st(															\

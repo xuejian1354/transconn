@@ -22,12 +22,14 @@
 
 static int maxfd;
 static fd_set global_rdfs;
+static fd_set global_wtfs;
 static sigset_t sigmask;
 
 int select_init()
 {
 	maxfd = 0;
 	FD_ZERO(&global_rdfs);
+	FD_ZERO(&global_wtfs);
 
 	
 	if(sigemptyset(&sigmask) < 0)
@@ -51,9 +53,20 @@ void select_set(int fd)
 	maxfd = maxfd>fd?maxfd:fd;
 }
 
+void select_wtset(int fd)
+{
+	FD_SET(fd, &global_wtfs);
+	maxfd = maxfd>fd?maxfd:fd;
+}
+
 void select_clr(int fd)
 {
 	FD_CLR(fd, &global_rdfs);
+}
+
+void select_wtclr(int fd)
+{
+	FD_CLR(fd, &global_wtfs);
 }
 
 int select_listen()
@@ -67,7 +80,8 @@ int select_listen()
 #endif
 	
 	fd_set current_rdfs = global_rdfs;
-	ret = pselect(maxfd+1, &current_rdfs, NULL, NULL, NULL, &sigmask);
+	fd_set current_wtfs = global_wtfs;
+	ret = pselect(maxfd+1, &current_rdfs, &current_wtfs, NULL, NULL, &sigmask);
 	if(ret > 0)
 	{
 #ifdef TRANS_UDP_SERVICE
@@ -75,14 +89,31 @@ int select_listen()
 		{
 			socket_udp_recvfrom();
 		}
+#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
+		else 
+#endif
+#endif
+
+#ifdef TRANS_TCP_CLIENT
+		if(FD_ISSET(get_mtcp_fd(), &current_rdfs))
+		{
+			socket_tcp_client_recv(get_mtcp_fd());
+		}
+		else if(FD_ISSET(get_mtmp_fd(), &current_wtfs))
+		{
+#ifdef DE_PRINT_TCP_PORT
+			DE_PRINTF("new tcp client connection record %s\n", TCP_CONN_TMP);
+#endif
+		}
 #ifdef TRANS_TCP_SERVER
 		else 
 #endif
 #endif
+
 #ifdef TRANS_TCP_SERVER
 		if(FD_ISSET(tcpfd, &current_rdfs))
 		{
-			socket_tcp_client_connect(tcpfd);
+			socket_tcp_server_accept(tcpfd);
 		}
 		else
 		{
@@ -90,7 +121,7 @@ int select_listen()
 			{
 				if(FD_ISSET(i, &current_rdfs) && i!= tcpfd && i!= udpfd)
 				{
-					socket_tcp_client_recv(i);
+					socket_tcp_server_recv(i);
 				}
 			}
 		}

@@ -28,6 +28,10 @@ static struct sockaddr_in m_addr, server_addr;
 #ifdef TRANS_TCP_SERVER
 static int tcpfd;
 #endif
+#ifdef TRANS_TCP_CLIENT
+static int m_tmpfd, m_tcpfd;
+static struct sockaddr_in m_server_addr;
+#endif
 
 #ifdef TRANS_TCP_SERVER
 int get_tcp_fd()
@@ -37,7 +41,7 @@ int get_tcp_fd()
 
 int socket_tcp_server_init(int port)
 {
-	struct sockaddr_in server_addr;
+	struct sockaddr_in m_addr;
 	
 	if ((tcpfd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
 	{
@@ -45,10 +49,10 @@ int socket_tcp_server_init(int port)
 		return -1;
 	}
 
-	server_addr.sin_family = PF_INET;
-	server_addr.sin_port = htons(port);
-	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);//inet_addr("192.168.1.1");
-	if (bind(tcpfd, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) < 0)
+	m_addr.sin_family = PF_INET;
+	m_addr.sin_port = htons(port);
+	m_addr.sin_addr.s_addr = htonl(INADDR_ANY);//inet_addr("192.168.1.1");
+	if (bind(tcpfd, (struct sockaddr *)&m_addr, sizeof(struct sockaddr)) < 0)
 	{
 		perror("bind tcp ip fail");
 		return -1;
@@ -61,7 +65,7 @@ int socket_tcp_server_init(int port)
 #endif
 }
 
-void socket_tcp_client_connect(int fd)
+void socket_tcp_server_accept(int fd)
 {
 	int rw;
 	struct sockaddr_in client_addr;
@@ -95,7 +99,7 @@ void socket_tcp_client_connect(int fd)
 #endif
 }
 
-void socket_tcp_client_release(int fd)
+void socket_tcp_server_release(int fd)
 {
 	close(fd);
 #ifdef SELECT_SUPPORT
@@ -119,7 +123,7 @@ void socket_tcp_client_release(int fd)
 #endif
 }
 
-void socket_tcp_client_recv(int fd)
+void socket_tcp_server_recv(int fd)
 {
 	int nbytes;
 	char buf[MAXSIZE];
@@ -127,7 +131,7 @@ void socket_tcp_client_recv(int fd)
 	memset(buf, 0, sizeof(buf));
    	if ((nbytes = recv(fd, buf, sizeof(buf), 0)) <= 0)
    	{
-      	socket_tcp_client_release(fd);
+      	socket_tcp_server_release(fd);
 	}
 	else
 	{
@@ -144,6 +148,108 @@ void socket_tcp_client_recv(int fd)
 		DE_PRINTF("data:%s\n", buf);
 #endif
 	}
+}
+#endif
+
+#ifdef TRANS_TCP_CLIENT
+int get_mtcp_fd()
+{
+	return m_tcpfd;
+}
+
+int get_mtmp_fd()
+{
+	return m_tmpfd;
+}
+
+int socket_tcp_client_init()
+{
+	if ((m_tmpfd = open(TCP_CONN_TMP, O_WRONLY|O_CREAT|O_TRUNC|O_NONBLOCK)) < 0)
+	{
+		perror("tcp client init fail");
+		return -1;
+	}
+
+#ifdef SELECT_SUPPORT
+	select_wtset(m_tmpfd);
+#endif
+}
+
+int socket_tcp_client_connect(int port)
+{
+	if ((m_tcpfd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
+	{
+		perror("client tcp socket fail");
+		return -1;
+	}
+
+	m_server_addr.sin_family = PF_INET;
+	m_server_addr.sin_port = htons(port);
+	m_server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+
+	if(connect(m_tcpfd, (struct sockaddr *)&m_server_addr, sizeof(m_server_addr)) < 0)
+	{
+		perror("client tcp socket connect server fail");
+		return -1;
+	}
+
+#ifdef SELECT_SUPPORT
+	lseek(m_tmpfd, 0, SEEK_SET);
+
+	time_t now;
+	struct tm *timenow;
+	time(&now);
+	timenow = localtime(&now);
+	char buf[64] = {0};
+	sprintf(buf, "new tcp client connection: %s\n", asctime(timenow));
+	write(m_tmpfd, buf, 64);
+	
+	select_set(m_tcpfd);
+#endif
+}
+
+void socket_tcp_client_recv(int fd)
+{
+	int nbytes;
+	char buf[MAXSIZE];
+	
+	memset(buf, 0, sizeof(buf));
+   	if ((nbytes = recv(fd, buf, sizeof(buf), 0)) <= 0)
+   	{
+      	socket_tcp_client_close(fd);
+	}
+	else
+	{
+#ifdef DE_PRINT_TCP_PORT
+		DE_PRINTF("TCP:receive %d bytes, from ip=%s:%u\n", 
+			nbytes, inet_ntoa(m_server_addr.sin_addr), 
+			ntohs(m_server_addr.sin_port));
+
+		DE_PRINTF("data:%s\n", buf);
+#endif
+	}
+}
+
+void socket_tcp_client_close(int fd)
+{
+	close(fd);
+#ifdef SELECT_SUPPORT
+	select_wtclr(fd);
+
+	lseek(m_tmpfd, 0, SEEK_SET);
+
+	time_t now;
+	struct tm *timenow;
+	time(&now);
+	timenow = localtime(&now);
+	char buf[64] = {0};
+	sprintf(buf, "close tcp client connection: %s\n", asctime(timenow));
+	write(m_tmpfd, buf, 64);
+#endif
+
+#ifdef DE_PRINT_TCP_PORT
+	DE_PRINTF("TCP Client:release,fd=%d\n\n", fd);
+#endif
 }
 #endif
 

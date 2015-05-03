@@ -31,6 +31,7 @@
 
 //#define DE_ZDEVICE_RECORD
 #define RECORD_FILE		"/tmp/transconn_record.txt"
+#define TCP_CONN_TMP	"/tmp_transconn_mtmp.txt"
 #endif
 #endif //__DCONFIG_H__
 

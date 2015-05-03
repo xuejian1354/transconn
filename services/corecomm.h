@@ -23,7 +23,9 @@
 
 int select_init();
 void select_set(int fd);
+void select_wtset(int fd);
 void select_clr(int fd);
+void select_wtclr(int fd);
 int select_listen();
 
 #endif

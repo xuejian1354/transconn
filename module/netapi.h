@@ -22,8 +22,17 @@
 #ifdef TRANS_TCP_SERVER
 int get_tcp_fd();
 int socket_tcp_server_init(int port);
-void socket_tcp_client_connect(int fd);
+void socket_tcp_server_accept(int fd);
+void socket_tcp_server_recv(int fd);
+#endif
+
+#ifdef TRANS_TCP_CLIENT
+int get_mtcp_fd();
+int get_mtmp_fd();
+int socket_tcp_client_init();
+int socket_tcp_client_connect(int port);
 void socket_tcp_client_recv(int fd);
+void socket_tcp_client_close(int fd);
 #endif
 
 #ifdef TRANS_UDP_SERVICE
