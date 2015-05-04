@@ -75,6 +75,13 @@ typedef struct
 	long max_num;
 }cli_list_t;
 
+typedef struct
+{
+	struct sockaddr_in addr; 
+	char *buf;
+	int len;
+}frhandler_arg_t;
+
 uint8 *get_zdev_buffer_alloc(dev_info_t *dev_info);
 void get_zdev_buffer_free(uint8 *p);
 dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length);
@@ -88,6 +95,10 @@ void get_gateway_frame_free(gw_info_t *p);
 int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev);
 dev_info_t *query_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
 int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
+
+frhandler_arg_t *get_frhandler_arg_alloc(struct sockaddr_in *addr, 
+														char *buf, int len);
+void get_frhandler_arg_free(frhandler_arg_t *arg);
 
 #ifdef COMM_CLIENT
 gw_info_t *get_gateway_info();
@@ -115,9 +126,9 @@ int del_gateway_info(zidentify_no_t gw_no);
 
 
 #ifdef COMM_CLIENT
-void analysis_zdev_frame(char *buf, int len);
+void analysis_zdev_frame(frhandler_arg_t *arg);
 #endif
-void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len);
+void analysis_capps_frame(frhandler_arg_t *arg);
 
 fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type, 
 	dev_opt_t *opt, void *frame);

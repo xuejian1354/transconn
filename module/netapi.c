@@ -18,6 +18,7 @@
 #include "netapi.h"
 #include <module/netlist.h>
 #include <protocol/trframelysis.h>
+#include <protocol/protocol.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
@@ -307,7 +308,12 @@ void socket_udp_recvfrom()
 	DE_PRINTF("data:%s\n", buf);
 #endif
 
-	analysis_capps_frame(&client_addr, buf, nbytes);
+	frhandler_arg_t *frarg = get_frhandler_arg_alloc(&client_addr, buf, nbytes);
+#ifdef TIMER_SUPPORT
+	tpool_add_work(analysis_capps_frame, frarg);
+#else
+	analysis_capps_frame(frarg);
+#endif
 
 #ifdef TRANS_UDP_SESS_QUEUE
 	addto_udpsess_queue(&client_addr);

@@ -712,35 +712,35 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 		{
 			set_devopt_fromstr(dev_info->zdev_opt, de->data, de->data_len);
 
-			if(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR)
+			if((dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
+				&& !dev_info->zdev_opt->device.doorsensor.setting)
+				|| (dev_info->zdev_opt->type == FRAPP_IR_DETECTION
+				&& !dev_info->zdev_opt->device.irdetect.setting))
 			{
-				if(!dev_info->zdev_opt->device.doorsensor.setting)
+				ur_t ur;
+				memcpy(ur.head, FR_HEAD_UR, 3);
+				ur.type = get_frnet_type_to_ch(dev_info->znet_type);
+				get_frapp_type_to_str(ur.ed_type, dev_info->zapp_type);
+				incode_xtoc16(ur.short_addr, dev_info->znet_addr);
+				ur.data_len = de->data_len;
+				ur.data = de->data;
+				memcpy(ur.tail, FR_TAIL, 4);
+									
+				fr_buffer_t *frbuffer = get_switch_buffer_alloc(HEAD_UR, 
+										dev_info->zdev_opt, &ur);
+		
+				cli_info_t *p_cli = get_client_list()->p_cli;
+				while(p_cli != NULL)
 				{
-					ur_t ur;
-					memcpy(ur.head, FR_HEAD_UR, 3);
-					ur.type = get_frnet_type_to_ch(dev_info->znet_type);
-					get_frapp_type_to_str(ur.ed_type, dev_info->zapp_type);
-					incode_xtoc16(ur.short_addr, dev_info->znet_addr);
-					ur.data_len = de->data_len;
-					ur.data = de->data;
-					memcpy(ur.tail, FR_TAIL, 4);
-										
-					fr_buffer_t *frbuffer = get_switch_buffer_alloc(HEAD_UR, 
-											dev_info->zdev_opt, &ur);
-			
-					cli_info_t *p_cli = get_client_list()->p_cli;
-					while(p_cli != NULL)
-					{
-						send_ub_udp_respond(p_cli->ipaddr, TRINFO_REDATA, 
-							get_gateway_info()->gw_no, p_cli->cidentify_no, 
-							frbuffer->data, frbuffer->size);
+					send_ub_udp_respond(p_cli->ipaddr, TRINFO_REDATA, 
+						get_gateway_info()->gw_no, p_cli->cidentify_no, 
+						frbuffer->data, frbuffer->size);
 
-						p_cli = p_cli->next;
-					}
-					get_buffer_free(frbuffer);
-					
-					goto Handle_UR_free;
+					p_cli = p_cli->next;
 				}
+				get_buffer_free(frbuffer);
+				
+				goto Handle_UR_free;
 			}
 			
 			fr_buffer_t *buffer = get_switch_buffer_alloc(HEAD_DE, 

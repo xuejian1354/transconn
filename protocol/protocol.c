@@ -270,6 +270,47 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 	return -1;
 }
 
+
+frhandler_arg_t *get_frhandler_arg_alloc(struct sockaddr_in *addr, 
+														char *buf, int len)
+{
+	if(len > MAXSIZE)
+	{
+		return NULL;
+	}
+
+	frhandler_arg_t *arg = calloc(1, sizeof(frhandler_arg_t));
+	arg->buf = calloc(1, len);
+
+	if(addr != NULL)
+	{
+		memcpy(&arg->addr, addr, sizeof(struct sockaddr_in));
+	}
+	
+	if(buf != NULL)
+	{
+		memcpy(arg->buf, buf, len);
+		arg->len = len;
+	}
+	else
+	{
+		free(arg->buf);
+		arg->buf = NULL;
+		arg->len = 0;
+	}
+
+	return arg;
+}
+
+void get_frhandler_arg_free(frhandler_arg_t *arg)
+{
+	if(arg != NULL)
+	{
+		free(arg->buf);
+		free(arg);
+	}
+}
+
 int add_client_info(cli_info_t *m_info)
 {
 	cli_info_t *pre_before, *pre_cli =  NULL;
@@ -558,8 +599,13 @@ int del_gateway_info(zidentify_no_t gw_no)
 
 
 #ifdef COMM_CLIENT
-void analysis_zdev_frame(char *buf, int len)
+void analysis_zdev_frame(frhandler_arg_t *arg)
 {
+	if(arg == NULL)
+	{
+		return;
+	}
+	
 	dev_info_t *dev_info;
 	uint8 *buffer;
 	uint16 znet_addr;
@@ -567,9 +613,9 @@ void analysis_zdev_frame(char *buf, int len)
 	char ipaddr[24] = {0};
 	GET_SERVER_IP(ipaddr);
 	
-	fr_head_type_t head_type = get_frhead_from_str(buf);
+	fr_head_type_t head_type = get_frhead_from_str(arg->buf);
 	
-	void *p = get_frame_alloc(head_type, buf, len);
+	void *p = get_frame_alloc(head_type, arg->buf, arg->len);
 
 	if(p == NULL)
 	{
@@ -690,12 +736,16 @@ void analysis_zdev_frame(char *buf, int len)
 
 			//devopt_de_print(dev_info->zdev_opt);
 
-			if(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR)
+			if(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
+				&& !dev_info->zdev_opt->device.doorsensor.setting)
 			{
-				if(!dev_info->zdev_opt->device.doorsensor.setting)
-				{
-					goto UR_FREE;
-				}
+				goto UR_FREE;
+			}
+
+			if(dev_info->zdev_opt->type == FRAPP_IR_DETECTION
+				&& !dev_info->zdev_opt->device.irdetect.setting)
+			{
+				goto UR_FREE;
 			}
 
 			fr_buffer_t *frbuffer = get_switch_buffer_alloc(HEAD_UR, 
@@ -726,15 +776,22 @@ UR_FREE:
 		
 	default: break;
 	}
+
+	get_frhandler_arg_free(arg);
 }
 #endif
 
-void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
+void analysis_capps_frame(frhandler_arg_t *arg)
 {
+	if(arg == NULL)
+	{
+		return;
+	}
+	
   	cli_info_t *cli_info;
 	
-	tr_head_type_t head_type = get_trhead_from_str(buf);
-	void *p = get_trframe_alloc(head_type, buf, len);
+	tr_head_type_t head_type = get_trhead_from_str(arg->buf);
+	void *p = get_trframe_alloc(head_type, arg->buf, arg->len);
 	
 	if(p == NULL)
 	{
@@ -746,7 +803,7 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 	case TRHEAD_PI:
 	{
 		pi_t *pi = (pi_t *)p;
-		pi_handler(addr, pi);
+		pi_handler(&arg->addr, pi);
 		get_trframe_free(TRHEAD_PI, p);
 	}
 	break;
@@ -754,7 +811,7 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 	case TRHEAD_BI:
 	{
 		bi_t *bi = (bi_t *)p;
-		bi_handler(addr, bi);
+		bi_handler(&arg->addr, bi);
 		get_trframe_free(TRHEAD_BI, p);
 	}
 	break;
@@ -762,7 +819,7 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 	case TRHEAD_GP:
 	{
 		gp_t *gp = (gp_t *)p;
-		gp_handler(addr, gp);
+		gp_handler(&arg->addr, gp);
 		get_trframe_free(TRHEAD_GP, p);
 	}
 	break;
@@ -770,7 +827,7 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 	case TRHEAD_RP:
 	{
 		rp_t *rp = (rp_t *)p;
-		rp_handler(addr, rp);
+		rp_handler(&arg->addr, rp);
 		get_trframe_free(TRHEAD_RP, p);
 	}
 	break;
@@ -778,7 +835,7 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 	case TRHEAD_GD:
 	{
 		gd_t *gd = (gd_t *)p;
-		gd_handler(addr, gd);
+		gd_handler(&arg->addr, gd);
 		get_trframe_free(TRHEAD_GD, p);
 	}
 	break;
@@ -786,7 +843,7 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 	case TRHEAD_RD:
 	{
 		rd_t *rd = (rd_t *)p;
-		rd_handler(addr, rd);		
+		rd_handler(&arg->addr, rd);		
 		get_trframe_free(TRHEAD_RD, p);
 	}
 	break;
@@ -794,7 +851,7 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 	case TRHEAD_DC:
 	{
 		dc_t *dc = (dc_t *)p;
-		dc_handler(addr, dc);
+		dc_handler(&arg->addr, dc);
 		get_trframe_free(TRHEAD_DC, p);
 	}
 	break;
@@ -802,13 +859,15 @@ void analysis_capps_frame(struct sockaddr_in *addr, char *buf, int len)
 	case TRHEAD_UB:
 	{
 		ub_t *ub = (ub_t *)p;
-		ub_handler(addr, ub);
+		ub_handler(&arg->addr, ub);
 		get_trframe_free(TRHEAD_UB, p);
 	}
 	break;
 
 	default: break;
 	}
+
+	get_frhandler_arg_free(arg);
 }
 
 fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type, 
