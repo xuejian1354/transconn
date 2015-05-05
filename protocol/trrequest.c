@@ -230,6 +230,7 @@ void gp_handler(struct sockaddr_in *addr, gp_t *gp)
 	gp_t mgp;
 	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
 	memcpy(m_info->cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
+	m_info->trans_type = gp->trans_type;
 	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 	m_info->ip_len = strlen(ipaddr);
 	GET_SERVER_IP(m_info->serverip_addr);
@@ -313,6 +314,7 @@ dev_match:
 
 	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
 	memcpy(m_info->cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
+	m_info->trans_type = gp->trans_type;
 	memcpy(m_info->ipaddr, gp->data, gp->data_len);
 	m_info->ip_len = gp->data_len;
 	memcpy(m_info->serverip_addr, ipaddr, strlen(ipaddr));
@@ -325,13 +327,13 @@ dev_match:
 	{
 		free(m_info);
 	}
-
-	uo_t m_uo;
+	
 	if((p_dev=query_zdevice_info_with_sn(gp->zidentify_no)) == NULL)
 	{
 		return;
 	}
 
+	uo_t m_uo;
 	memcpy(m_uo.head, FR_HEAD_UO, 3);
 	m_uo.type = get_frnet_type_to_ch(p_dev->znet_type);
 	get_frapp_type_to_str(m_uo.ed_type, p_dev->zapp_type);
@@ -346,14 +348,14 @@ dev_match:
 	rp_t mrp;
 	memcpy(mrp.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 	memcpy(mrp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
-	mrp.trans_type = TRTYPE_UDP_NORMAL;
-	mrp.tr_info = TRINFO_DATA;
+	mrp.trans_type = gp->trans_type;
+	mrp.tr_info = TRINFO_UPDATE;
 	mrp.data = frbuffer->data;
 	mrp.data_len = frbuffer->size;
 	send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
 	
 	get_buffer_free(frbuffer);
-	set_rp_check(m_info);
+	set_rp_check(query_client_info(gp->cidentify_no));
 #endif
 }
 
@@ -372,27 +374,33 @@ void rp_handler(struct sockaddr_in *addr, rp_t *rp)
 	if(rp->tr_info == TRINFO_CUT)
 	{
 		set_rp_check(NULL);
+		cli_info_t *p_cli = query_client_info(rp->cidentify_no);
+		p_cli->trans_type = rp->trans_type;
 	}
 #endif
 
 #ifdef COMM_SERVER
-	if(rp->data != NULL)
+	if(rp->tr_info == TRINFO_UPDATE)
 	{
-		if(rp->tr_info != TRINFO_IP)
+		cli_info_t *p_cli = query_client_info(rp->cidentify_no);
+		if(p_cli != NULL)
 		{
-			return;
+			send_frame_udp_request(p_cli->ipaddr, TRHEAD_RP, rp);
 		}
-
-		rp_t mrp;
-		memcpy(mrp.zidentify_no, rp->zidentify_no, sizeof(zidentify_no_t));
-		memcpy(mrp.cidentify_no, rp->cidentify_no, sizeof(cidentify_no_t));
-		mrp.trans_type = TRTYPE_UDP_NORMAL;
-		mrp.tr_info = TRINFO_UPDATE;
-		mrp.data = NULL;
-		mrp.data_len = 0;
-		send_frame_udp_request(rp->data, TRHEAD_RP, &mrp);
-		
-		return;
+	}
+	else if(rp->tr_info == TRINFO_IP)
+	{
+		if(rp->data != NULL)
+		{
+			rp_t mrp;
+			memcpy(mrp.zidentify_no, rp->zidentify_no, sizeof(zidentify_no_t));
+			memcpy(mrp.cidentify_no, rp->cidentify_no, sizeof(cidentify_no_t));
+			mrp.trans_type = TRTYPE_UDP_NORMAL;
+			mrp.tr_info = TRINFO_IP;
+			mrp.data = NULL;
+			mrp.data_len = 0;
+			send_frame_udp_request(rp->data, TRHEAD_RP, &mrp);
+		}
 	}
 #endif
 
@@ -418,8 +426,11 @@ void gd_handler(struct sockaddr_in *addr, gd_t *gd)
 #ifdef COMM_SERVER
 	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
 	memcpy(m_info->cidentify_no, gd->cidentify_no, sizeof(cidentify_no_t));
+	m_info->trans_type = gd->trans_type;
 	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 	m_info->ip_len = strlen(ipaddr);
+	GET_SERVER_IP(m_info->serverip_addr);
+	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;
 	m_info->next = NULL;
@@ -525,6 +536,9 @@ gdev_match:
 	}
 	
 	memcpy(m_info->cidentify_no, gd->cidentify_no, sizeof(cidentify_no_t));	
+	m_info->trans_type = gd->trans_type;
+	GET_SERVER_IP(m_info->serverip_addr);
+	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;
 	m_info->next = NULL;
@@ -549,11 +563,12 @@ gdev_match:
 		gd_t mgd;
 		memcpy(mgd.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 		memcpy(mgd.cidentify_no, gd->cidentify_no, sizeof(cidentify_no_t));
-		mgd.trans_type = TRTYPE_UDP_NORMAL;
+		mgd.trans_type = TRTYPE_UDP_TRAVERSAL;
 		mgd.tr_info = TRINFO_REG;
 		mgd.data = buffer;
 		mgd.data_len = bsize;
-		send_frame_udp_request(m_info->ipaddr, TRHEAD_GD, &mgd);
+		send_frame_udp_request(
+			query_client_info(gd->cidentify_no)->ipaddr, TRHEAD_GD, &mgd);
 	}
 
 	return;
@@ -576,6 +591,7 @@ void rd_handler(struct sockaddr_in *addr, rd_t *rd)
 {
 #ifdef COMM_CLIENT
 	cli_info_t *p_cli = query_client_info(rd->cidentify_no);
+	p_cli->trans_type = rd->trans_type;
 	set_cli_check(p_cli);
 #endif
 }
@@ -654,11 +670,18 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 					ub_t ub;
 					memcpy(ub.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 					memcpy(ub.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
-					ub.trans_type = TRTYPE_UDP_NORMAL;
+					ub.trans_type = p_cli->trans_type;
 					ub.tr_info = TRINFO_REDATA;
 					ub.data = frbuffer->data;
 					ub.data_len = frbuffer->size;
-					send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
+					if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
+					{
+						send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
+					}
+					else if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
+					{
+						send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
+					}
 
 					p_cli = p_cli->next;
 				}

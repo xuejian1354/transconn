@@ -27,7 +27,7 @@
 
 //server ip address
 #define SERVER_IP	"115.28.214.50"
-//#define SERVER_IP	"192.168.1.110"
+//#define SERVER_IP	"192.168.1.114"
 
 #define SERVER_GW_LIST_MAX_NUM	1024
 #define SERVER_CLI_LIST_MAX_NUM		128

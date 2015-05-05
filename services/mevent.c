@@ -117,7 +117,7 @@ void *stand_event(void *p)
 			gd_t gd;
 			memcpy(gd.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 			memcpy(gd.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
-			gd.trans_type = TRTYPE_UDP_NORMAL;
+			gd.trans_type = TRTYPE_UDP_TRAVERSAL;
 			gd.tr_info = TRINFO_REG;
 			gd.data = buffer;
 			gd.data_len = bsize;
@@ -162,31 +162,13 @@ void *rp_watch(void *p)
 		rp_t rp;
 		memcpy(rp.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 		memcpy(rp.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
-		rp.trans_type = TRTYPE_UDP_NORMAL;
+		rp.trans_type = TRTYPE_UDP_TRAVERSAL;
 		rp.tr_info = TRINFO_UPDATE;
 		rp.data = NULL;
 		rp.data_len = 0;
 		send_frame_udp_request(p_cli->ipaddr, TRHEAD_RP, &rp);
-	
+		
 		set_rp_check(p_cli);
-	}
-	else
-	{
-		char ipaddr[24] = {0};
-		GET_SERVER_IP(ipaddr);
-
-		rp_t rp;
-		memcpy(rp.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-		memcpy(rp.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
-		rp.trans_type = TRTYPE_UDP_NORMAL;
-		rp.tr_info = TRINFO_IP;
-		rp.data = p_cli->ipaddr;
-		rp.data_len = p_cli->ip_len;
-		send_frame_udp_request(ipaddr, TRHEAD_RP, &rp);
-
-		memset(p_cli->ipaddr, 0, sizeof(p_cli->ipaddr));
-		memcpy(p_cli->ipaddr, ipaddr, strlen(ipaddr));
-		p_cli->ip_len = strlen(ipaddr);
 	}
 }
 

@@ -342,6 +342,7 @@ int add_client_info(cli_info_t *m_info)
 		}
 		else
 		{
+			t_cli->trans_type = m_info->trans_type;
 			memset(t_cli->ipaddr, 0, sizeof(t_cli->ipaddr));
 			memcpy(t_cli->ipaddr, m_info->ipaddr, m_info->ip_len);
 			memset(t_cli->serverip_addr, 0, sizeof(t_cli->serverip_addr));
@@ -693,11 +694,18 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 			ub_t ub;
 			memcpy(ub.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 			memcpy(ub.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
-			ub.trans_type = TRTYPE_UDP_NORMAL;
+			ub.trans_type = p_cli->trans_type;
 			ub.tr_info = TRINFO_REDATA;
 			ub.data = frbuffer->data;
 			ub.data_len = frbuffer->size;
-			send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
+			if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
+			{
+				send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
+			}
+			else if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
+			{
+				send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
+			}
 
 			p_cli = p_cli->next;
 		}
@@ -787,11 +795,18 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 				ub_t ub;
 				memcpy(ub.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 				memcpy(ub.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
-				ub.trans_type = TRTYPE_UDP_NORMAL;
+				ub.trans_type = p_cli->trans_type;
 				ub.tr_info = TRINFO_REDATA;
 				ub.data = frbuffer->data;
 				ub.data_len = frbuffer->size;
-				send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
+				if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
+				{
+					send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
+				}
+				else if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
+				{
+					send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
+				}
 
 				p_cli = p_cli->next;
 			}
@@ -915,7 +930,7 @@ fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type,
 	{
 	case HEAD_UO:
 	{
-		ur_t *p_uo = (ur_t *)frame;
+		uo_t *p_uo = (uo_t *)frame;
 		bdata = p_uo->data;
 		blen = p_uo->data_len;
 
@@ -931,7 +946,6 @@ fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type,
 		
 		return frbuffer;
 	}
-	break;
 
 	case HEAD_UR:
 	{
