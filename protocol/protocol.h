@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <protocol/framelysis.h>
+#include <protocol/trframelysis.h>
 #include <protocol/devopt.h>
 
 #define GATEWAY_BUFFER_FIX_SIZE		32
@@ -44,8 +45,11 @@ typedef struct Gw_Info
 	uint16 zpanid;
 	uint16 zchannel;
 	uint32 rand;
-	uint8 ipaddr[24];
+	tr_trans_type_t trans_type;
+	uint8 ipaddr[IP_ADDR_MAX_SIZE];
 	uint8 ip_len;
+	uint8 serverip_addr[IP_ADDR_MAX_SIZE];
+	uint8 serverip_len;
 	pthread_mutex_t lock;
 	dev_info_t *p_dev;
 	struct Gw_Info *next;
@@ -61,8 +65,11 @@ typedef struct
 typedef struct Cli_Info
 {
 	cidentify_no_t cidentify_no;
+	tr_trans_type_t trans_type;
 	uint8 ipaddr[IP_ADDR_MAX_SIZE];
 	uint8 ip_len;
+	uint8 serverip_addr[IP_ADDR_MAX_SIZE];
+	uint8 serverip_len;
 	int check_count;
 	int check_conn;
 	struct Cli_Info *next;
@@ -77,6 +84,7 @@ typedef struct
 
 typedef struct
 {
+	int fd;
 	struct sockaddr_in addr; 
 	char *buf;
 	int len;
@@ -96,7 +104,7 @@ int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev);
 dev_info_t *query_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
 int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
 
-frhandler_arg_t *get_frhandler_arg_alloc(struct sockaddr_in *addr, 
+frhandler_arg_t *get_frhandler_arg_alloc(int fd, struct sockaddr_in *addr, 
 														char *buf, int len);
 void get_frhandler_arg_free(frhandler_arg_t *arg);
 

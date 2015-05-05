@@ -80,8 +80,15 @@ void *upload_event(void *p)
 		bsize += 4;
 		p_dev = p_dev->next;
 	}
-
-	send_pi_udp_request(ipaddr, TRFRAME_CON, buffer, bsize, NULL);
+	
+	pi_t pi;
+	memcpy(pi.sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+	pi.trans_type = TRTYPE_UDP_NORMAL;
+	pi.fr_type = TRFRAME_CON;
+	pi.data = buffer;
+	pi.data_len = bsize;
+	
+	send_frame_udp_request(ipaddr, TRHEAD_PI, &pi);
 	
 	return NULL;
 }
@@ -107,8 +114,14 @@ void *stand_event(void *p)
 	{
 		if(memcmp(ipaddr, p_cli->ipaddr, p_cli->ip_len))
 		{
-			send_gd_udp_request(p_cli->ipaddr, TRINFO_REG, 
-				get_gateway_info()->gw_no, p_cli->cidentify_no, buffer, bsize);
+			gd_t gd;
+			memcpy(gd.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+			memcpy(gd.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
+			gd.trans_type = TRTYPE_UDP_NORMAL;
+			gd.tr_info = TRINFO_REG;
+			gd.data = buffer;
+			gd.data_len = bsize;
+			send_frame_udp_request(p_cli->ipaddr, TRHEAD_GD, &gd);
 		}
 
 		if(p_cli->check_conn)
@@ -146,9 +159,15 @@ void *rp_watch(void *p)
 	
 	if(p_cli->check_count-- != 0)
 	{
-		send_rp_udp_respond(p_cli->ipaddr, TRINFO_UPDATE, 
-			get_gateway_info()->gw_no, p_cli->cidentify_no, NULL, 0);
-		
+		rp_t rp;
+		memcpy(rp.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+		memcpy(rp.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
+		rp.trans_type = TRTYPE_UDP_NORMAL;
+		rp.tr_info = TRINFO_UPDATE;
+		rp.data = NULL;
+		rp.data_len = 0;
+		send_frame_udp_request(p_cli->ipaddr, TRHEAD_RP, &rp);
+	
 		set_rp_check(p_cli);
 	}
 	else
@@ -156,8 +175,14 @@ void *rp_watch(void *p)
 		char ipaddr[24] = {0};
 		GET_SERVER_IP(ipaddr);
 
-		send_rp_udp_respond(ipaddr, TRINFO_IP, get_gateway_info()->gw_no, 
-			p_cli->cidentify_no, p_cli->ipaddr, p_cli->ip_len);
+		rp_t rp;
+		memcpy(rp.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+		memcpy(rp.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
+		rp.trans_type = TRTYPE_UDP_NORMAL;
+		rp.tr_info = TRINFO_IP;
+		rp.data = p_cli->ipaddr;
+		rp.data_len = p_cli->ip_len;
+		send_frame_udp_request(ipaddr, TRHEAD_RP, &rp);
 
 		memset(p_cli->ipaddr, 0, sizeof(p_cli->ipaddr));
 		memcpy(p_cli->ipaddr, ipaddr, strlen(ipaddr));

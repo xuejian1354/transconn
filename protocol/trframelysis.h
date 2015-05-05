@@ -30,8 +30,10 @@
 #define TR_HEAD_DC	"DC:"	//down control
 #define TR_HEAD_UB	"UB:"	//up back
 
-#define TR_TYPE_UDP	'1'
-#define TR_TYPE_TCP	'2'
+#define TR_TYPE_UDP_NORMAL		'1'
+#define TR_TYPE_UDP_TRAVERSAL	'2'
+#define TR_TYPE_TCP_LONG		'3'
+#define TR_TYPE_TCP_SHORT		'4'
 
 #define TR_FRAME_CON		'1'
 #define TR_FRAME_REG		'2'
@@ -54,12 +56,12 @@
 
 #define TR_PI_DATA_FIX_LEN	25
 #define TR_BI_DATA_FIX_LEN	25
-#define TR_GP_DATA_FIX_LEN	40
-#define TR_RP_DATA_FIX_LEN	40
-#define TR_GD_DATA_FIX_LEN	40
-#define TR_RD_DATA_FIX_LEN	40
-#define TR_DC_DATA_FIX_LEN	40
-#define TR_UB_DATA_FIX_LEN	40
+#define TR_GP_DATA_FIX_LEN	41
+#define TR_RP_DATA_FIX_LEN	41
+#define TR_GD_DATA_FIX_LEN	41
+#define TR_RD_DATA_FIX_LEN	41
+#define TR_DC_DATA_FIX_LEN	41
+#define TR_UB_DATA_FIX_LEN	41
 
 #define TR_BUFFER_SIZE 	1024
 #define TR_TAIL ":O\r\n"
@@ -79,8 +81,10 @@ typedef enum
 
 typedef enum
 {
-	TRTYPE_UDP,
-	TRTYPE_TCP,
+	TRTYPE_UDP_NORMAL,
+	TRTYPE_UDP_TRAVERSAL,
+	TRTYPE_TCP_LONG,
+	TRTYPE_TCP_SHORT,
 	TRTYPE_NONE,
 }tr_trans_type_t;
 
@@ -134,6 +138,7 @@ typedef struct
 {
 	zidentify_no_t zidentify_no;
 	cidentify_no_t cidentify_no;
+	tr_trans_type_t trans_type;
 	tr_info_type_t tr_info;
 	uint16 data_len;
 	uint8 *data;

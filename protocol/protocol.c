@@ -95,6 +95,11 @@ void get_zdev_frame_free(dev_info_t *p)
 
 uint8 *get_gateway_buffer_alloc(gw_info_t *gw_info)
 {
+	if(gw_info->ip_len > IP_ADDR_MAX_SIZE)
+	{
+		return NULL;
+	}
+	
 	uint8 *gw_buffer = (uint8 *)calloc(1, GATEWAY_BUFFER_FIX_SIZE+gw_info->ip_len);
 	incode_xtocs(gw_buffer, gw_info->gw_no, 8);
 	incode_xtoc16(gw_buffer+16, gw_info->zpanid);
@@ -271,7 +276,7 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 }
 
 
-frhandler_arg_t *get_frhandler_arg_alloc(struct sockaddr_in *addr, 
+frhandler_arg_t *get_frhandler_arg_alloc(int fd, struct sockaddr_in *addr, 
 														char *buf, int len)
 {
 	if(len > MAXSIZE)
@@ -281,6 +286,8 @@ frhandler_arg_t *get_frhandler_arg_alloc(struct sockaddr_in *addr,
 
 	frhandler_arg_t *arg = calloc(1, sizeof(frhandler_arg_t));
 	arg->buf = calloc(1, len);
+
+	arg->fd = fd;
 
 	if(addr != NULL)
 	{
@@ -337,6 +344,8 @@ int add_client_info(cli_info_t *m_info)
 		{
 			memset(t_cli->ipaddr, 0, sizeof(t_cli->ipaddr));
 			memcpy(t_cli->ipaddr, m_info->ipaddr, m_info->ip_len);
+			memset(t_cli->serverip_addr, 0, sizeof(t_cli->serverip_addr));
+			memcpy(t_cli->serverip_addr, m_info->serverip_addr, m_info->serverip_len);
 			t_cli->check_count = m_info->check_count;
 			t_cli->check_conn = m_info->check_conn;
 
@@ -497,6 +506,8 @@ int add_gateway_info(gw_info_t *m_gw)
 			t_gw->ip_len = m_gw->ip_len;
 			memset(t_gw->ipaddr, 0, sizeof(t_gw->ipaddr));
 			memcpy(t_gw->ipaddr, m_gw->ipaddr, m_gw->ip_len);
+			memset(t_gw->serverip_addr, 0, sizeof(t_gw->serverip_addr));
+			memcpy(t_gw->serverip_addr, m_gw->serverip_addr, m_gw->serverip_len);
 
 			if(pre_gw != NULL)
 			{
@@ -633,10 +644,16 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 		gw_info.rand = gen_rand(gw_info.gw_no);
 		
 		buffer = get_gateway_buffer_alloc(&gw_info);
-		send_bi_udp_respond(ipaddr, 
-			TRFRAME_PUT_GW, buffer, GATEWAY_BUFFER_FIX_SIZE+gw_info.ip_len, NULL);
+		
+		bi_t bi;
+		memcpy(bi.sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+		bi.trans_type = TRTYPE_UDP_NORMAL;
+		bi.fr_type = TRFRAME_PUT_GW;
+		bi.data = buffer;
+		bi.data_len = GATEWAY_BUFFER_FIX_SIZE+gw_info.ip_len;
+		send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
+		
 		get_gateway_buffer_free(buffer);
-	
 		get_frame_free(HEAD_UC, uc);
 	}
 	break;
@@ -673,9 +690,14 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 		cli_info_t *p_cli = get_client_list()->p_cli;
 		while(p_cli != NULL)
 		{
-			send_ub_udp_respond(p_cli->ipaddr, TRINFO_REDATA, 
-				get_gateway_info()->gw_no, p_cli->cidentify_no, 
-				frbuffer->data, frbuffer->size);
+			ub_t ub;
+			memcpy(ub.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+			memcpy(ub.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
+			ub.trans_type = TRTYPE_UDP_NORMAL;
+			ub.tr_info = TRINFO_REDATA;
+			ub.data = frbuffer->data;
+			ub.data_len = frbuffer->size;
+			send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
 
 			p_cli = p_cli->next;
 		}
@@ -689,7 +711,15 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 		else
 		{
 			buffer = get_zdev_buffer_alloc(dev_info);
-			send_bi_udp_respond(ipaddr, TRFRAME_PUT_DEV, buffer, ZDEVICE_BUFFER_SIZE, NULL);
+
+			bi_t bi;
+			memcpy(bi.sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+			bi.trans_type = TRTYPE_UDP_NORMAL;
+			bi.fr_type = TRFRAME_PUT_DEV;
+			bi.data = buffer;
+			bi.data_len = ZDEVICE_BUFFER_SIZE;
+			send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
+			
 			get_zdev_buffer_free(buffer);
 		}
 
@@ -754,9 +784,14 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 			cli_info_t *p_cli = get_client_list()->p_cli;
 			while(p_cli != NULL)
 			{
-				send_ub_udp_respond(p_cli->ipaddr, TRINFO_REDATA, 
-					get_gateway_info()->gw_no, p_cli->cidentify_no, 
-					frbuffer->data, frbuffer->size);
+				ub_t ub;
+				memcpy(ub.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+				memcpy(ub.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
+				ub.trans_type = TRTYPE_UDP_NORMAL;
+				ub.tr_info = TRINFO_REDATA;
+				ub.data = frbuffer->data;
+				ub.data_len = frbuffer->size;
+				send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
 
 				p_cli = p_cli->next;
 			}

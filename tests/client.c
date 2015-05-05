@@ -155,12 +155,26 @@ void *client_control(void *p)
 		{
 			incode_ctoxs(zidentify_no, data, 16);
 			incode_ctoxs(cidentify_no, "1122334455667788", 16);
-			send_gp_udp_request(server_ipaddr, TRINFO_NONE, zidentify_no, cidentify_no, NULL, 0);
+			
+			gp_t gp;
+			memcpy(gp.zidentify_no, zidentify_no, sizeof(zidentify_no_t));
+			memcpy(gp.cidentify_no, cidentify_no, sizeof(cidentify_no_t));
+			gp.trans_type = TRTYPE_UDP_NORMAL;
+			gp.tr_info = TRINFO_NONE;
+			gp.data = NULL;
+			gp.data_len = 0;
+			send_frame_udp_request(server_ipaddr, TRHEAD_GP, &gp)
 		}
 		else if(!strncmp("dc", cmd, 2) && strlen(cmd)==2)
 		{
-			send_dc_udp_request(target_ipaddr, TRINFO_DATA, 
-				zidentify_no, cidentify_no, data, datalen);
+			dc_t dc;
+			memcpy(dc.zidentify_no, zidentify_no, sizeof(zidentify_no_t));
+			memcpy(dc.cidentify_no, cidentify_no, sizeof(cidentify_no_t));
+			dc.trans_type = TRTYPE_UDP_NORMAL;
+			dc.tr_info = TRINFO_DATA;
+			dc.data = data;
+			dc.data_len = datalen;
+			send_frame_udp_request(target_ipaddr, TRHEAD_DC, &dc);
 		}
 		else 
 #endif
