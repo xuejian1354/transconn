@@ -548,6 +548,8 @@ gdev_match:
 		free(m_info);
 	}
 
+	set_cli_check(query_client_info(gd->cidentify_no));
+
 	dev_info_t *p_dev = get_gateway_info()->p_dev;
 	char buffer[ZDEVICE_MAX_NUM<<4] = {0};
 	char bsize = 0;
@@ -589,9 +591,16 @@ gdev_match:
 
 void rd_handler(struct sockaddr_in *addr, rd_t *rd)
 {
+	char ipaddr[24] = {0};
+	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	
 #ifdef COMM_CLIENT
 	cli_info_t *p_cli = query_client_info(rd->cidentify_no);
+
 	p_cli->trans_type = rd->trans_type;
+	p_cli->ip_len = strlen(ipaddr);
+	memcpy(p_cli->ipaddr, ipaddr, p_cli->ip_len);
+	
 	set_cli_check(p_cli);
 #endif
 }

@@ -342,9 +342,9 @@ int add_client_info(cli_info_t *m_info)
 		}
 		else
 		{
-			t_cli->trans_type = m_info->trans_type;
 			if(m_info->ip_len != 0)
 			{
+				t_cli->trans_type = m_info->trans_type;
 				memset(t_cli->ipaddr, 0, sizeof(t_cli->ipaddr));
 				memcpy(t_cli->ipaddr, m_info->ipaddr, m_info->ip_len);
 				t_cli->ip_len = m_info->ip_len;
