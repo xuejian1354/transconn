@@ -541,7 +541,7 @@ fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt)
 
 int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 {	
-	if(dst->type != src->type)
+	if(dst == NULL || src == NULL || dst->type != src->type)
 	{
 		return -1;
 	}

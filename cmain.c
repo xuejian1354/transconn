@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef TRANS_UDP_SERVICE
-	if (socket_udp_service_init() < 0)
+	if (socket_udp_service_init(udp_port) < 0)
 	{
 		return -1;
 	}

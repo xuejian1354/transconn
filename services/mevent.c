@@ -139,12 +139,19 @@ void *stand_event(void *p)
 void *zdev_watch(void *p)
 {
 	uint16 znet_addr = (uint16)((int)p);
+	DE_PRINTF("del zdevice from list, zdev no:%04X\n\n", znet_addr);
+	
 	del_zdevice_info(znet_addr);
 }
 
 void *cli_watch(void *p)
 {
 	cli_info_t *p_cli = (cli_info_t *)p;
+
+	char clino[18] = {0};
+	incode_xtocs(clino, p_cli->cidentify_no, sizeof(cidentify_no_t));
+	DE_PRINTF("del client from list, cli no:%s\n\n", clino);
+	
 	del_client_info(p_cli->cidentify_no);
 }
 
@@ -241,7 +248,10 @@ void set_rp_check(cli_info_t *p_cli)
 #ifdef COMM_SERVER
 void *gateway_watch(void *p)
 {
-	printf("del gateway from list\n");
+	char gwno[18] = {0};
+	incode_xtocs(gwno, p, sizeof(zidentify_no_t));
+	DE_PRINTF("del gateway from list, gw no:%s\n\n", gwno);
+	
 	del_gateway_info(p);
 }
 

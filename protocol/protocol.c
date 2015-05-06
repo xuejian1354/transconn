@@ -343,10 +343,19 @@ int add_client_info(cli_info_t *m_info)
 		else
 		{
 			t_cli->trans_type = m_info->trans_type;
-			memset(t_cli->ipaddr, 0, sizeof(t_cli->ipaddr));
-			memcpy(t_cli->ipaddr, m_info->ipaddr, m_info->ip_len);
-			memset(t_cli->serverip_addr, 0, sizeof(t_cli->serverip_addr));
-			memcpy(t_cli->serverip_addr, m_info->serverip_addr, m_info->serverip_len);
+			if(m_info->ip_len != 0)
+			{
+				memset(t_cli->ipaddr, 0, sizeof(t_cli->ipaddr));
+				memcpy(t_cli->ipaddr, m_info->ipaddr, m_info->ip_len);
+				t_cli->ip_len = m_info->ip_len;
+			}
+			
+			if(m_info->serverip_len != 0)
+			{
+				memset(t_cli->serverip_addr, 0, sizeof(t_cli->serverip_addr));
+				memcpy(t_cli->serverip_addr, m_info->serverip_addr, m_info->serverip_len);
+				t_cli->serverip_len = m_info->serverip_len;
+			}
 			t_cli->check_count = m_info->check_count;
 			t_cli->check_conn = m_info->check_conn;
 

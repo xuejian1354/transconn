@@ -602,6 +602,30 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 	
 #ifdef COMM_CLIENT
+	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
+	memcpy(m_info->cidentify_no, dc->cidentify_no, sizeof(cidentify_no_t));	
+	m_info->trans_type = dc->trans_type;
+	if(m_info->trans_type == TRTYPE_UDP_TRAVERSAL)
+	{
+		memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
+		m_info->ip_len = strlen(ipaddr);
+	}
+	else
+	{
+		memset(m_info->ipaddr, 0, sizeof(m_info->ipaddr));
+		m_info->ip_len = 0;
+	}
+	GET_SERVER_IP(m_info->serverip_addr);
+	m_info->serverip_len = strlen(m_info->serverip_addr);
+	m_info->check_count = 0;
+	m_info->check_conn = 1;
+	m_info->next = NULL;
+	
+	if(add_client_info(m_info) != 0)
+	{
+		free(m_info);
+	}
+
 	fr_head_type_t head_type = get_frhead_from_str(dc->data);
 	void *p = get_frame_alloc(head_type, dc->data, dc->data_len);
 	if(p == NULL)
