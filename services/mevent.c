@@ -198,7 +198,7 @@ void set_zdev_check(uint16 net_addr)
 	timer_event_param_t timer_param;
 
 	timer_param.resident = 0;
-	timer_param.interval = 35;
+	timer_param.interval = 40;
 	timer_param.count = 1;
 	timer_param.immediate = 0;
 	timer_param.arg = (void *)((int)net_addr);
