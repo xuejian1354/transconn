@@ -16,7 +16,7 @@
  */
 #include "trrequest.h"
 #include <protocol/protocol.h>
-
+#include <module/balancer.h>
 
 void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 {

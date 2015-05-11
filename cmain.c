@@ -18,6 +18,10 @@
 
 int main(int argc, char **argv)
 {
+#ifdef LOAD_BALANCE_SUPPORT
+	serlist_read_from_confile();
+#endif
+	
 	char serial_port[16] = "/dev/ttyS1";
 	int tcp_port = TRANS_TCP_PORT;
 	int udp_port = TRANS_UDP_REMOTE_PORT;

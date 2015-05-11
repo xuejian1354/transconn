@@ -26,7 +26,6 @@
 
 #define GATEWAY_BUFFER_FIX_SIZE		32
 #define ZDEVICE_BUFFER_SIZE		23
-#define IP_ADDR_MAX_SIZE	24
 
 typedef struct Dev_Info
 {

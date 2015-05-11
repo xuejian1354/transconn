@@ -25,10 +25,6 @@
 #define TARGET_NAME "transconn(default)"
 #endif
 
-//server ip address
-#define SERVER_IP	"115.28.214.50"
-//#define SERVER_IP	"192.168.1.114"
-
 #define SERVER_GW_LIST_MAX_NUM	1024
 #define SERVER_CLI_LIST_MAX_NUM		128
 #define GATEWAY_CLI_LIST_MAX_NUM	24
@@ -71,9 +67,11 @@
 //single frame max size
 #define MAXSIZE	1024
 
+#define IP_ADDR_MAX_SIZE	24
+
 #define GET_SERVER_IP(ipaddr)								\
 st(															\
-	sprintf(ipaddr, "%s:%d", SERVER_IP, TRANS_UDP_PORT);	\
+	sprintf(ipaddr, "%s:%d", get_server_ip(), TRANS_UDP_PORT);	\
 )
 
 typedef byte zidentify_no_t[8];

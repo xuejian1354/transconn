@@ -15,9 +15,14 @@
  * GNU General Public License for more details.
  */
 #include <services/globals.h>
+#include <module/balancer.h>
 
 int main(int argc, char **argv)
 {
+#ifdef LOAD_BALANCE_SUPPORT
+	serlist_read_from_confile();
+#endif
+	
 	int tcp_port = TRANS_TCP_PORT;
 	int udp_port = TRANS_UDP_PORT;
 

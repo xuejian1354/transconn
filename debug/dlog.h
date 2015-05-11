@@ -43,6 +43,8 @@ st(																					\
 	}																				\
 																					\
 	DE_PRINTF("%s start!\n", TARGET_NAME);											\
+	DE_PRINTF("Server:%s\nIP:%s\n", 												\
+		get_server_name_from_ip(get_server_ip()), get_server_ip());					\
 	DE_PRINTF("Serial Port:%s, TCP Port:%d, UDP Port:%d\n", 						\
 		serial_port, tcp_port, udp_port);											\
 )
@@ -63,6 +65,8 @@ st(																					\
 	}																				\
 																					\
 	DE_PRINTF("%s start!\n", TARGET_NAME);											\
+	DE_PRINTF("Server:%s\nIP:%s\n", 												\
+		get_server_name_from_ip((char *)get_server_ip()), get_server_ip());					\
 	DE_PRINTF("TCP Port:%d, UDP Port:%d\n", tcp_port, udp_port);					\
 )
 

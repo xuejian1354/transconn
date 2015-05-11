@@ -17,6 +17,7 @@
 
 #include "netapi.h"
 #include <module/netlist.h>
+#include <module/balancer.h>
 #include <protocol/trframelysis.h>
 #include <protocol/protocol.h>
 #include <sys/socket.h>
@@ -196,7 +197,7 @@ int socket_tcp_client_connect(int port)
 
 	m_server_addr.sin_family = PF_INET;
 	m_server_addr.sin_port = htons(port);
-	m_server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+	m_server_addr.sin_addr.s_addr = inet_addr(get_server_ip());
 
 	if(connect(m_tcpfd, (struct sockaddr *)&m_server_addr, sizeof(m_server_addr)) < 0)
 	{
@@ -284,7 +285,7 @@ int socket_udp_service_init(int port)
 
 	server_addr.sin_family = PF_INET;
 	server_addr.sin_port = htons(port);
-	server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+	server_addr.sin_addr.s_addr = inet_addr(get_server_ip());
 	
 	if (bind(udpfd, (struct sockaddr *)&m_addr, sizeof(struct sockaddr)) < 0)
 	{
