@@ -266,7 +266,7 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		{
 			opt->common.power = get_devopt_power_ctox(data[0]);
 			incode_ctoxs(&opt->device.irdetect.setting, data+1, 2);
-			incode_ctoxs(opt->device.irdetect.status, data+3, 2);
+			//incode_ctoxs(opt->device.irdetect.status, data+3, 2);
 		}
 		else
 		{
@@ -279,7 +279,7 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		{
 			opt->common.power = get_devopt_power_ctox(data[0]);
 			incode_ctoxs(&opt->device.doorsensor.setting, data+1, 2);
-			incode_ctoxs(opt->device.doorsensor.status, data+3, 2);
+			//incode_ctoxs(opt->device.doorsensor.status, data+3, 2);
 		}
 		else
 		{

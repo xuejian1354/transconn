@@ -680,10 +680,8 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 		{
 			set_devopt_fromstr(dev_info->zdev_opt, de->data, de->data_len);
 
-			if((dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
-				&& !dev_info->zdev_opt->device.doorsensor.setting)
-				|| (dev_info->zdev_opt->type == FRAPP_IR_DETECTION
-				&& !dev_info->zdev_opt->device.irdetect.setting))
+			if(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
+				|| dev_info->zdev_opt->type == FRAPP_IR_DETECTION)
 			{
 				ur_t ur;
 				memcpy(ur.head, FR_HEAD_UR, 3);

@@ -692,33 +692,7 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 		}
 #endif
 		set_zdev_check(dev_info->znet_addr);
-
-
-		fr_buffer_t *frbuffer = get_switch_buffer_alloc(HEAD_UO, 
-											dev_info->zdev_opt, uo);
-		
-		cli_info_t *p_cli = get_client_list()->p_cli;
-		while(p_cli != NULL)
-		{
-			ub_t ub;
-			memcpy(ub.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-			memcpy(ub.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
-			ub.trans_type = p_cli->trans_type;
-			ub.tr_info = TRINFO_REDATA;
-			ub.data = frbuffer->data;
-			ub.data_len = frbuffer->size;
-			if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
-			{
-				send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
-			}
-			else if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
-			{
-				send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
-			}
-
-			p_cli = p_cli->next;
-		}
-		get_buffer_free(frbuffer);
+		uint16 znet_addr = dev_info->znet_addr;
 		
 		if(add_zdevice_info(dev_info) != 0)
 		{
@@ -740,6 +714,36 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 			get_zdev_buffer_free(buffer);
 		}
 
+		dev_info = query_zdevice_info(znet_addr);
+		if(dev_info != NULL)
+		{
+			fr_buffer_t *frbuffer = get_switch_buffer_alloc(HEAD_UO, 
+											dev_info->zdev_opt, uo);
+		
+			cli_info_t *p_cli = get_client_list()->p_cli;
+			while(p_cli != NULL)
+			{
+				ub_t ub;
+				memcpy(ub.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+				memcpy(ub.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
+				ub.trans_type = p_cli->trans_type;
+				ub.tr_info = TRINFO_REDATA;
+				ub.data = frbuffer->data;
+				ub.data_len = frbuffer->size;
+				if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
+				{
+					send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
+				}
+				else if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
+				{
+					send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
+				}
+
+				p_cli = p_cli->next;
+			}
+			get_buffer_free(frbuffer);
+		}
+		
 		get_frame_free(HEAD_UO, uo);
 	}
 	break;
