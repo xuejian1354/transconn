@@ -94,6 +94,10 @@ int select_listen()
 #endif
 #endif
 
+
+/*
+ * Becareful!!! This function eat all CPU, Default no used.
+*/
 #ifdef TRANS_TCP_CLIENT
 		if(FD_ISSET(get_mtcp_fd(), &current_rdfs))
 		{

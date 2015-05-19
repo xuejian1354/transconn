@@ -70,7 +70,11 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#ifdef TRANS_TCP_SERVER
+
+/*
+ * Becareful!!! This function eat all CPU, Default no used.
+*/
+#ifdef TRANS_TCP_CLIENT
 	if (socket_tcp_client_init() < 0)
 	{
 		return -1;

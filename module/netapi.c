@@ -163,6 +163,10 @@ void socket_tcp_server_recv(int fd)
 }
 #endif
 
+
+/*
+ * Becareful!!! This function eat all CPU, Default no used.
+*/
 #ifdef TRANS_TCP_CLIENT
 int get_mtcp_fd()
 {
