@@ -296,6 +296,11 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt)
 {
 	fr_buffer_t *buffer = NULL;
+
+	if(opt == NULL)
+	{
+		return NULL;
+	}
 	
 	switch(opt->type)
 	{
