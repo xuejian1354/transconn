@@ -680,8 +680,9 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 		{
 			set_devopt_fromstr(dev_info->zdev_opt, de->data, de->data_len);
 
-			if(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
-				|| dev_info->zdev_opt->type == FRAPP_IR_DETECTION)
+			if(dev_info->zdev_opt && 
+				(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
+					|| dev_info->zdev_opt->type == FRAPP_IR_DETECTION))
 			{
 				ur_t ur;
 				memcpy(ur.head, FR_HEAD_UR, 3);
@@ -723,9 +724,12 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 			
 			fr_buffer_t *buffer = get_switch_buffer_alloc(HEAD_DE, 
 												dev_info->zdev_opt, de);
-			
-			serial_write(buffer->data, buffer->size);
-			get_buffer_free(buffer);
+
+			if(buffer != NULL)
+			{
+				serial_write(buffer->data, buffer->size);
+				get_buffer_free(buffer);
+			}
 		}
 Handle_UR_free:
 		get_frame_free(HEAD_DE, de);

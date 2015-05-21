@@ -33,7 +33,7 @@
 #define DEVOPT_LIGHTSWITCH_THREE_FIX_SIZE	9
 #define DEVOPT_LIGHTSWITCH_FOUR_FIX_SIZE	11
 #define DEVOPT_ALARM_FIX_SIZE				3
-#define DEVOPT_IRRELAY_FIX_SIZE				3
+#define DEVOPT_IRRELAY_FIX_SIZE				5
 #define DEVOPT_IRDETECT_FIX_SIZE			5
 #define DEVOPT_DOORSENSOR_FIX_SIZE			5
 
@@ -42,9 +42,12 @@
 #define DEVOPT_LIGHTSWITCH_THREE_DATASTR_FIX_SIZE	6
 #define DEVOPT_LIGHTSWITCH_FOUR_DATASTR_FIX_SIZE	8
 #define DEVOPT_ALARM_DATASTR_FIX_SIZE				2
-#define DEVOPT_IRRELAY_DATASTR_FIX_SIZE				2
+#define DEVOPT_IRRELAY_DATASTR_FIX_SIZE				5
 #define DEVOPT_IRDETECT_DATASTR_FIX_SIZE			2
 #define DEVOPT_DOORSENSOR_DATASTR_FIX_SIZE			2
+
+#define DEVOPT_IRRELAY_LEARN_MODE	"LEA"
+#define DEVOPT_IRRELAY_SEND_MODE	"SEN"
 
 typedef enum
 {
@@ -79,7 +82,8 @@ typedef struct Alarm_Opt
 
 typedef struct IRRelay_Opt
 {
-	uint8 mode;
+	uint8 mode;		//0 send, 1 learn
+	uint8 data[1];
 }irrelay_opt_t;
 
 typedef struct IRDetect_Opt

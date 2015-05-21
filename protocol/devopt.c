@@ -181,6 +181,11 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 		
 	case FRAPP_IR_RELAY: 
+		opt = calloc(1, sizeof(dev_opt_t));
+		opt->type = type;
+		opt->common.method = DEV_CONTROL_BOTH;
+		opt->device.irrelay.mode = 0;
+		opt->device.irrelay.data[0] = 0;
 		return opt;
 
 	default: return NULL;
@@ -195,6 +200,11 @@ void get_devopt_data_free(dev_opt_t *opt)
 
 int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 {	
+	if(opt == NULL)
+	{
+		return -1;
+	}
+	
 	switch(opt->type)
 	{
 	case FRAPP_LIGHTSWITCH_ONE: 
@@ -286,6 +296,26 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 			return -1;
 		}
 		break;
+
+	case FRAPP_IR_RELAY:
+		if(len >= DEVOPT_IRRELAY_FIX_SIZE)
+		{
+			if(!memcmp(data, DEVOPT_IRRELAY_LEARN_MODE, 3))
+			{
+				opt->device.irrelay.mode = 1;
+			}
+			else if(!memcmp(data, DEVOPT_IRRELAY_SEND_MODE, 3))
+			{
+				opt->device.irrelay.mode = 0;
+			}
+
+			incode_ctoxs(&opt->device.irrelay.data, data+3, 2);
+		}
+		else
+		{
+			return -1;
+		}
+		return 0;
 
 	default: return -1;
 	}
@@ -488,6 +518,11 @@ int set_devopt_data(dev_opt_t *opt, uint8 *data, int len)
 fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt)
 {	
 	fr_buffer_t *buffer = NULL;
+	if(opt == NULL)
+	{
+		return NULL;
+	}
+	
 	switch(opt->type)
 	{
 	case FRAPP_LIGHTSWITCH_ONE: 
@@ -537,6 +572,23 @@ fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt)
 		buffer->size = DEVOPT_DOORSENSOR_DATASTR_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
 		incode_xtocs(buffer->data, &opt->device.doorsensor.setting, 1);
+		return buffer;
+
+	case FRAPP_IR_RELAY:
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_IRRELAY_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		if(opt->device.irrelay.mode == 0)
+		{
+			memcpy(buffer->data, DEVOPT_IRRELAY_SEND_MODE, 3);
+		}
+		else if(opt->device.irrelay.mode == 1)
+		{
+			memcpy(buffer->data, DEVOPT_IRRELAY_LEARN_MODE, 3);
+		}
+
+		incode_xtocs(buffer->data+3, opt->device.irrelay.data, 1);
+		
 		return buffer;
 
 	default: return NULL;
