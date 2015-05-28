@@ -1,5 +1,5 @@
-ifeq ($(TOPDIR),)
-TOPDIR ?= $(dir $(shell pwd))
+ifeq ($(TESTTOP),)
+TESTTOP ?= $(dir $(shell pwd))
 endif
 
 ifneq ($(WHOLE_BUILD),1)
@@ -25,7 +25,7 @@ endif
 
 TARGET:=client
 
-INCLUDE+=-I$(TOPDIR)include -I$(TOPDIR)lib
+INCLUDE+=-I$(TESTTOP)include -I$(TESTTOP)lib
 LDFLAGS:=-lpthread
 
 DMACRO:=-DTARGET_NAME=\"$(TARGET)\" -DCLIENT_TEST -DTHREAD_POOL_SUPPORT -DTIMER_SUPPORT -DTRANS_UDP_SERVICE -DSELECT_SUPPORT
@@ -47,9 +47,9 @@ $(TARGET):$(OBJS)
 	$(TARGET_STRIP) $@
 
 $(OBJS):
-	$(TARGET_CC) -o $@ $(DMACRO) $(INCLUDE) -c $(TOPDIR)$($@-s)
+	$(TARGET_CC) -o $@ $(DMACRO) $(INCLUDE) -c $(TESTTOP)$($@-s)
 
-perznet:perznet.c $(TOPDIR)module/serial.c
+perznet:perznet.c $(TESTTOP)module/serial.c
 	$(TARGET_CC) -o $@ $^ -DSERIAL_SUPPORT $(INCLUDE) $(LDFLAGS)
 	$(TARGET_STRIP) $@
 
