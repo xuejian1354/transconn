@@ -322,6 +322,8 @@ serial_update:
 				DE_PRINTF("serial read:%s\n", tmpFrame);
 				//PRINT_HEX(tmpFrame, dataLen);
 #endif
+
+#if defined(COMM_SERVER) || defined(COMM_CLIENT)
 				frhandler_arg_t *frarg = 
 					get_frhandler_arg_alloc(serial_id, NULL, tmpFrame, dataLen);
 
@@ -330,7 +332,7 @@ serial_update:
 #else
 				analysis_zdev_frame(frarg);
 #endif
-
+#endif
 				memset(tmpFrame, 0, sizeof(tmpFrame));
             }
             i++;

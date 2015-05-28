@@ -37,8 +37,10 @@ $(foreach s,$(SOURCES), \
     $(eval $(patsubst %.c,%.o,$(notdir $(s)))-s:=$(s)) \
 )
 
+
+
 .PHONY: all clean
-all:$(TARGET)
+all:$(TARGET) perznet
 
 $(TARGET):$(OBJS)
 	$(TARGET_CC) -o $@ $(OBJS) $(LDFLAGS)
@@ -47,5 +49,9 @@ $(TARGET):$(OBJS)
 $(OBJS):
 	$(TARGET_CC) -o $@ $(DMACRO) $(INCLUDE) -c $(TOPDIR)$($@-s)
 
+perznet:perznet.c $(TOPDIR)module/serial.c
+	$(TARGET_CC) -o $@ $^ -DSERIAL_SUPPORT $(INCLUDE) $(LDFLAGS)
+	$(TARGET_STRIP) $@
+
 clean:
-	$(RM) *.o $(TARGET)
+	$(RM) *.o $(TARGET) perznet
