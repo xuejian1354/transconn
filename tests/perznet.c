@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 	char serial_port[16] = "/dev/ttyS1";
 	char cmd[8] = ZDEVICE_CMD_PERMIT;
 	char zaddr[5] = "0000";
-	char sen_format[ZDEVICE_ADD_FRSIZE] = {0};
+	char sen_format[24] = {0};
 
 	if(argc > 1)
 	{
@@ -70,13 +70,14 @@ int main(int argc, char **argv)
 	{
 		sprintf(sen_format, "D:/CJ/%s01:O\r\n", zaddr);
 		serial_write(sen_format, ZDEVICE_ADD_FRSIZE);
-		printf("Permit add zdevice net, znet:%s\n", zaddr);
+		printf("Permit add zdevice net, znet:%s\n%s\n", zaddr, sen_format);
+		PRINT_HEX(sen_format, ZDEVICE_ADD_FRSIZE);
 	}
 	else if(!strncmp(cmd, ZDEVICE_CMD_FORBID, 6))
 	{
 		sprintf(sen_format, "D:/CJ/%s00:O\r\n", zaddr);
 		serial_write(sen_format, ZDEVICE_ADD_FRSIZE);
-		printf("Forbid add zdevice net, znet:%s\n", zaddr);
+		printf("Forbid add zdevice net, znet:%s\n%s\n", zaddr, sen_format);
 	}
 	else
 	{

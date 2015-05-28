@@ -178,7 +178,9 @@ int serial_init(char *dev)
 		return -2;
 	}
 
+#if defined(COMM_CLIENT) || defined(COMM_SERVER)
 	write(fd, "(^_^)", 5);	//just enable serial port, no pratical meaning
+#endif
 
 	pthread_t uartRead;
 	pthread_create(&uartRead, NULL, uart_read_func, NULL);
