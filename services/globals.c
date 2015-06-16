@@ -25,6 +25,7 @@ int mach_init()
 	gw_info_t *p_gw_info = get_gateway_info();
 
 	memset(p_gw_info->gw_no, 0, sizeof(p_gw_info->gw_no));
+	p_gw_info->ed_type = 0;
 	p_gw_info->zpanid = 0;
 	p_gw_info->zchannel = 0;
 	p_gw_info->ip_len = 0;

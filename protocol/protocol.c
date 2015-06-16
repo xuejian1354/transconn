@@ -102,10 +102,11 @@ uint8 *get_gateway_buffer_alloc(gw_info_t *gw_info)
 	
 	uint8 *gw_buffer = (uint8 *)calloc(1, GATEWAY_BUFFER_FIX_SIZE+gw_info->ip_len);
 	incode_xtocs(gw_buffer, gw_info->gw_no, 8);
-	incode_xtoc16(gw_buffer+16, gw_info->zpanid);
-	incode_xtoc16(gw_buffer+20, gw_info->zchannel);
-	incode_xtoc32(gw_buffer+24, gw_info->rand);
-	memcpy(gw_buffer+32, gw_info->ipaddr, gw_info->ip_len);
+	incode_xtocs(gw_buffer, &gw_info->ed_type, 1);
+	incode_xtoc16(gw_buffer+18, gw_info->zpanid);
+	incode_xtoc16(gw_buffer+22, gw_info->zchannel);
+	incode_xtoc32(gw_buffer+26, gw_info->rand);
+	memcpy(gw_buffer+34, gw_info->ipaddr, gw_info->ip_len);
 
 	return gw_buffer;
 }
@@ -116,8 +117,37 @@ void get_gateway_buffer_free(uint8 *p)
 	free(p);
 }
 
-gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
+#ifdef LACK_EDTYPE_SUPPORT
+gw_info_t *get_old_gateway_frame_alloc(uint8 *buffer, int length)
 {
+	if(length < GATEWAY_BUFFER_FIX_SIZE || length > TR_BUFFER_SIZE)
+	{
+		return NULL;
+	}
+
+	gw_info_t *ogw_info = (gw_info_t *)calloc(1, sizeof(gw_info_t));
+	incode_ctoxs(ogw_info->gw_no, buffer, 16);
+	incode_ctoxs(&ogw_info->ed_type, "FF", 2);
+	incode_ctox16(&ogw_info->zpanid, buffer+16);
+	incode_ctox16(&ogw_info->zchannel, buffer+20);
+	incode_ctox32(&ogw_info->rand, buffer+24);
+	ogw_info->ip_len = length-GATEWAY_BUFFER_FIX_SIZE+2;
+	memset(ogw_info->ipaddr, 0, sizeof(ogw_info->ipaddr));
+	memcpy(ogw_info->ipaddr, buffer+32, ogw_info->ip_len);
+	if(pthread_mutex_init(&ogw_info->lock, NULL) != 0)
+    {
+		free(ogw_info);
+        return NULL;
+    }
+	ogw_info->p_dev = NULL;
+	ogw_info->next = NULL;
+
+	return ogw_info;
+}
+#endif
+
+gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
+{	
 	if(length < GATEWAY_BUFFER_FIX_SIZE || length > TR_BUFFER_SIZE)
 	{
 		return NULL;
@@ -125,12 +155,13 @@ gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
 
 	gw_info_t *gw_info = (gw_info_t *)calloc(1, sizeof(gw_info_t));
 	incode_ctoxs(gw_info->gw_no, buffer, 16);
-	incode_ctox16(&gw_info->zpanid, buffer+16);
-	incode_ctox16(&gw_info->zchannel, buffer+20);
-	incode_ctox32(&gw_info->rand, buffer+24);
+	incode_ctoxs(&gw_info->ed_type, buffer+16, 2);
+	incode_ctox16(&gw_info->zpanid, buffer+18);
+	incode_ctox16(&gw_info->zchannel, buffer+22);
+	incode_ctox32(&gw_info->rand, buffer+26);
 	gw_info->ip_len = length-GATEWAY_BUFFER_FIX_SIZE;
 	memset(gw_info->ipaddr, 0, sizeof(gw_info->ipaddr));
-	memcpy(gw_info->ipaddr, buffer+32, gw_info->ip_len);
+	memcpy(gw_info->ipaddr, buffer+34, gw_info->ip_len);
 	if(pthread_mutex_init(&gw_info->lock, NULL) != 0)
     {
 		free(gw_info);
@@ -510,6 +541,7 @@ int add_gateway_info(gw_info_t *m_gw)
 		}
 		else
 		{
+			t_gw->ed_type = m_gw->ed_type;
 			t_gw->zpanid = m_gw->zpanid;
 			t_gw->zchannel = m_gw->zchannel;
 			t_gw->rand = m_gw->rand;
@@ -649,6 +681,7 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 	{
 		uc_t *uc = (uc_t *)p;
 		incode_ctoxs(gw_info.gw_no, uc->ext_addr, 16);
+		incode_ctoxs(&gw_info.ed_type, uc->ed_type, 2);
 		incode_ctox16(&gw_info.zpanid, uc->panid);
 		incode_ctox16(&gw_info.zchannel, uc->channel);
 		gw_info.rand = gen_rand(gw_info.gw_no);

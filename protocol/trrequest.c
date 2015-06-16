@@ -180,6 +180,18 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 			
 			if(p_gw != NULL)
 			{
+#ifdef LACK_EDTYPE_SUPPORT
+				if(memcmp(p_gw->ipaddr, ipaddr, p_gw->ip_len) 
+					&& p_gw->ip_len != 0
+					&& !memcmp(p_gw->ipaddr, ipaddr+2, p_gw->ip_len))
+				{
+					get_gateway_frame_free(p_gw);
+					if((p_gw=get_old_gateway_frame_alloc(bi->data, bi->data_len)) == NULL)
+					{
+						break;
+					}
+				}
+#endif
 				p_gw->ip_len = strlen(ipaddr);
 				memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
 				memcpy(p_gw->ipaddr, ipaddr, p_gw->ip_len);
