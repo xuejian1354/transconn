@@ -188,6 +188,25 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 		opt->device.irrelay.data[0] = 0;
 		return opt;
 
+	case FRAPP_AIRCONTROLLER:
+		opt = calloc(1, sizeof(dev_opt_t));
+		opt->type = type;
+		opt->common.method = DEV_CONTROL_BOTH;
+
+		memset(opt->device.aircontroller.current_buffer, 0, 16);
+		if(len <= 13)
+		{
+			memcpy(opt->device.aircontroller.current_buffer, data, len);
+		}
+		
+		if(len >= 13 && !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
+		{
+			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
+			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+5);
+			incode_ctox16(&opt->device.aircontroller.pm25_val, data+9);
+		}
+		return opt;
+
 	default: return NULL;
 	}
 }
@@ -317,6 +336,77 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		}
 		return 0;
 
+	case FRAPP_AIRCONTROLLER:
+		memset(opt->device.aircontroller.current_buffer, 0, 16);
+		
+		if(!memcmp(data, DEVOPT_AIRCONTROLLER_IRSEND, 3))
+		{
+			uint8 i = 0;
+			memcpy(opt->device.aircontroller.current_buffer, DEVOPT_AIRCONTROLLER_IRSEND, 3);
+			if(++i && !memcmp(data+3, DEVOPT_AIRCONTROLLER_ON_STR, 2))
+			{
+				opt->device.aircontroller.aircontrol_onoff = DEVOPT_AIRCONTROLLER_ON;
+			}
+			else if(++i && !memcmp(data+3, DEVOPT_AIRCONTROLLER_OFF_STR, 3))
+			{
+				opt->device.aircontroller.aircontrol_onoff = DEVOPT_AIRCONTROLLER_OFF;
+			}
+			else if(++i && !memcmp(data+3, DEVOPT_AIRCONTROLLER_MODE1_STR, 4))
+			{
+				opt->device.aircontroller.aircontrol_mode= DEVOPT_AIRCONTROLLER_MODE1;
+			}
+			else if(++i && !memcmp(data+3, DEVOPT_AIRCONTROLLER_MODE2_STR, 4))
+			{
+				opt->device.aircontroller.aircontrol_mode = DEVOPT_AIRCONTROLLER_MODE2;
+			}
+			else if(++i && !memcmp(data+3, DEVOPT_AIRCONTROLLER_MODE3_STR, 4))
+			{
+				opt->device.aircontroller.aircontrol_mode = DEVOPT_AIRCONTROLLER_MODE3;
+			}
+			else
+			{
+				++i;
+			}
+
+			if(i < 6)
+			{
+				incode_xtocs(opt->device.aircontroller.current_buffer+3, &i, 1);
+			}
+		}
+		else if(!memcmp(data, DEVOPT_AIRCONTROLLER_IRLEARN, 3))
+		{
+			uint8 i = 0;
+			memcpy(opt->device.aircontroller.current_buffer, DEVOPT_AIRCONTROLLER_IRLEARN, 3);
+			if(++i && memcmp(data+3, DEVOPT_AIRCONTROLLER_ON_STR, 2)
+				&& ++i && memcmp(data+3, DEVOPT_AIRCONTROLLER_OFF_STR, 3)
+					&& ++i && memcmp(data+3, DEVOPT_AIRCONTROLLER_MODE1_STR, 4)
+				 		&& ++i && memcmp(data+3, DEVOPT_AIRCONTROLLER_MODE2_STR, 4)
+				 			&& ++i && memcmp(data+3, DEVOPT_AIRCONTROLLER_MODE3_STR, 4)
+				 				&& ++i) {}
+
+			if(i < 6)
+			{
+				incode_xtocs(opt->device.aircontroller.current_buffer+3, &i, 1);
+			}
+		}
+		else if(!memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3)
+			|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3)
+			|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3)
+			|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3)
+			|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETHOLD, 3)
+			|| !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
+		{
+			if(len < 16)
+			{
+				memcpy(opt->device.aircontroller.current_buffer, data, len);
+			}
+		}
+		else
+		{
+			return -1;
+		}
+		return 0;
+
 	default: return -1;
 	}
 
@@ -405,6 +495,14 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt)
 		
 	case FRAPP_IR_RELAY: 
 		return NULL;
+
+	case FRAPP_AIRCONTROLLER:
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = strlen(opt->device.aircontroller.current_buffer);
+		buffer->data = calloc(1, buffer->size);
+		memcpy(buffer->data, 
+			opt->device.aircontroller.current_buffer, buffer->size);
+		return buffer;		
 
 	default: return NULL;
 	}
@@ -591,6 +689,14 @@ fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt)
 		
 		return buffer;
 
+	case FRAPP_AIRCONTROLLER:
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = strlen(opt->device.aircontroller.current_buffer);
+		buffer->data = calloc(1, buffer->size);
+		memcpy(buffer->data, 
+			opt->device.aircontroller.current_buffer, buffer->size);
+		return buffer;
+
 	default: return NULL;
 	}
 }
@@ -637,6 +743,19 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 		
 	case FRAPP_DOOR_SENSOR: 
 		dst->device.doorsensor.status[0] = src->device.doorsensor.status[0];
+		break;
+
+	case FRAPP_AIRCONTROLLER:
+		if(!memcmp(src->device.aircontroller.current_buffer, 
+									DEVOPT_AIRCONTROLLER_GETDATA, 3))
+		{
+			dst->device.aircontroller.pm25_thresmode = 
+						src->device.aircontroller.pm25_thresmode;
+			dst->device.aircontroller.pm25_threshold = 
+						src->device.aircontroller.pm25_threshold;
+			dst->device.aircontroller.pm25_val = 
+						src->device.aircontroller.pm25_val;
+		}
 		break;
 
 	default: return -1;
@@ -691,6 +810,14 @@ void devopt_de_print(dev_opt_t *opt)
 		DE_PRINTF("[Door Sensor]\n");
 		DE_PRINTF("setting:%d, data:%02X\n\n", opt->device.doorsensor.setting, 
 			opt->device.doorsensor.status[0]);
+		break;
+
+	case FRAPP_AIRCONTROLLER:
+		DE_PRINTF("[Air Controller]\n");
+		DE_PRINTF("thresmode:%d, threshold:%d, val:%d\n\n", 
+			opt->device.aircontroller.pm25_thresmode, 
+			opt->device.aircontroller.pm25_threshold,
+			opt->device.aircontroller.pm25_val);
 		break;
 	}
 }

@@ -41,9 +41,10 @@ typedef struct Dev_Info
 typedef struct Gw_Info
 {
 	zidentify_no_t gw_no;
-	uint8 ed_type;
+	fr_app_type_t zapp_type;
 	uint16 zpanid;
 	uint16 zchannel;
+	dev_opt_t *zgw_opt;
 	uint32 rand;
 	tr_trans_type_t trans_type;
 	uint8 ipaddr[IP_ADDR_MAX_SIZE];

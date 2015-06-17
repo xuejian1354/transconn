@@ -49,6 +49,28 @@
 #define DEVOPT_IRRELAY_LEARN_MODE	"LEA"
 #define DEVOPT_IRRELAY_SEND_MODE	"SEN"
 
+
+#define DEVOPT_AIRCONTROLLER_IRSEND			"SEN"
+#define DEVOPT_AIRCONTROLLER_IRLEARN		"LEA"
+#define DEVOPT_AIRCONTROLLER_PM25READVAL	"REV"
+#define DEVOPT_AIRCONTROLLER_PM25READMODE	"REM"
+#define DEVOPT_AIRCONTROLLER_PM25READHOLD	"REH"
+#define DEVOPT_AIRCONTROLLER_PM25SETMODE	"WRM"
+#define DEVOPT_AIRCONTROLLER_PM25SETHOLD	"WRH"
+#define DEVOPT_AIRCONTROLLER_GETDATA		"GDT"
+
+#define DEVOPT_AIRCONTROLLER_ON_STR			"ON"
+#define DEVOPT_AIRCONTROLLER_OFF_STR		"OFF"
+#define DEVOPT_AIRCONTROLLER_MODE1_STR		"MOD1"
+#define DEVOPT_AIRCONTROLLER_MODE2_STR		"MOD2"
+#define DEVOPT_AIRCONTROLLER_MODE3_STR		"MOD3"
+
+#define DEVOPT_AIRCONTROLLER_ON				1
+#define DEVOPT_AIRCONTROLLER_OFF			0
+#define DEVOPT_AIRCONTROLLER_MODE1			1
+#define DEVOPT_AIRCONTROLLER_MODE2			2
+#define DEVOPT_AIRCONTROLLER_MODE3			3
+
 typedef enum
 {
 	DEV_CONTROL_MANUAL,
@@ -98,6 +120,16 @@ typedef struct DoorSensor_Opt
 	uint8 status[1];
 }doorsensor_opt_t;
 
+typedef struct AirController_Opt
+{
+	uint8 current_buffer[16];
+	uint8 pm25_thresmode;
+	uint16 pm25_threshold;
+	uint16 pm25_val;
+	uint8 aircontrol_onoff;
+	uint8 aircontrol_mode;
+}airController_opt_t;
+
 
 typedef struct Dev_Opt
 {
@@ -116,6 +148,7 @@ typedef struct Dev_Opt
 		irrelay_opt_t irrelay;
 		irdetect_opt_t irdetect;
 		doorsensor_opt_t doorsensor;
+		airController_opt_t aircontroller;
 	}device;
 }dev_opt_t;
 

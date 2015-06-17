@@ -44,6 +44,7 @@
 #define FR_APP_IR_DETECTION			"12"
 #define FR_APP_DOOR_SENSOR			"13"
 #define FR_APP_IR_RELAY				"21"
+#define FR_APP_AIRCONTROLLER		"F0"
 
 #define FR_TAIL ":O\r\n"
 
@@ -59,7 +60,7 @@ typedef enum
 
 typedef enum
 {
-	FGAPP_CONNECTOR = 0,
+	FRAPP_CONNECTOR = 0,
 	FRAPP_LIGHTSWITCH_ONE = 1,
 	FRAPP_LIGHTSWITCH_TWO = 2,
 	FRAPP_LIGHTSWITCH_THREE = 3,
@@ -68,6 +69,7 @@ typedef enum
 	FRAPP_IR_DETECTION = 12,
 	FRAPP_DOOR_SENSOR = 13,
 	FRAPP_IR_RELAY = 21,
+	FRAPP_AIRCONTROLLER = 0xF0,
 	FRAPP_NONE = 0xFF,
 }fr_app_type_t;
 
@@ -88,6 +90,8 @@ typedef struct
 	uint8 ext_addr[16];  //mac address
 	uint8 panid[4];    //net panid
 	uint8 channel[4]; //net channel
+	uint8 data_len;
+	uint8 *data; //data
 	uint8 tail[4];    //:O/r/n
 }uc_t;
 

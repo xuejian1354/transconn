@@ -236,10 +236,15 @@ void gp_handler(struct sockaddr_in *addr, gp_t *gp)
 {
 	char ipaddr[24] = {0};
 	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	fr_buffer_t *frbuffer = NULL;
 	dev_info_t *p_dev = NULL;
 	
 #ifdef COMM_SERVER
 	gp_t mgp;
+	rp_t mrp, rp;
+	uc_t m_uc;
+	uo_t m_uo;
+	
 	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
 	memcpy(m_info->cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
 	m_info->trans_type = gp->trans_type;
@@ -259,6 +264,11 @@ void gp_handler(struct sockaddr_in *addr, gp_t *gp)
 	gw_info_t *p_gw = get_gateway_list()->p_gw;
 	while(p_gw != NULL)
 	{
+		if(!memcmp(p_gw->gw_no, gp->zidentify_no, sizeof(zidentify_no_t)))
+		{
+			goto gw_match;
+		}
+		
 		p_dev = p_gw->p_dev;
 		while(p_dev != NULL)
 		{
@@ -273,7 +283,6 @@ void gp_handler(struct sockaddr_in *addr, gp_t *gp)
 		p_gw = p_gw->next;
 	}
 
-	rp_t rp;
 	memcpy(rp.zidentify_no, gp->zidentify_no, sizeof(zidentify_no_t));
 	memcpy(rp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
 	rp.trans_type = TRTYPE_UDP_NORMAL;
@@ -293,7 +302,6 @@ dev_match:
 	mgp.data_len = m_info->ip_len;
 	send_frame_udp_request(p_gw->ipaddr, TRHEAD_GP, &mgp);
 
-	uo_t m_uo;
 	memcpy(m_uo.head, FR_HEAD_UO, 3);
 	m_uo.type = get_frnet_type_to_ch(p_dev->znet_type);
 	get_frapp_type_to_str(m_uo.ed_type, p_dev->zapp_type);
@@ -303,9 +311,33 @@ dev_match:
 	m_uo.data_len = 0;
 	memcpy(m_uo.tail, FR_TAIL, 4);
 	
-	fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UO, &m_uo);
+	frbuffer = get_buffer_alloc(HEAD_UO, &m_uo);
 
-	rp_t mrp;
+	memcpy(mrp.zidentify_no, p_gw->gw_no, sizeof(zidentify_no_t));
+	memcpy(mrp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
+	mrp.trans_type = TRTYPE_UDP_NORMAL;
+	mrp.tr_info = TRINFO_DATA;
+	mrp.data = frbuffer->data;
+	mrp.data_len = frbuffer->size;
+	send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
+
+	get_buffer_free(frbuffer);
+	return;
+
+gw_match:
+	memcpy(m_uc.head, FR_HEAD_UC, 3);
+	m_uc.type = FRNET_ROUTER;
+	get_frapp_type_to_str(m_uc.ed_type, p_gw->zapp_type);
+	incode_xtoc16(m_uc.short_addr, 0);
+	incode_xtocs(m_uc.ext_addr, p_gw->gw_no, 8);
+	incode_xtoc16(m_uc.panid, p_gw->zpanid);
+	incode_xtoc16(m_uc.channel, p_gw->zchannel);
+	m_uc.data = NULL;
+	m_uc.data_len = 0;
+	memcpy(m_uc.tail, FR_TAIL, 4);
+	
+	frbuffer = get_buffer_alloc(HEAD_UC, &m_uc);
+
 	memcpy(mrp.zidentify_no, p_gw->gw_no, sizeof(zidentify_no_t));
 	memcpy(mrp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
 	mrp.trans_type = TRTYPE_UDP_NORMAL;
@@ -355,7 +387,7 @@ dev_match:
 	m_uo.data_len = 0;
 	memcpy(m_uo.tail, FR_TAIL, 4);
 	
-	fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UO, &m_uo);
+	frbuffer = get_buffer_alloc(HEAD_UO, &m_uo);
 	
 	rp_t mrp;
 	memcpy(mrp.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
@@ -686,8 +718,20 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 		
 	case HEAD_DE:
 	{
+		fr_buffer_t *buffer = NULL;
+		gw_info_t *p_mgw = get_gateway_info();
+		dev_info_t *dev_info = NULL;
 		de_t *de = (de_t *)p;
-		dev_info_t *dev_info = query_zdevice_info_with_sn(dc->zidentify_no);
+		if(memcmp(p_mgw->gw_no, dc->zidentify_no, sizeof(zidentify_no_t)))
+		{
+			dev_info = query_zdevice_info_with_sn(dc->zidentify_no);
+		}
+		else
+		{
+			set_devopt_fromstr(p_mgw->zgw_opt, de->data, de->data_len);
+			buffer = get_switch_buffer_alloc(HEAD_DE, p_mgw->zgw_opt, de);
+		}
+		
 		if(dev_info != NULL)
 		{
 			set_devopt_fromstr(dev_info->zdev_opt, de->data, de->data_len);
@@ -734,14 +778,14 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 				goto Handle_UR_free;
 			}
 			
-			fr_buffer_t *buffer = get_switch_buffer_alloc(HEAD_DE, 
-												dev_info->zdev_opt, de);
+			buffer = get_switch_buffer_alloc(HEAD_DE, 
+										dev_info->zdev_opt, de);
+		}
 
-			if(buffer != NULL)
-			{
-				serial_write(buffer->data, buffer->size);
-				get_buffer_free(buffer);
-			}
+		if(buffer != NULL)
+		{
+			serial_write(buffer->data, buffer->size);
+			get_buffer_free(buffer);
 		}
 Handle_UR_free:
 		get_frame_free(HEAD_DE, de);

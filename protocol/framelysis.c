@@ -31,8 +31,8 @@
 #define FR_DE_DATA_FIX_LEN		14		//DE frame fix len
 
 
-#define FRAME_DATA_SIZE		32
-#define FRAME_BUFFER_SIZE 	64
+#define FRAME_DATA_SIZE		128
+#define FRAME_BUFFER_SIZE 	256
 #define MAX_OPTDATA_SIZE	FRAME_DATA_SIZE
 
 fr_head_type_t get_frhead_from_str(char *head)
@@ -94,7 +94,7 @@ fr_app_type_t get_frapp_type_from_str(char *app_type)
 {
 	if(!strncmp(FR_APP_CONNECTOR, app_type, 2))
 	{
-		return FGAPP_CONNECTOR;
+		return FRAPP_CONNECTOR;
 	}
 	else if(!strncmp(FR_APP_LIGHTSWITCH_ONE, app_type, 2))
 	{
@@ -128,6 +128,10 @@ fr_app_type_t get_frapp_type_from_str(char *app_type)
 	{
 		return FRAPP_IR_RELAY;
 	}
+	else if(!strncmp(FR_APP_AIRCONTROLLER, app_type, 2))
+	{
+		return FRAPP_AIRCONTROLLER;
+	}
 
 	return FRAPP_NONE;
 }
@@ -136,7 +140,7 @@ int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 {
 	switch(app_type)
 	{
-	case FGAPP_CONNECTOR:
+	case FRAPP_CONNECTOR:
 		strcpy(dst, FR_APP_CONNECTOR);
 		break;
 
@@ -171,6 +175,9 @@ int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 	case FRAPP_IR_RELAY:
 		strcpy(dst, FR_APP_IR_RELAY);
 		break;
+
+	case FRAPP_AIRCONTROLLER:
+		strcpy(dst, FR_APP_AIRCONTROLLER);
 
 	default:
 		strcpy(dst, "FF");
@@ -219,7 +226,7 @@ void *get_frame_alloc(fr_head_type_t htype, uint8 buffer[], int length)
 	{
 	case HEAD_UC: 
 		if(length>=FR_UC_DATA_FIX_LEN && !memcmp(buffer, FR_HEAD_UC, 3)
-			&& buffer[3] == FR_DEV_COORD && !memcmp(buffer+34, FR_TAIL, 4))
+			&& !memcmp(buffer+length-4, FR_TAIL, 4))
 		{
 			uc_t *uc = (uc_t *)calloc(1, sizeof(uc_t));
 			memcpy(uc->head, buffer, 3);
@@ -229,7 +236,21 @@ void *get_frame_alloc(fr_head_type_t htype, uint8 buffer[], int length)
 			memcpy(uc->ext_addr, buffer+10, 16);
 			memcpy(uc->panid, buffer+26, 4);
 			memcpy(uc->channel, buffer+30, 4);
-			memcpy(uc->tail, buffer+34, 4);
+	
+			if(length-FR_UC_DATA_FIX_LEN > 0)
+			{
+				uint8 *data_buffer = (uint8 *)calloc(length-FR_UC_DATA_FIX_LEN, sizeof(uint8));
+				memcpy(data_buffer, buffer+34, length-FR_UC_DATA_FIX_LEN);
+				uc->data_len = length-FR_UC_DATA_FIX_LEN;
+				uc->data = data_buffer;
+			}
+			else
+			{
+				uc->data_len = 0;
+				uc->data = NULL;
+			}
+			
+			memcpy(uc->tail, buffer+length-4, 4);
 
 			return (void *)uc;
 		}
@@ -348,6 +369,7 @@ void get_frame_free(fr_head_type_t htype, void *p)
 	switch(htype)
 	{
 	case HEAD_UC: 
+		free(((uc_t *)p)->data);
 		free(p);
 		break;
 		
@@ -387,9 +409,14 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 	case HEAD_UC: 
 	{
 		uc_t *p_uc = (uc_t *)frame;
+		if(p_uc->data_len > FRAME_DATA_SIZE)
+		{
+			goto fr_package_err; 
+		}
 		frame_buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
-		frame_buffer->data = (uint8 *)calloc(FR_UC_DATA_FIX_LEN, sizeof(uint8));
-		frame_buffer->size = FR_UC_DATA_FIX_LEN;
+		frame_buffer->data = 
+			(uint8 *)calloc(FR_UC_DATA_FIX_LEN+p_uc->data_len, sizeof(uint8));
+		frame_buffer->size = FR_UC_DATA_FIX_LEN+p_uc->data_len;
 		
 		memcpy(frame_buffer->data, p_uc->head, 3);
 		frame_buffer->data[3] = p_uc->type;
@@ -398,7 +425,8 @@ fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame)
 		memcpy(frame_buffer->data+10, p_uc->ext_addr, 16);
 		memcpy(frame_buffer->data+26, p_uc->panid, 4);
 		memcpy(frame_buffer->data+30, p_uc->channel, 4);
-		memcpy(frame_buffer->data+34, p_uc->tail, 4);
+		memcpy(frame_buffer->data+34, p_uc->data, p_uc->data_len);
+		memcpy(frame_buffer->data+34+p_uc->data_len, p_uc->tail, 4);
 
 		return frame_buffer;
 	}
@@ -500,4 +528,5 @@ void get_buffer_free(fr_buffer_t *p)
 	}
 	
 	free(p);
+	p = NULL;
 }

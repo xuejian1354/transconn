@@ -102,7 +102,7 @@ uint8 *get_gateway_buffer_alloc(gw_info_t *gw_info)
 	
 	uint8 *gw_buffer = (uint8 *)calloc(1, GATEWAY_BUFFER_FIX_SIZE+gw_info->ip_len);
 	incode_xtocs(gw_buffer, gw_info->gw_no, 8);
-	incode_xtocs(gw_buffer, &gw_info->ed_type, 1);
+	get_frapp_type_to_str(gw_buffer+16, gw_info->zapp_type);
 	incode_xtoc16(gw_buffer+18, gw_info->zpanid);
 	incode_xtoc16(gw_buffer+22, gw_info->zchannel);
 	incode_xtoc32(gw_buffer+26, gw_info->rand);
@@ -127,7 +127,7 @@ gw_info_t *get_old_gateway_frame_alloc(uint8 *buffer, int length)
 
 	gw_info_t *ogw_info = (gw_info_t *)calloc(1, sizeof(gw_info_t));
 	incode_ctoxs(ogw_info->gw_no, buffer, 16);
-	incode_ctoxs(&ogw_info->ed_type, "FF", 2);
+	ogw_info->zapp_type = FRAPP_NONE;
 	incode_ctox16(&ogw_info->zpanid, buffer+16);
 	incode_ctox16(&ogw_info->zchannel, buffer+20);
 	incode_ctox32(&ogw_info->rand, buffer+24);
@@ -155,7 +155,7 @@ gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
 
 	gw_info_t *gw_info = (gw_info_t *)calloc(1, sizeof(gw_info_t));
 	incode_ctoxs(gw_info->gw_no, buffer, 16);
-	incode_ctoxs(&gw_info->ed_type, buffer+16, 2);
+	gw_info->zapp_type = get_frapp_type_from_str(buffer+16);
 	incode_ctox16(&gw_info->zpanid, buffer+18);
 	incode_ctox16(&gw_info->zchannel, buffer+22);
 	incode_ctox32(&gw_info->rand, buffer+26);
@@ -541,7 +541,7 @@ int add_gateway_info(gw_info_t *m_gw)
 		}
 		else
 		{
-			t_gw->ed_type = m_gw->ed_type;
+			t_gw->zapp_type = m_gw->zapp_type;
 			t_gw->zpanid = m_gw->zpanid;
 			t_gw->zchannel = m_gw->zchannel;
 			t_gw->rand = m_gw->rand;
@@ -680,20 +680,23 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 	case HEAD_UC:
 	{
 		uc_t *uc = (uc_t *)p;
-		incode_ctoxs(gw_info.gw_no, uc->ext_addr, 16);
-		incode_ctoxs(&gw_info.ed_type, uc->ed_type, 2);
-		incode_ctox16(&gw_info.zpanid, uc->panid);
-		incode_ctox16(&gw_info.zchannel, uc->channel);
-		gw_info.rand = gen_rand(gw_info.gw_no);
+		incode_ctoxs(get_gateway_info()->gw_no, uc->ext_addr, 16);
+		get_gateway_info()->zapp_type = get_frapp_type_from_str(uc->ed_type);
+		incode_ctox16(&(get_gateway_info()->zpanid), uc->panid);
+		incode_ctox16(&(get_gateway_info()->zchannel), uc->channel);
+		get_gateway_info()->zgw_opt = 
+			get_devopt_data_alloc(get_gateway_info()->zapp_type, 
+													uc->data, uc->data_len);
+		get_gateway_info()->rand = gen_rand(get_gateway_info()->gw_no);
 		
-		buffer = get_gateway_buffer_alloc(&gw_info);
+		buffer = get_gateway_buffer_alloc(get_gateway_info());
 		
 		bi_t bi;
 		memcpy(bi.sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 		bi.trans_type = TRTYPE_UDP_NORMAL;
 		bi.fr_type = TRFRAME_PUT_GW;
 		bi.data = buffer;
-		bi.data_len = GATEWAY_BUFFER_FIX_SIZE+gw_info.ip_len;
+		bi.data_len = GATEWAY_BUFFER_FIX_SIZE+get_gateway_info()->ip_len;
 		send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
 		
 		get_gateway_buffer_free(buffer);
@@ -802,39 +805,57 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 		
 	case HEAD_UR:
 	{
+		fr_buffer_t *frbuffer = NULL;
 		ur_t *ur = (ur_t *)p;
 		incode_ctox16(&znet_addr, ur->short_addr);
-		dev_info = query_zdevice_info(znet_addr);
-		if(dev_info == NULL)
+		if(znet_addr == 0)
 		{
-			uint8 mbuf[16] = {0};
-			sprintf(mbuf, "D:/SR/%04X:O\r\n", znet_addr);
-			serial_write(mbuf, 14);
+			dev_opt_t *opt = get_devopt_data_alloc(get_gateway_info()->zapp_type, 
+														ur->data, ur->data_len);
+			set_devopt_data_fromopt(get_gateway_info()->zgw_opt, opt);
+			get_devopt_data_free(opt);
+			//devopt_de_print(gw_info->zgw_opt);
+			frbuffer = get_switch_buffer_alloc(HEAD_UR, 
+								get_gateway_info()->zgw_opt, ur);
+				
 		}
 		else
 		{
-			dev_opt_t *opt = get_devopt_data_alloc(dev_info->zapp_type, 
-													ur->data, ur->data_len);
-			set_devopt_data_fromopt(dev_info->zdev_opt, opt);
-			get_devopt_data_free(opt);
-
-			//devopt_de_print(dev_info->zdev_opt);
-
-			if(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
-				&& !dev_info->zdev_opt->device.doorsensor.setting)
+			dev_info = query_zdevice_info(znet_addr);
+			if(dev_info == NULL)
 			{
-				goto UR_FREE;
+				uint8 mbuf[16] = {0};
+				sprintf(mbuf, "D:/SR/%04X:O\r\n", znet_addr);
+				serial_write(mbuf, 14);
 			}
-
-			if(dev_info->zdev_opt->type == FRAPP_IR_DETECTION
-				&& !dev_info->zdev_opt->device.irdetect.setting)
+			else
 			{
-				goto UR_FREE;
-			}
+				dev_opt_t *opt = get_devopt_data_alloc(dev_info->zapp_type, 
+														ur->data, ur->data_len);
+				set_devopt_data_fromopt(dev_info->zdev_opt, opt);
+				get_devopt_data_free(opt);
 
-			fr_buffer_t *frbuffer = get_switch_buffer_alloc(HEAD_UR, 
-											dev_info->zdev_opt, ur);
-			
+				//devopt_de_print(dev_info->zdev_opt);
+
+				if(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
+					&& !dev_info->zdev_opt->device.doorsensor.setting)
+				{
+					goto UR_FREE;
+				}
+
+				if(dev_info->zdev_opt->type == FRAPP_IR_DETECTION
+					&& !dev_info->zdev_opt->device.irdetect.setting)
+				{
+					goto UR_FREE;
+				}
+
+				frbuffer = get_switch_buffer_alloc(HEAD_UR, 
+												dev_info->zdev_opt, ur);
+			}
+		}
+
+		if(frbuffer != NULL)
+		{
 			cli_info_t *p_cli = get_client_list()->p_cli;
 			while(p_cli != NULL)
 			{
