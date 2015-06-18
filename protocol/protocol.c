@@ -93,21 +93,30 @@ void get_zdev_frame_free(dev_info_t *p)
 }
 
 
-uint8 *get_gateway_buffer_alloc(gw_info_t *gw_info)
+fr_buffer_t *get_gateway_buffer_alloc(gw_info_t *gw_info)
 {
 	if(gw_info->ip_len > IP_ADDR_MAX_SIZE)
 	{
 		return NULL;
 	}
-	
-	uint8 *gw_buffer = (uint8 *)calloc(1, GATEWAY_BUFFER_FIX_SIZE+gw_info->ip_len);
-	incode_xtocs(gw_buffer, gw_info->gw_no, 8);
-	get_frapp_type_to_str(gw_buffer+16, gw_info->zapp_type);
-	incode_xtoc16(gw_buffer+18, gw_info->zpanid);
-	incode_xtoc16(gw_buffer+22, gw_info->zchannel);
-	incode_xtoc32(gw_buffer+26, gw_info->rand);
-	memcpy(gw_buffer+34, gw_info->ipaddr, gw_info->ip_len);
 
+	fr_buffer_t *frbuffer = get_devopt_data_to_str(gw_info->zgw_opt);
+	
+	fr_buffer_t *gw_buffer =(fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
+	gw_buffer->size = GATEWAY_BUFFER_FIX_SIZE + gw_info->ip_len + frbuffer->size+2;
+	gw_buffer->data = (uint8 *)calloc(1, gw_buffer->size);
+		
+	incode_xtocs(gw_buffer->data, gw_info->gw_no, 8);
+	get_frapp_type_to_str(gw_buffer->data+16, gw_info->zapp_type);
+	incode_xtoc16(gw_buffer->data+18, gw_info->zpanid);
+	incode_xtoc16(gw_buffer->data+22, gw_info->zchannel);
+	incode_xtoc32(gw_buffer->data+26, gw_info->rand);
+	memcpy(gw_buffer->data+34, gw_info->ipaddr, gw_info->ip_len);
+	memcpy(gw_buffer->data+34+gw_info->ip_len, frbuffer->data, frbuffer->size);
+	incode_xtocs(gw_buffer->data+gw_buffer->size-2, &frbuffer->size, 1);
+
+	get_buffer_free(frbuffer);
+	
 	return gw_buffer;
 }
 
@@ -153,15 +162,24 @@ gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
 		return NULL;
 	}
 
+	uint8 optdata_len;
+	incode_ctoxs(&optdata_len, buffer+length-2, 2);
+
 	gw_info_t *gw_info = (gw_info_t *)calloc(1, sizeof(gw_info_t));
 	incode_ctoxs(gw_info->gw_no, buffer, 16);
 	gw_info->zapp_type = get_frapp_type_from_str(buffer+16);
 	incode_ctox16(&gw_info->zpanid, buffer+18);
 	incode_ctox16(&gw_info->zchannel, buffer+22);
 	incode_ctox32(&gw_info->rand, buffer+26);
-	gw_info->ip_len = length-GATEWAY_BUFFER_FIX_SIZE;
-	memset(gw_info->ipaddr, 0, sizeof(gw_info->ipaddr));
-	memcpy(gw_info->ipaddr, buffer+34, gw_info->ip_len);
+	gw_info->ip_len = length-GATEWAY_BUFFER_FIX_SIZE-optdata_len-2;
+	if(gw_info->ip_len < IP_ADDR_MAX_SIZE)
+	{
+		memset(gw_info->ipaddr, 0, sizeof(gw_info->ipaddr));
+		memcpy(gw_info->ipaddr, buffer+34, gw_info->ip_len);
+	}
+	gw_info->zgw_opt = get_devopt_data_alloc(gw_info->zapp_type, 
+		buffer+34+gw_info->ip_len, optdata_len);
+	
 	if(pthread_mutex_init(&gw_info->lock, NULL) != 0)
     {
 		free(gw_info);
@@ -177,6 +195,13 @@ gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
 
 void get_gateway_frame_free(gw_info_t *p)
 {
+	if(p == NULL)
+	{
+		return;
+	}
+
+	free(p->zgw_opt);
+	
 	if(p->p_dev != NULL)
 	{
 		dev_info_t *pre_dev = p->p_dev;
@@ -546,6 +571,7 @@ int add_gateway_info(gw_info_t *m_gw)
 			t_gw->zchannel = m_gw->zchannel;
 			t_gw->rand = m_gw->rand;
 			t_gw->ip_len = m_gw->ip_len;
+			set_devopt_data_fromopt(t_gw->zgw_opt, m_gw->zgw_opt);
 			memset(t_gw->ipaddr, 0, sizeof(t_gw->ipaddr));
 			memcpy(t_gw->ipaddr, m_gw->ipaddr, m_gw->ip_len);
 			memset(t_gw->serverip_addr, 0, sizeof(t_gw->serverip_addr));
@@ -660,7 +686,6 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 	}
 	
 	dev_info_t *dev_info;
-	uint8 *buffer;
 	uint16 znet_addr;
 
 	char ipaddr[24] = {0};
@@ -689,17 +714,17 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 													uc->data, uc->data_len);
 		get_gateway_info()->rand = gen_rand(get_gateway_info()->gw_no);
 		
-		buffer = get_gateway_buffer_alloc(get_gateway_info());
+		fr_buffer_t *buffer = get_gateway_buffer_alloc(get_gateway_info());
 		
 		bi_t bi;
 		memcpy(bi.sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 		bi.trans_type = TRTYPE_UDP_NORMAL;
 		bi.fr_type = TRFRAME_PUT_GW;
-		bi.data = buffer;
-		bi.data_len = GATEWAY_BUFFER_FIX_SIZE+get_gateway_info()->ip_len;
+		bi.data = buffer->data;
+		bi.data_len = buffer->size;
 		send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
 		
-		get_gateway_buffer_free(buffer);
+		get_buffer_free(buffer);
 		get_frame_free(HEAD_UC, uc);
 	}
 	break;
@@ -737,7 +762,7 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 		}
 		else
 		{
-			buffer = get_zdev_buffer_alloc(dev_info);
+			uint8 *buffer = get_zdev_buffer_alloc(dev_info);
 
 			bi_t bi;
 			memcpy(bi.sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
@@ -995,6 +1020,33 @@ fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type,
 	
 	switch(head_type)
 	{
+	case HEAD_UC:
+	{
+		uc_t *p_uc = (uc_t *)frame;
+		bdata = p_uc->data;
+		blen = p_uc->data_len;
+
+		fr_buffer_t *data_buffer = get_devopt_buffer_alloc(opt);
+		if(data_buffer != NULL)
+		{
+			p_uc->data = data_buffer->data;
+			p_uc->data_len = data_buffer->size;
+		}
+		else
+		{
+			p_uc->data = NULL;
+			p_uc->data_len = 0;
+		}
+		
+		fr_buffer_t *frbuffer = get_buffer_alloc(HEAD_UC, p_uc);
+
+		p_uc->data = bdata;
+		p_uc->data_len = blen;
+		get_devopt_buffer_free(data_buffer);
+		
+		return frbuffer;
+	}
+
 	case HEAD_UO:
 	{
 		uo_t *p_uo = (uo_t *)frame;

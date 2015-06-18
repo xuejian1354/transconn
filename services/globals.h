@@ -60,6 +60,10 @@
 #define TRANS_UDP_REMOTE_PORT	11576
 #endif
 
+/*
+Old version not ed_type on gateway frame
+This macro just support that
+*/
 #define LACK_EDTYPE_SUPPORT
 
 //transport layer listening connection max number

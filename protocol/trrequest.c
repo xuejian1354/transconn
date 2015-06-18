@@ -108,17 +108,17 @@ next_zdev:				p_dev = p_dev->next;
 			memcpy(p_gw->serverip_addr, ipaddr, strlen(ipaddr));
 			p_gw->serverip_len = strlen(ipaddr);
 			
-			buffer = get_gateway_buffer_alloc(p_gw);
+			fr_buffer_t *frbuffer = get_gateway_buffer_alloc(p_gw);
 			
 			bi_t bi;
 			memcpy(bi.sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 			bi.trans_type = TRTYPE_UDP_NORMAL;
 			bi.fr_type = TRFRAME_PUT_GW;
-			bi.data = buffer;
-			bi.data_len = GATEWAY_BUFFER_FIX_SIZE+p_gw->ip_len;
+			bi.data = frbuffer->data;
+			bi.data_len = frbuffer->size;
 			send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
 			
-			get_gateway_buffer_free(buffer);
+			get_buffer_free(frbuffer);
 
 			p_dev = p_gw->p_dev;
 			while(p_dev != NULL)
@@ -176,22 +176,23 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 			
 		case TRFRAME_PUT_GW:
 #ifdef COMM_SERVER
-			p_gw = get_gateway_frame_alloc(bi->data, bi->data_len);
+#ifdef LACK_EDTYPE_SUPPORT
+			if(bi->data_len > 40 && !memcmp(bi->data+32, ipaddr, 8))
+			{
+				if((p_gw=get_old_gateway_frame_alloc(bi->data, bi->data_len)) == NULL)
+				{
+					break;
+				}
+			}
+#endif
+			
+			if(p_gw == NULL)
+			{
+				p_gw = get_gateway_frame_alloc(bi->data, bi->data_len);
+			}
 			
 			if(p_gw != NULL)
 			{
-#ifdef LACK_EDTYPE_SUPPORT
-				if(memcmp(p_gw->ipaddr, ipaddr, p_gw->ip_len) 
-					&& p_gw->ip_len != 0
-					&& !memcmp(p_gw->ipaddr, ipaddr+2, p_gw->ip_len))
-				{
-					get_gateway_frame_free(p_gw);
-					if((p_gw=get_old_gateway_frame_alloc(bi->data, bi->data_len)) == NULL)
-					{
-						break;
-					}
-				}
-#endif
 				p_gw->ip_len = strlen(ipaddr);
 				memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
 				memcpy(p_gw->ipaddr, ipaddr, p_gw->ip_len);
@@ -199,7 +200,6 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 				memset(p_gw->serverip_addr, 0, sizeof(p_gw->serverip_addr));
 				GET_SERVER_IP(p_gw->serverip_addr);
 				p_gw->serverip_len = strlen(p_gw->serverip_addr);
-				
 				set_gateway_check(p_gw->gw_no, p_gw->rand);
 				if(add_gateway_info(p_gw) != 0)
 				{
@@ -326,7 +326,7 @@ dev_match:
 
 gw_match:
 	memcpy(m_uc.head, FR_HEAD_UC, 3);
-	m_uc.type = FRNET_ROUTER;
+	m_uc.type = FR_DEV_ROUTER;
 	get_frapp_type_to_str(m_uc.ed_type, p_gw->zapp_type);
 	incode_xtoc16(m_uc.short_addr, 0);
 	incode_xtocs(m_uc.ext_addr, p_gw->gw_no, 8);
@@ -336,7 +336,7 @@ gw_match:
 	m_uc.data_len = 0;
 	memcpy(m_uc.tail, FR_TAIL, 4);
 	
-	frbuffer = get_buffer_alloc(HEAD_UC, &m_uc);
+	frbuffer = get_switch_buffer_alloc(HEAD_UC, p_gw->zgw_opt, &m_uc);
 
 	memcpy(mrp.zidentify_no, p_gw->gw_no, sizeof(zidentify_no_t));
 	memcpy(mrp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));

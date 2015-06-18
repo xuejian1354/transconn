@@ -96,7 +96,7 @@ void get_zdev_buffer_free(uint8 *p);
 dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length);
 void get_zdev_frame_free(dev_info_t *p);
 
-uint8 *get_gateway_buffer_alloc(gw_info_t *gw_info);
+fr_buffer_t *get_gateway_buffer_alloc(gw_info_t *gw_info);
 void get_gateway_buffer_free(uint8 *p);
 #ifdef LACK_EDTYPE_SUPPORT
 gw_info_t *get_old_gateway_frame_alloc(uint8 *buffer, int length);

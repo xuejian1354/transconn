@@ -178,6 +178,7 @@ int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 
 	case FRAPP_AIRCONTROLLER:
 		strcpy(dst, FR_APP_AIRCONTROLLER);
+		break;
 
 	default:
 		strcpy(dst, "FF");
