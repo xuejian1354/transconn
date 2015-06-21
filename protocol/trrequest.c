@@ -20,8 +20,8 @@
 
 void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 {
-	gw_info_t *p_gw;
-	dev_info_t *p_dev;
+	gw_info_t *p_gw = NULL;
+	dev_info_t *p_dev = NULL;
 	uint8 *buffer;
 
 	char ipaddr[24] = {0};
@@ -149,8 +149,8 @@ next_zdev:				p_dev = p_dev->next;
 
 void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 {
-	gw_info_t *p_gw;
-	dev_info_t *p_dev;
+	gw_info_t *p_gw = NULL;
+	dev_info_t *p_dev = NULL;
 
 	char ipaddr[24] = {0};
 	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
@@ -177,12 +177,15 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 		case TRFRAME_PUT_GW:
 #ifdef COMM_SERVER
 #ifdef LACK_EDTYPE_SUPPORT
-			if(bi->data_len > 40 && !memcmp(bi->data+32, ipaddr, 8))
+			if((p_gw=get_old_gateway_frame_alloc(bi->data, bi->data_len)) == NULL)
 			{
-				if((p_gw=get_old_gateway_frame_alloc(bi->data, bi->data_len)) == NULL)
-				{
-					break;
-				}
+				break;
+			}
+
+			if(p_gw->ip_len < 8 || memcmp(bi->data+32, ipaddr, 8))
+			{
+				get_gateway_frame_free(p_gw);
+				p_gw = NULL;
 			}
 #endif
 			

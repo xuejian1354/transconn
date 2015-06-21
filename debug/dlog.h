@@ -19,7 +19,19 @@
 
 #include <debug/dconfig.h>
 
-#define DE_PRINTF(args...)	printf(args)
+#define DLOG_FILE   "/tmp/trans_log.txt"
+
+#define DE_PRINTF(args...)  printf(args);
+
+/*#define   DE_PRINTF(args...)  \
+st( \
+    FILE *fp = NULL;    \
+    if((fp = fopen(DLOG_FILE, "a+")) != NULL)   \
+    {   \
+        fprintf(fp, args);  \
+        fclose(fp); \
+    }   \
+)*/
 
 #ifdef COMM_CLIENT
 #define START_PARAMS(serial_port, tcp_port, udp_port)								\
