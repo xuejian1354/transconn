@@ -27,7 +27,7 @@
 #ifdef COMM_CLIENT
 #define DE_PRINT_UDP_PORT
 //#define DE_PRINT_TCP_PORT
-#define DE_PRINT_SERIAL_PORT
+//#define DE_PRINT_SERIAL_PORT
 
 //#define DE_ZDEVICE_RECORD
 #define RECORD_FILE		"/tmp/transconn_record.txt"

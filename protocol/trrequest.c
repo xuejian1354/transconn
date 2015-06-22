@@ -806,12 +806,17 @@ Handle_UR_free:
 	gw_info_t *p_gw = get_gateway_list()->p_gw;
 	while(p_gw != NULL)
 	{
+		if(!memcmp(p_gw->gw_no, dc->zidentify_no, sizeof(zidentify_no_t)))
+		{
+			goto gwdev_match;
+		}
+		
 		dev_info_t *p_dev = p_gw->p_dev;
 		while(p_dev != NULL)
 		{
 			if(!memcmp(p_dev->zidentity_no, dc->zidentify_no, sizeof(zidentify_no_t)))
 			{
-				goto zdev_match;
+				goto gwdev_match;
 			}
 
 			p_dev = p_dev->next;
@@ -831,7 +836,7 @@ Handle_UR_free:
 	
 	return;
 
-zdev_match:
+gwdev_match:
 	memcpy(mdc.zidentify_no, dc->zidentify_no, sizeof(zidentify_no_t));
 	memcpy(mdc.cidentify_no, dc->cidentify_no, sizeof(cidentify_no_t));
 	mdc.trans_type = TRTYPE_UDP_NORMAL;
