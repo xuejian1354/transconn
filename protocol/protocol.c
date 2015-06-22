@@ -1026,7 +1026,7 @@ fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type,
 		bdata = p_uc->data;
 		blen = p_uc->data_len;
 
-		fr_buffer_t *data_buffer = get_devopt_buffer_alloc(opt);
+		fr_buffer_t *data_buffer = get_devopt_buffer_alloc(opt, bdata, blen);
 		if(data_buffer != NULL)
 		{
 			p_uc->data = data_buffer->data;
@@ -1053,7 +1053,7 @@ fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type,
 		bdata = p_uo->data;
 		blen = p_uo->data_len;
 
-		fr_buffer_t *data_buffer = get_devopt_buffer_alloc(opt);
+		fr_buffer_t *data_buffer = get_devopt_buffer_alloc(opt, bdata, blen);
 		if(data_buffer != NULL)
 		{
 			p_uo->data = data_buffer->data;
@@ -1080,7 +1080,7 @@ fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type,
 		bdata = p_ur->data;
 		blen = p_ur->data_len;
 
-		fr_buffer_t *data_buffer = get_devopt_buffer_alloc(opt);
+		fr_buffer_t *data_buffer = get_devopt_buffer_alloc(opt, bdata, blen);
 		if(data_buffer != NULL)
 		{
 			p_ur->data = data_buffer->data;

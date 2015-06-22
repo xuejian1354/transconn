@@ -413,7 +413,7 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 	return 0;
 }
 
-fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt)
+fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 {
 	fr_buffer_t *buffer = NULL;
 
@@ -497,6 +497,52 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt)
 		return NULL;
 
 	case FRAPP_AIRCONTROLLER:
+		if((!memcmp(data, DEVOPT_AIRCONTROLLER_IRSEND, 3)
+			|| !memcmp(data, DEVOPT_AIRCONTROLLER_IRLEARN, 3))
+			&& !memcmp(data+3, DEVOPT_AIRCONTROLLER_OK_REG, 2))
+		{
+			uint8 conNo;
+			incode_ctoxs(&conNo, 
+				opt->device.aircontroller.current_buffer+3, 2);
+			switch(conNo)
+			{
+			case 1:
+				memcpy(opt->device.aircontroller.current_buffer+3, 
+					DEVOPT_AIRCONTROLLER_ON_STR, 2);
+				memcpy(opt->device.aircontroller.current_buffer+5, 
+					DEVOPT_AIRCONTROLLER_OK_REG, 2);
+				break;
+
+			case 2:
+				memcpy(opt->device.aircontroller.current_buffer+3, 
+					DEVOPT_AIRCONTROLLER_OFF_STR, 3);
+				memcpy(opt->device.aircontroller.current_buffer+6, 
+					DEVOPT_AIRCONTROLLER_OK_REG, 2);
+				break;
+
+			case 3:
+				memcpy(opt->device.aircontroller.current_buffer+3, 
+					DEVOPT_AIRCONTROLLER_MODE1_STR, 4);
+				memcpy(opt->device.aircontroller.current_buffer+7, 
+					DEVOPT_AIRCONTROLLER_OK_REG, 2);
+				break;
+
+			case 4:
+				memcpy(opt->device.aircontroller.current_buffer+3, 
+					DEVOPT_AIRCONTROLLER_MODE2_STR, 4);
+				memcpy(opt->device.aircontroller.current_buffer+7, 
+					DEVOPT_AIRCONTROLLER_OK_REG, 2);
+				break;
+
+			case 5:
+				memcpy(opt->device.aircontroller.current_buffer+3, 
+					DEVOPT_AIRCONTROLLER_MODE3_STR, 4);
+				memcpy(opt->device.aircontroller.current_buffer+7, 
+					DEVOPT_AIRCONTROLLER_OK_REG, 2);
+				break;
+			}
+		}
+		
 		buffer = calloc(1, sizeof(fr_buffer_t));
 		buffer->size = strlen(opt->device.aircontroller.current_buffer);
 		buffer->data = calloc(1, buffer->size);

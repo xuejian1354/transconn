@@ -65,6 +65,9 @@
 #define DEVOPT_AIRCONTROLLER_MODE2_STR		"MOD2"
 #define DEVOPT_AIRCONTROLLER_MODE3_STR		"MOD3"
 
+#define DEVOPT_AIRCONTROLLER_OK_REG		"OK"
+#define DEVOPT_AIRCONTROLLER_NO_REG		"NO"
+
 #define DEVOPT_AIRCONTROLLER_ON				1
 #define DEVOPT_AIRCONTROLLER_OFF			0
 #define DEVOPT_AIRCONTROLLER_MODE1			1
@@ -152,7 +155,7 @@ typedef struct Dev_Opt
 	}device;
 }dev_opt_t;
 
-fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt);
+fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen);
 void *get_devopt_buffer_free(fr_buffer_t *p);
 
 dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len);
