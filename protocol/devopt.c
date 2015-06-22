@@ -497,7 +497,7 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		return NULL;
 
 	case FRAPP_AIRCONTROLLER:
-		if((!memcmp(data, DEVOPT_AIRCONTROLLER_IRSEND, 3)
+		if(datalen >= 5 && (!memcmp(data, DEVOPT_AIRCONTROLLER_IRSEND, 3)
 			|| !memcmp(data, DEVOPT_AIRCONTROLLER_IRLEARN, 3))
 			&& !memcmp(data+3, DEVOPT_AIRCONTROLLER_OK_REG, 2))
 		{
