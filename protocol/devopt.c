@@ -542,6 +542,13 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 				break;
 			}
 		}
+		else if(datalen >= 13 && !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
+		{
+			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
+			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
+			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+5);
+			incode_ctox16(&opt->device.aircontroller.pm25_val, data+9);
+		}
 		
 		buffer = calloc(1, sizeof(fr_buffer_t));
 		buffer->size = strlen(opt->device.aircontroller.current_buffer);
