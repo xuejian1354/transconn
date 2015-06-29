@@ -34,19 +34,18 @@ st( \
 )*/
 
 #ifdef COMM_CLIENT
-#define START_PARAMS(serial_port, tcp_port, udp_port)								\
+#define START_PARAMS(...)								\
 st(																					\
 	if(argc > 1)																	\
 	{																				\
-		memset(serial_port, 0, sizeof(serial_port));								\
-		strcpy(serial_port, argv[1]);												\
+		set_serial_port(argv[1]);													\
 	}																				\
 																					\
 	if (argc > 2)																	\
-		tcp_port = atoi(argv[1]);													\
+		set_tcp_port(atoi(argv[2]));												\
 																					\
 	if(argc > 3)																	\
-		udp_port = atoi(argv[2]);													\
+		set_udp_port(atoi(argv[3]));												\
 																					\
 	if(argc > 4)																	\
 	{																				\
@@ -58,17 +57,17 @@ st(																					\
 	DE_PRINTF("Server:%s\nIP:%s\n", 												\
 		get_server_name_from_ip(get_server_ip()), get_server_ip());					\
 	DE_PRINTF("Serial Port:%s, TCP Port:%d, UDP Port:%d\n", 						\
-		serial_port, tcp_port, udp_port);											\
+		get_serial_port(), get_tcp_port(), get_udp_port());							\
 )
 
 #elif defined(COMM_SERVER)
-#define START_PARAMS(tcp_port, udp_port)											\
+#define START_PARAMS(...)											\
 st(																					\
 	if (argc > 1)																	\
-		tcp_port = atoi(argv[1]);													\
+		set_tcp_port(atoi(argv[1]));												\
 																					\
 	if (argc > 2)																	\
-		udp_port = atoi(argv[2]);													\
+		set_udp_port(atoi(argv[2]));												\
 																					\
 	if (argc > 3)																	\
 	{																				\
@@ -78,8 +77,8 @@ st(																					\
 																					\
 	DE_PRINTF("%s start!\n", TARGET_NAME);											\
 	DE_PRINTF("Server:%s\nIP:%s\n", 												\
-		get_server_name_from_ip((char *)get_server_ip()), get_server_ip());					\
-	DE_PRINTF("TCP Port:%d, UDP Port:%d\n", tcp_port, udp_port);					\
+		get_server_name_from_ip((char *)get_server_ip()), get_server_ip());			\
+	DE_PRINTF("TCP Port:%d, UDP Port:%d\n", get_tcp_port(), get_udp_port());		\
 )
 
 #else

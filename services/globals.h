@@ -76,11 +76,23 @@ This macro just support that
 
 #define GET_SERVER_IP(ipaddr)								\
 st(															\
-	sprintf(ipaddr, "%s:%d", get_server_ip(), TRANS_UDP_PORT);	\
+	sprintf(ipaddr, "%s:%d", get_server_ip(), get_udp_port());	\
 )
 
 typedef byte zidentify_no_t[8];
 typedef byte cidentify_no_t[8];
+
+#ifdef COMM_CLIENT
+char *get_serial_port();
+void set_serial_port(char *name);
+#endif
+
+#if defined(COMM_CLIENT) || defined(COMM_SERVER)
+int get_tcp_port();
+int get_udp_port();
+void set_tcp_port(int port);
+void set_udp_port(int port);
+#endif
 
 int mach_init();
 void event_init();

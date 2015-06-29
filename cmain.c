@@ -22,11 +22,7 @@ int main(int argc, char **argv)
 	serlist_read_from_confile();
 #endif
 	
-	char serial_port[16] = "/dev/ttyS1";
-	int tcp_port = TRANS_TCP_PORT;
-	int udp_port = TRANS_UDP_REMOTE_PORT;
-	
-	START_PARAMS(serial_port, tcp_port, udp_port);
+	START_PARAMS();
 
 #ifdef THREAD_POOL_SUPPORT
 	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
@@ -43,7 +39,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef SERIAL_SUPPORT
-	if(serial_init(serial_port) < 0)			//initial serial port
+	if(serial_init(get_serial_port()) < 0)			//initial serial port
 	{
 		return -1;
 	}
@@ -57,7 +53,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef TRANS_UDP_SERVICE
-	if (socket_udp_service_init(udp_port) < 0)
+	if (socket_udp_service_init(get_udp_port()) < 0)
 	{
 		return -1;
 	}

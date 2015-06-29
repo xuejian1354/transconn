@@ -22,11 +22,8 @@ int main(int argc, char **argv)
 #ifdef LOAD_BALANCE_SUPPORT
 	serlist_read_from_confile();
 #endif
-	
-	int tcp_port = TRANS_TCP_PORT;
-	int udp_port = TRANS_UDP_PORT;
 
-	START_PARAMS(tcp_port, udp_port);
+	START_PARAMS();
 
 #ifdef THREAD_POOL_SUPPORT
 	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
@@ -47,14 +44,14 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef TRANS_UDP_SERVICE
-	if (socket_udp_service_init(udp_port) < 0)
+	if (socket_udp_service_init(get_udp_port()) < 0)
 	{
 		return -1;
 	}
 #endif
 
 #ifdef TRANS_TCP_SERVER
-	if (socket_tcp_server_init(tcp_port) < 0)
+	if (socket_tcp_server_init(get_tcp_port()) < 0)
 	{
 		return -1;
 	}

@@ -19,6 +19,52 @@
 #include <services/mevent.h>
 #include <protocol/protocol.h>
 
+#ifdef COMM_CLIENT
+static char serial_port[16] = "/dev/ttyS1";
+static int tcp_port = TRANS_TCP_PORT;
+static int udp_port = TRANS_UDP_REMOTE_PORT;
+#endif
+
+#ifdef COMM_SERVER
+static int tcp_port = TRANS_TCP_PORT;
+static int udp_port = TRANS_UDP_PORT;
+#endif
+
+#ifdef COMM_CLIENT
+char *get_serial_port()
+{
+	return serial_port;
+}
+
+void set_serial_port(char *name)
+{
+	memset(serial_port, 0, sizeof(serial_port));
+	strcpy(serial_port, name);
+}
+#endif
+
+#if defined(COMM_CLIENT) || defined(COMM_SERVER)
+int get_tcp_port()
+{
+	return tcp_port;
+}
+
+int get_udp_port()
+{
+	return udp_port;
+}
+
+void set_tcp_port(int port)
+{
+	tcp_port = port;
+}
+
+void set_udp_port(int port)
+{
+	udp_port = port;
+}
+#endif
+
 int mach_init()
 {
 #ifdef COMM_CLIENT
