@@ -56,8 +56,8 @@
 
 #ifdef COMM_CLIENT
 //udp protocol using port
-#define TRANS_UDP_SELF_PORT	11576
-#define TRANS_UDP_REMOTE_PORT	11576
+#define TRANS_UDP_SELF_PORT	11578
+#define TRANS_UDP_REMOTE_PORT	11578
 #endif
 
 /*

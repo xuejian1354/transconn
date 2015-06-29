@@ -95,25 +95,39 @@ void get_zdev_frame_free(dev_info_t *p)
 
 fr_buffer_t *get_gateway_buffer_alloc(gw_info_t *gw_info)
 {
+	uint8 *data;
+	uint8 datalen;
 	if(gw_info->ip_len > IP_ADDR_MAX_SIZE)
 	{
 		return NULL;
 	}
-
+	
 	fr_buffer_t *frbuffer = get_devopt_data_to_str(gw_info->zgw_opt);
+	if(frbuffer != NULL)
+	{
+		data = frbuffer->data;
+		datalen = frbuffer->size;
+	}
+	else
+	{
+		data = NULL;
+		datalen  = 0;
+	}
 	
 	fr_buffer_t *gw_buffer =(fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
-	gw_buffer->size = GATEWAY_BUFFER_FIX_SIZE + gw_info->ip_len + frbuffer->size+2;
+	gw_buffer->size = GATEWAY_BUFFER_FIX_SIZE + gw_info->ip_len + datalen + 2;
 	gw_buffer->data = (uint8 *)calloc(1, gw_buffer->size);
-		
 	incode_xtocs(gw_buffer->data, gw_info->gw_no, 8);
 	get_frapp_type_to_str(gw_buffer->data+16, gw_info->zapp_type);
 	incode_xtoc16(gw_buffer->data+18, gw_info->zpanid);
 	incode_xtoc16(gw_buffer->data+22, gw_info->zchannel);
 	incode_xtoc32(gw_buffer->data+26, gw_info->rand);
 	memcpy(gw_buffer->data+34, gw_info->ipaddr, gw_info->ip_len);
-	memcpy(gw_buffer->data+34+gw_info->ip_len, frbuffer->data, frbuffer->size);
-	incode_xtocs(gw_buffer->data+gw_buffer->size-2, &frbuffer->size, 1);
+	if(frbuffer != NULL)
+	{
+		memcpy(gw_buffer->data+34+gw_info->ip_len, data, datalen);
+	}
+	incode_xtocs(gw_buffer->data+gw_buffer->size-2, &datalen, 1);
 
 	get_buffer_free(frbuffer);
 	
