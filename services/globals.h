@@ -46,13 +46,13 @@
 #endif
 
 //tcp protocol using port
-#define TRANS_TCP_PORT	11566
+#define TRANS_TCP_PORT	11565
 
 //udp protocol using port
-#define TRANS_UDP_PORT	11576
+#define TRANS_UDP_PORT	11578
 
 //client test use udp port
-#define TRANS_CLIENT_TEST_UDP_PORT	11577
+#define TRANS_CLIENT_TEST_UDP_PORT	12577
 
 #ifdef COMM_CLIENT
 //udp protocol using port
