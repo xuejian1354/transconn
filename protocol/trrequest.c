@@ -732,6 +732,57 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 		else
 		{
 			set_devopt_fromstr(p_mgw->zgw_opt, de->data, de->data_len);
+
+			if(p_mgw->zgw_opt && 
+				(p_mgw->zgw_opt->type == FRAPP_DOOR_SENSOR
+					|| p_mgw->zgw_opt->type == FRAPP_IR_DETECTION
+					|| (p_mgw->zgw_opt->type == FRAPP_ENVDETECTION
+						&& !memcmp(p_mgw->zgw_opt
+									->device.envdetection.current_buffer, 
+								DEVOPT_AIRCONTROLLER_UPSETTING, 3))
+					|| (p_mgw->zgw_opt->type == FRAPP_AIRCONTROLLER
+						&& !memcmp(p_mgw->zgw_opt
+									->device.aircontroller.current_buffer, 
+								DEVOPT_AIRCONTROLLER_UPSETTING, 3))))
+			{
+				ur_t ur;
+				memcpy(ur.head, FR_HEAD_UR, 3);
+				ur.type = get_frnet_type_to_ch(FRNET_ROUTER);
+				get_frapp_type_to_str(ur.ed_type, p_mgw->zapp_type);
+				incode_xtoc16(ur.short_addr, 0);
+				ur.data_len = de->data_len;
+				ur.data = de->data;
+				memcpy(ur.tail, FR_TAIL, 4);
+									
+				fr_buffer_t *frbuffer = get_switch_buffer_alloc(HEAD_UR, 
+										p_mgw->zgw_opt, &ur);
+		
+				cli_info_t *p_cli = get_client_list()->p_cli;
+				while(p_cli != NULL)
+				{
+					ub_t ub;
+					memcpy(ub.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+					memcpy(ub.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
+					ub.trans_type = p_cli->trans_type;
+					ub.tr_info = TRINFO_REDATA;
+					ub.data = frbuffer->data;
+					ub.data_len = frbuffer->size;
+					if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
+					{
+						send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
+					}
+					else if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
+					{
+						send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
+					}
+
+					p_cli = p_cli->next;
+				}
+				get_buffer_free(frbuffer);
+				
+				goto Handle_UR_free;
+			}
+			
 			buffer = get_switch_buffer_alloc(HEAD_DE, p_mgw->zgw_opt, de);
 		}
 		
@@ -741,7 +792,15 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 
 			if(dev_info->zdev_opt && 
 				(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
-					|| dev_info->zdev_opt->type == FRAPP_IR_DETECTION))
+					|| dev_info->zdev_opt->type == FRAPP_IR_DETECTION
+					|| (dev_info->zdev_opt->type == FRAPP_ENVDETECTION
+						&& !memcmp(dev_info->zdev_opt
+									->device.envdetection.current_buffer, 
+								DEVOPT_AIRCONTROLLER_UPSETTING, 3))
+					|| (dev_info->zdev_opt->type == FRAPP_AIRCONTROLLER
+						&& !memcmp(dev_info->zdev_opt
+									->device.aircontroller.current_buffer, 
+								DEVOPT_AIRCONTROLLER_UPSETTING, 3))))
 			{
 				ur_t ur;
 				memcpy(ur.head, FR_HEAD_UR, 3);

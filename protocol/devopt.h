@@ -58,6 +58,7 @@
 #define DEVOPT_AIRCONTROLLER_PM25SETMODE	"WRM"
 #define DEVOPT_AIRCONTROLLER_PM25SETHOLD	"WRH"
 #define DEVOPT_AIRCONTROLLER_GETDATA		"GDT"
+#define DEVOPT_AIRCONTROLLER_UPSETTING		"UPS"
 
 #define DEVOPT_AIRCONTROLLER_ON_STR			"ON"
 #define DEVOPT_AIRCONTROLLER_OFF_STR		"OFF"
@@ -123,8 +124,18 @@ typedef struct DoorSensor_Opt
 	uint8 status[1];
 }doorsensor_opt_t;
 
+typedef struct EnvDetection_Opt
+{
+	uint8 up_setting;
+	uint8 current_buffer[16];
+	uint8 pm25_thresmode;
+	uint16 pm25_threshold;
+	uint16 pm25_val;
+}envdetection_opt_t;
+
 typedef struct AirController_Opt
 {
+	uint8 up_setting;
 	uint8 current_buffer[16];
 	uint8 pm25_thresmode;
 	uint16 pm25_threshold;
@@ -151,6 +162,7 @@ typedef struct Dev_Opt
 		irrelay_opt_t irrelay;
 		irdetect_opt_t irdetect;
 		doorsensor_opt_t doorsensor;
+		envdetection_opt_t envdetection;
 		airController_opt_t aircontroller;
 	}device;
 }dev_opt_t;

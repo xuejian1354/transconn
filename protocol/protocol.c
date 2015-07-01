@@ -391,7 +391,7 @@ void get_frhandler_arg_free(frhandler_arg_t *arg)
 int add_client_info(cli_info_t *m_info)
 {
 	cli_info_t *pre_before, *pre_cli =  NULL;
-	cli_info_t *t_cli = cli_list.p_cli;
+	cli_info_t *t_cli = get_client_list()->p_cli;
 
 	if(m_info == NULL)
 	{
@@ -431,24 +431,24 @@ int add_client_info(cli_info_t *m_info)
 
 			if(pre_cli != NULL)
 			{
-				pthread_mutex_lock(&cli_list.lock);
+				pthread_mutex_lock(&get_client_list()->lock);
 				pre_cli->next = t_cli->next;
-				t_cli->next = cli_list.p_cli;
-				cli_list.p_cli = t_cli;
-				pthread_mutex_unlock(&cli_list.lock);
+				t_cli->next = get_client_list()->p_cli;
+				get_client_list()->p_cli = t_cli;
+				pthread_mutex_unlock(&get_client_list()->lock);
 			}
 			
 			return 1;
 		}
 	}
 
-	pthread_mutex_lock(&cli_list.lock);
-	m_info->next = cli_list.p_cli;
-	cli_list.p_cli = m_info;
+	pthread_mutex_lock(&get_client_list()->lock);
+	m_info->next = get_client_list()->p_cli;
+	get_client_list()->p_cli = m_info;
 #ifdef COMM_SERVER
-	if(cli_list.max_num >= SERVER_CLI_LIST_MAX_NUM)
+	if(get_client_list()->max_num >= SERVER_CLI_LIST_MAX_NUM)
 #else
-	if(cli_list.max_num >= GATEWAY_CLI_LIST_MAX_NUM)
+	if(get_client_list()->max_num >= GATEWAY_CLI_LIST_MAX_NUM)
 #endif
 	{
 		if(pre_before != NULL)
@@ -458,16 +458,16 @@ int add_client_info(cli_info_t *m_info)
 	}
 	else
 	{
-		cli_list.max_num++;
+		get_client_list()->max_num++;
 	}
-	pthread_mutex_unlock(&cli_list.lock);
+	pthread_mutex_unlock(&get_client_list()->lock);
 
 	return 0;
 }
 
 cli_info_t *query_client_info(cidentify_no_t cidentify_no)
 {
-	cli_info_t *t_cli = cli_list.p_cli;
+	cli_info_t *t_cli = get_client_list()->p_cli;
 
 	while(t_cli != NULL)
 	{
@@ -487,7 +487,7 @@ cli_info_t *query_client_info(cidentify_no_t cidentify_no)
 int del_client_info(cidentify_no_t cidentify_no)
 {
 	cli_info_t *pre_cli =  NULL;
-	cli_info_t *t_cli = cli_list.p_cli;
+	cli_info_t *t_cli = get_client_list()->p_cli;
 
 	while(t_cli != NULL)
 	{
@@ -498,18 +498,18 @@ int del_client_info(cidentify_no_t cidentify_no)
 		}
 		else
 		{
-			pthread_mutex_lock(&cli_list.lock);
+			pthread_mutex_lock(&get_client_list()->lock);
 			if(pre_cli != NULL)
 			{
 				pre_cli->next = t_cli->next;
 			}
 			else
 			{
-				cli_list.p_cli = t_cli->next;
+				get_client_list()->p_cli = t_cli->next;
 			}
 			
-			cli_list.max_num--;
-			pthread_mutex_unlock(&cli_list.lock);
+			get_client_list()->max_num--;
+			pthread_mutex_unlock(&get_client_list()->lock);
 
 			free(t_cli);
 			return 0;
@@ -522,17 +522,17 @@ int del_client_info(cidentify_no_t cidentify_no)
 #ifdef COMM_CLIENT
 int add_zdevice_info(dev_info_t *m_dev)
 {
-	return add_zdev_info(&gw_info, m_dev);
+	return add_zdev_info(get_gateway_info(), m_dev);
 }
 
 dev_info_t *query_zdevice_info(uint16 znet_addr)
 {
-	return query_zdev_info(&gw_info, znet_addr);
+	return query_zdev_info(get_gateway_info(), znet_addr);
 }
 
 dev_info_t *query_zdevice_info_with_sn(zidentify_no_t zidentify_no)
 {
-	dev_info_t *t_dev = gw_info.p_dev;
+	dev_info_t *t_dev = get_gateway_info()->p_dev;
 
 
 	while(t_dev != NULL)
@@ -552,7 +552,7 @@ dev_info_t *query_zdevice_info_with_sn(zidentify_no_t zidentify_no)
 
 int del_zdevice_info(uint16 znet_addr)
 {
-	return del_zdev_info(&gw_info, znet_addr);
+	return del_zdev_info(get_gateway_info(), znet_addr);
 }
 
 #elif defined(COMM_SERVER)
@@ -853,7 +853,20 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 														ur->data, ur->data_len);
 			set_devopt_data_fromopt(get_gateway_info()->zgw_opt, opt);
 			get_devopt_data_free(opt);
-			//devopt_de_print(gw_info->zgw_opt);
+			devopt_de_print(get_gateway_info()->zgw_opt);
+
+			if((get_gateway_info()->zgw_opt->type == FRAPP_DOOR_SENSOR
+				&& !get_gateway_info()->zgw_opt->device.doorsensor.setting)
+				|| (get_gateway_info()->zgw_opt->type == FRAPP_IR_DETECTION
+					&& !get_gateway_info()->zgw_opt->device.irdetect.setting)
+				|| (get_gateway_info()->zgw_opt->type == FRAPP_ENVDETECTION
+					&& !get_gateway_info()->zgw_opt->device.envdetection.up_setting)
+				|| (get_gateway_info()->zgw_opt->type == FRAPP_AIRCONTROLLER
+					&& !get_gateway_info()->zgw_opt->device.envdetection.up_setting))
+			{
+				goto UR_FREE;
+			}
+			
 			frbuffer = get_switch_buffer_alloc(HEAD_UR, 
 								get_gateway_info()->zgw_opt, ur);
 				
@@ -874,16 +887,16 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 				set_devopt_data_fromopt(dev_info->zdev_opt, opt);
 				get_devopt_data_free(opt);
 
-				//devopt_de_print(dev_info->zdev_opt);
+				devopt_de_print(dev_info->zdev_opt);
 
-				if(dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
+				if((dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
 					&& !dev_info->zdev_opt->device.doorsensor.setting)
-				{
-					goto UR_FREE;
-				}
-
-				if(dev_info->zdev_opt->type == FRAPP_IR_DETECTION
-					&& !dev_info->zdev_opt->device.irdetect.setting)
+					|| (dev_info->zdev_opt->type == FRAPP_IR_DETECTION
+						&& !dev_info->zdev_opt->device.irdetect.setting)
+					|| (dev_info->zdev_opt->type == FRAPP_ENVDETECTION
+						&& !dev_info->zdev_opt->device.envdetection.up_setting)
+					|| (dev_info->zdev_opt->type == FRAPP_AIRCONTROLLER
+						&& !dev_info->zdev_opt->device.envdetection.up_setting))
 				{
 					goto UR_FREE;
 				}

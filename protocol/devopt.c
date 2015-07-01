@@ -179,6 +179,38 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 			opt->device.doorsensor.status[0] = 0;
 		}
 		return opt;
+
+	case FRAPP_ENVDETECTION: 
+		opt = calloc(1, sizeof(dev_opt_t));
+		opt->type = type;
+		opt->common.method = DEV_CONTROL_BOTH;
+
+		memset(opt->device.envdetection.current_buffer, 0, 16);
+		if(len <= 16)
+		{
+			memcpy(opt->device.envdetection.current_buffer, data, len);
+		}
+		
+		if(len >= 13 && !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
+		{
+			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, data+3, 2);
+			incode_ctox16(&opt->device.envdetection.pm25_threshold, data+5);
+			incode_ctox16(&opt->device.envdetection.pm25_val, data+9);
+		}
+		else if(len >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
+		{
+			incode_ctox16(&opt->device.envdetection.pm25_val, data+3);
+		}
+		else if(len >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
+		{
+			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, data+3, 2);
+		}
+		else if(len >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
+		{
+			incode_ctox16(&opt->device.envdetection.pm25_threshold, data+3);
+		}
+		
+		return opt;
 		
 	case FRAPP_IR_RELAY: 
 		opt = calloc(1, sizeof(dev_opt_t));
@@ -316,6 +348,44 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		}
 		break;
 
+	case FRAPP_ENVDETECTION:
+		memset(opt->device.envdetection.current_buffer, 0, 16);
+		
+		if(len <= 16)
+		{
+			if(!memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3)
+				|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3)
+				|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3)
+				|| !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
+			{
+				memcpy(opt->device.envdetection.current_buffer, data, len);
+			}			
+			else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3))
+			{
+				memcpy(opt->device.envdetection.current_buffer, data, len);
+				incode_ctoxs(&opt->device.envdetection.pm25_thresmode, data+3, 2);
+				if(len >= 9)
+				{
+					incode_ctox16(&opt->device.envdetection.pm25_threshold, data+5);
+				}
+			}
+			else if(len>=7 &&!memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETHOLD, 3))
+			{
+				memcpy(opt->device.envdetection.current_buffer, data, len);
+				incode_ctox16(&opt->device.envdetection.pm25_threshold, data+3);
+			}
+			else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_UPSETTING, 3))
+			{
+				memcpy(opt->device.envdetection.current_buffer, data, len);
+				incode_ctoxs(&opt->device.envdetection.up_setting, data+3, 2);
+			}
+		}
+		else
+		{
+			return -1;
+		}
+		return 0;
+
 	case FRAPP_IR_RELAY:
 		if(len >= DEVOPT_IRRELAY_FIX_SIZE)
 		{
@@ -392,14 +462,28 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		else if(!memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3)
 			|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3)
 			|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3)
-			|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3)
-			|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETHOLD, 3)
 			|| !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
 		{
-			if(len < 16)
+			memcpy(opt->device.aircontroller.current_buffer, data, len);
+		}			
+		else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3))
+		{
+			memcpy(opt->device.aircontroller.current_buffer, data, len);
+			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
+			if(len >= 9)
 			{
-				memcpy(opt->device.aircontroller.current_buffer, data, len);
+				incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+5);
 			}
+		}
+		else if(len>=7 &&!memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETHOLD, 3))
+		{
+			memcpy(opt->device.aircontroller.current_buffer, data, len);
+			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+3);
+		}
+		else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_UPSETTING, 3))
+		{
+			memcpy(opt->device.aircontroller.current_buffer, data, len);
+			incode_ctoxs(&opt->device.aircontroller.up_setting, data+3, 2);
 		}
 		else
 		{
@@ -492,6 +576,57 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		incode_xtocs(buffer->data+1, &opt->device.doorsensor.setting, 1);
 		incode_xtocs(buffer->data+3, opt->device.doorsensor.status, 1);
 		return buffer;
+
+	case FRAPP_ENVDETECTION:
+		if(datalen > 16)
+		{
+			return NULL;
+		}
+		
+		memset(opt->device.envdetection.current_buffer, 0, 16);
+		if(datalen >= 13 && !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
+		{
+			memcpy(opt->device.envdetection.current_buffer, data, datalen);
+			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, data+3, 2);
+			incode_ctox16(&opt->device.envdetection.pm25_threshold, data+5);
+			incode_ctox16(&opt->device.envdetection.pm25_val, data+9);
+		}
+		else if(datalen >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
+		{
+			memcpy(opt->device.envdetection.current_buffer, data, datalen);
+			incode_ctox16(&opt->device.envdetection.pm25_val, data+3);
+		}
+		else if(datalen >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
+		{
+			memcpy(opt->device.envdetection.current_buffer, data, datalen);
+			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, data+3, 2);
+		}
+		else if(datalen >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
+		{
+			memcpy(opt->device.envdetection.current_buffer, data, datalen);
+			incode_ctox16(&opt->device.envdetection.pm25_threshold, data+3);
+		}
+		else if(datalen >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3))
+		{
+			memcpy(opt->device.envdetection.current_buffer, data, datalen);
+		}
+		else if(datalen >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETHOLD, 3))
+		{
+			memcpy(opt->device.envdetection.current_buffer, data, datalen);
+		}
+		else if(datalen >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_UPSETTING, 3))
+		{
+			memcpy(opt->device.envdetection.current_buffer, 
+									DEVOPT_AIRCONTROLLER_UPSETTING, 3);
+			memcpy(opt->device.envdetection.current_buffer+3, "OK\0", 3);
+		}
+		
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = strlen(opt->device.envdetection.current_buffer);
+		buffer->data = calloc(1, buffer->size);
+		memcpy(buffer->data, 
+			opt->device.envdetection.current_buffer, buffer->size);
+		return buffer;	
 		
 	case FRAPP_IR_RELAY: 
 		return NULL;
@@ -725,6 +860,14 @@ fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt)
 		incode_xtocs(buffer->data, &opt->device.doorsensor.setting, 1);
 		return buffer;
 
+	case FRAPP_ENVDETECTION:
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = strlen(opt->device.envdetection.current_buffer);
+		buffer->data = calloc(1, buffer->size);
+		memcpy(buffer->data, 
+			opt->device.envdetection.current_buffer, buffer->size);
+		return buffer;
+
 	case FRAPP_IR_RELAY:
 		buffer = calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_IRRELAY_DATASTR_FIX_SIZE;
@@ -798,6 +941,37 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 		dst->device.doorsensor.status[0] = src->device.doorsensor.status[0];
 		break;
 
+	case FRAPP_ENVDETECTION:
+		if(!memcmp(src->device.envdetection.current_buffer, 
+									DEVOPT_AIRCONTROLLER_GETDATA, 3))
+		{
+			dst->device.envdetection.pm25_thresmode = 
+						src->device.envdetection.pm25_thresmode;
+			dst->device.envdetection.pm25_threshold = 
+						src->device.envdetection.pm25_threshold;
+			dst->device.envdetection.pm25_val = 
+						src->device.envdetection.pm25_val;
+		}
+		else if(!memcmp(src->device.envdetection.current_buffer, 
+								DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
+		{
+			dst->device.envdetection.pm25_val = 
+						src->device.envdetection.pm25_val;
+		}
+		else if(!memcmp(src->device.envdetection.current_buffer, 
+								DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
+		{
+			dst->device.envdetection.pm25_thresmode = 
+						src->device.envdetection.pm25_thresmode;
+		}
+		else if(!memcmp(src->device.envdetection.current_buffer, 
+								DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
+		{
+			dst->device.envdetection.pm25_threshold = 
+						src->device.envdetection.pm25_threshold;
+		}
+		break;
+
 	case FRAPP_AIRCONTROLLER:
 		if(!memcmp(src->device.aircontroller.current_buffer, 
 									DEVOPT_AIRCONTROLLER_GETDATA, 3))
@@ -863,6 +1037,14 @@ void devopt_de_print(dev_opt_t *opt)
 		DE_PRINTF("[Door Sensor]\n");
 		DE_PRINTF("setting:%d, data:%02X\n\n", opt->device.doorsensor.setting, 
 			opt->device.doorsensor.status[0]);
+		break;
+
+	case FRAPP_ENVDETECTION:
+		DE_PRINTF("[Env Detection]\n");
+		DE_PRINTF("thresmode:%d, threshold:%d, val:%d\n\n", 
+			opt->device.envdetection.pm25_thresmode, 
+			opt->device.envdetection.pm25_threshold,
+			opt->device.envdetection.pm25_val);
 		break;
 
 	case FRAPP_AIRCONTROLLER:

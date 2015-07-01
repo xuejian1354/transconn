@@ -124,6 +124,10 @@ fr_app_type_t get_frapp_type_from_str(char *app_type)
 	{
 		return FRAPP_DOOR_SENSOR;
 	}
+	else if(!strncmp(FR_APP_ENVDETECTION, app_type, 2))
+	{
+		return FRAPP_ENVDETECTION;
+	}
 	else if(!strncmp(FR_APP_IR_RELAY, app_type, 2))
 	{
 		return FRAPP_IR_RELAY;
@@ -170,6 +174,10 @@ int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 
 	case FRAPP_DOOR_SENSOR:
 		strcpy(dst, FR_APP_DOOR_SENSOR);
+		break;
+
+	case FRAPP_ENVDETECTION:
+		strcpy(dst, FR_APP_ENVDETECTION);
 		break;
 
 	case FRAPP_IR_RELAY:
