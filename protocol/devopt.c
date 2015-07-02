@@ -620,6 +620,10 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 									DEVOPT_AIRCONTROLLER_UPSETTING, 3);
 			memcpy(opt->device.envdetection.current_buffer+3, "OK\0", 3);
 		}
+		else
+		{
+			memcpy(opt->device.envdetection.current_buffer, data, datalen);
+		}
 		
 		buffer = calloc(1, sizeof(fr_buffer_t));
 		buffer->size = strlen(opt->device.envdetection.current_buffer);
