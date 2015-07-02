@@ -226,7 +226,7 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 		opt->common.method = DEV_CONTROL_BOTH;
 
 		memset(opt->device.aircontroller.current_buffer, 0, 16);
-		if(len <= 13)
+		if(len <= 16)
 		{
 			memcpy(opt->device.aircontroller.current_buffer, data, len);
 		}
@@ -236,6 +236,18 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
 			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+5);
 			incode_ctox16(&opt->device.aircontroller.pm25_val, data+9);
+		}
+		else if(len >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
+		{
+			incode_ctox16(&opt->device.aircontroller.pm25_val, data+3);
+		}
+		else if(len >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
+		{
+			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
+		}
+		else if(len >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
+		{
+			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+3);
 		}
 		return opt;
 
@@ -459,31 +471,34 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 				incode_xtocs(opt->device.aircontroller.current_buffer+3, &i, 1);
 			}
 		}
-		else if(!memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3)
-			|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3)
-			|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3)
-			|| !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
+		else if(len <= 16)
 		{
-			memcpy(opt->device.aircontroller.current_buffer, data, len);
-		}			
-		else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3))
-		{
-			memcpy(opt->device.aircontroller.current_buffer, data, len);
-			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
-			if(len >= 9)
+			if(!memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3)
+				|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3)
+				|| !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3)
+				|| !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
 			{
-				incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+5);
+				memcpy(opt->device.aircontroller.current_buffer, data, len);
+			}			
+			else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3))
+			{
+				memcpy(opt->device.aircontroller.current_buffer, data, len);
+				incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
+				if(len >= 9)
+				{
+					incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+5);
+				}
 			}
-		}
-		else if(len>=7 &&!memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETHOLD, 3))
-		{
-			memcpy(opt->device.aircontroller.current_buffer, data, len);
-			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+3);
-		}
-		else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_UPSETTING, 3))
-		{
-			memcpy(opt->device.aircontroller.current_buffer, data, len);
-			incode_ctoxs(&opt->device.aircontroller.up_setting, data+3, 2);
+			else if(len>=7 &&!memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETHOLD, 3))
+			{
+				memcpy(opt->device.aircontroller.current_buffer, data, len);
+				incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+3);
+			}
+			else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_UPSETTING, 3))
+			{
+				memcpy(opt->device.aircontroller.current_buffer, data, len);
+				incode_ctoxs(&opt->device.aircontroller.up_setting, data+3, 2);
+			}
 		}
 		else
 		{
@@ -636,57 +651,52 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		return NULL;
 
 	case FRAPP_AIRCONTROLLER:
-		if(datalen >= 5 && (!memcmp(data, DEVOPT_AIRCONTROLLER_IRSEND, 3)
-			|| !memcmp(data, DEVOPT_AIRCONTROLLER_IRLEARN, 3))
-			&& !memcmp(data+3, DEVOPT_AIRCONTROLLER_OK_REG, 2))
+		if(datalen > 16)
 		{
-			uint8 conNo;
-			incode_ctoxs(&conNo, 
-				opt->device.aircontroller.current_buffer+3, 2);
-			switch(conNo)
-			{
-			case 1:
-				memcpy(opt->device.aircontroller.current_buffer+3, 
-					DEVOPT_AIRCONTROLLER_ON_STR, 2);
-				memcpy(opt->device.aircontroller.current_buffer+5, 
-					DEVOPT_AIRCONTROLLER_OK_REG, 2);
-				break;
-
-			case 2:
-				memcpy(opt->device.aircontroller.current_buffer+3, 
-					DEVOPT_AIRCONTROLLER_OFF_STR, 3);
-				memcpy(opt->device.aircontroller.current_buffer+6, 
-					DEVOPT_AIRCONTROLLER_OK_REG, 2);
-				break;
-
-			case 3:
-				memcpy(opt->device.aircontroller.current_buffer+3, 
-					DEVOPT_AIRCONTROLLER_MODE1_STR, 4);
-				memcpy(opt->device.aircontroller.current_buffer+7, 
-					DEVOPT_AIRCONTROLLER_OK_REG, 2);
-				break;
-
-			case 4:
-				memcpy(opt->device.aircontroller.current_buffer+3, 
-					DEVOPT_AIRCONTROLLER_MODE2_STR, 4);
-				memcpy(opt->device.aircontroller.current_buffer+7, 
-					DEVOPT_AIRCONTROLLER_OK_REG, 2);
-				break;
-
-			case 5:
-				memcpy(opt->device.aircontroller.current_buffer+3, 
-					DEVOPT_AIRCONTROLLER_MODE3_STR, 4);
-				memcpy(opt->device.aircontroller.current_buffer+7, 
-					DEVOPT_AIRCONTROLLER_OK_REG, 2);
-				break;
-			}
+			return NULL;
 		}
-		else if(datalen >= 13 && !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
+		
+		memset(opt->device.envdetection.current_buffer, 0, 16);
+		
+		if(datalen >= 13 && !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
 		{
 			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
 			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
 			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+5);
 			incode_ctox16(&opt->device.aircontroller.pm25_val, data+9);
+		}
+		else if(datalen >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
+		{
+			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
+			incode_ctox16(&opt->device.aircontroller.pm25_val, data+3);
+		}
+		else if(datalen >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
+		{
+			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
+			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
+		}
+		else if(datalen >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
+		{
+			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
+			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+3);
+		}
+		else if(datalen >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3))
+		{
+			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
+		}
+		else if(datalen >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETHOLD, 3))
+		{
+			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
+		}
+		else if(datalen >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_UPSETTING, 3))
+		{
+			memcpy(opt->device.aircontroller.current_buffer, 
+									DEVOPT_AIRCONTROLLER_UPSETTING, 3);
+			memcpy(opt->device.aircontroller.current_buffer+3, "OK\0", 3);
+		}
+		else
+		{
+			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
 		}
 		
 		buffer = calloc(1, sizeof(fr_buffer_t));
@@ -986,6 +996,24 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 						src->device.aircontroller.pm25_threshold;
 			dst->device.aircontroller.pm25_val = 
 						src->device.aircontroller.pm25_val;
+		}
+		else if(!memcmp(src->device.aircontroller.current_buffer, 
+								DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
+		{
+			dst->device.aircontroller.pm25_val = 
+						src->device.aircontroller.pm25_val;
+		}
+		else if(!memcmp(src->device.aircontroller.current_buffer, 
+								DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
+		{
+			dst->device.aircontroller.pm25_thresmode = 
+						src->device.aircontroller.pm25_thresmode;
+		}
+		else if(!memcmp(src->device.aircontroller.current_buffer, 
+								DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
+		{
+			dst->device.aircontroller.pm25_threshold = 
+						src->device.aircontroller.pm25_threshold;
 		}
 		break;
 
