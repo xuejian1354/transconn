@@ -19,15 +19,24 @@
 
 #include <mconfig.h>
 
+#define DE_PRINT_UDP_PI		0x01
+#define DE_PRINT_UDP_BI		0x02
+#define DE_PRINT_UDP_GP		0x04
+#define DE_PRINT_UDP_RP		0x08
+#define DE_PRINT_UDP_GD		0x10
+#define DE_PRINT_UDP_RD		0x20
+#define DE_PRINT_UDP_DC		0x40
+#define DE_PRINT_UDP_UB		0x80
+
 #ifdef COMM_SERVER
-#define DE_PRINT_UDP_PORT
+#define DE_PRINT_UDP_PORT	0xFF
 #define DE_PRINT_TCP_PORT
 #endif
 
 #ifdef COMM_CLIENT
-#define DE_PRINT_UDP_PORT
-//#define DE_PRINT_TCP_PORT
-//#define DE_PRINT_SERIAL_PORT
+#define DE_PRINT_UDP_PORT	0xFF
+#define DE_PRINT_TCP_PORT
+#define DE_PRINT_SERIAL_PORT
 
 //#define DE_ZDEVICE_RECORD
 #define RECORD_FILE		"/tmp/transconn_record.txt"

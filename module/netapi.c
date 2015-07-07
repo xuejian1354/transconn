@@ -23,6 +23,17 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#if(DE_PRINT_UDP_PORT!=0)
+typedef enum
+{
+	DE_UDP_SEND,
+	DE_UDP_RECV
+}deudp_print_t;
+
+static void udp_data_show(deudp_print_t deprint, uint8 flag, 
+		struct sockaddr_in *addr, char *data, int len);
+#endif
+
 #ifdef TRANS_UDP_SERVICE
 static int udpfd;
 static struct sockaddr_in m_addr, server_addr;
@@ -316,11 +327,8 @@ void socket_udp_recvfrom()
 	nbytes = recvfrom(udpfd, buf, sizeof(buf), 0, 
 				(struct sockaddr *)&client_addr, &socklen);
 
-#ifdef DE_PRINT_UDP_PORT
-	DE_PRINTF("UDP:receive %d bytes, from ip=%s:%u\n", 
-		nbytes, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-
-	DE_PRINTF("data:%s\n", buf);
+#if(DE_PRINT_UDP_PORT!=0)
+	udp_data_show(DE_UDP_RECV, DE_PRINT_UDP_PORT, &client_addr, buf, nbytes);
 #endif
 
 	frhandler_arg_t *frarg = get_frhandler_arg_alloc(udpfd, &client_addr, buf, nbytes);
@@ -372,13 +380,96 @@ void socket_udp_sendto(char *addr, char *data, int len)
 	sendto(udpfd, data, len, 0, 
 		(struct sockaddr *)&maddr, sizeof(struct sockaddr));
 
-#ifdef DE_PRINT_UDP_PORT
-	DE_PRINTF("UDP: send %d bytes to ip=%s:%u\n", \
-		len, inet_ntoa(maddr.sin_addr), ntohs(maddr.sin_port));
-
-	DE_PRINTF("data:%s\n", data);
+#if(DE_PRINT_UDP_PORT!=0)
+	udp_data_show(DE_UDP_SEND, DE_PRINT_UDP_PORT, &maddr, data, len);
 	//PRINT_HEX(data, len);
 #endif
 }
 #endif
 
+#if(DE_PRINT_UDP_PORT!=0)
+void udp_data_show(deudp_print_t deprint, uint8 flag, 
+		struct sockaddr_in *addr, char *data, int len)
+{
+	int i;
+	for(i=0; i<8; i++)
+	{
+		switch(i)
+		{
+		case 0: 
+			if((flag&(1<<i)) && !strncmp(data, TR_HEAD_PI, 3))
+			{
+				goto show_end;	
+			}
+			break;
+			
+		case 1: 
+			if((flag&(1<<i)) && !strncmp(data, TR_HEAD_BI, 3))
+			{
+				goto show_end;	
+			}
+			break;
+			
+		case 2: 
+			if((flag&(1<<i)) && !strncmp(data, TR_HEAD_GP, 3))
+			{
+				goto show_end;	
+			}
+			break;
+			
+		case 3: 
+			if((flag&(1<<i)) && !strncmp(data, TR_HEAD_RP, 3))
+			{
+				goto show_end;	
+			}
+			break;
+			
+		case 4: 
+			if((flag&(1<<i)) && !strncmp(data, TR_HEAD_GD, 3))
+			{
+				goto show_end;	
+			}
+			break;
+			
+		case 5: 
+			if((flag&(1<<i)) && !strncmp(data, TR_HEAD_RD, 3))
+			{
+				goto show_end;	
+			}
+			break;
+			
+		case 6: 
+			if((flag&(1<<i)) && !strncmp(data, TR_HEAD_DC, 3))
+			{
+				goto show_end;	
+			}
+			break;
+			
+		case 7: 
+			if((flag&(1<<i)) && !strncmp(data, TR_HEAD_UB, 3))
+			{
+				goto show_end;	
+			}
+			break;
+		}
+	}
+
+	return;
+	
+show_end:
+	if(deprint == DE_UDP_SEND)
+	{
+		DE_PRINTF("UDP:send %d bytes, to ip=%s:%u\n", 
+					len, inet_ntoa(addr->sin_addr), 
+					ntohs(addr->sin_port));
+	}
+	else if(deprint == DE_UDP_RECV)
+	{
+		DE_PRINTF("UDP:receive %d bytes, from ip=%s:%u\n", 
+					len, inet_ntoa(addr->sin_addr), 
+					ntohs(addr->sin_port));
+	}
+				
+	DE_PRINTF("data:%s\n", data);
+}
+#endif
