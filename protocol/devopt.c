@@ -18,8 +18,8 @@
 
 char get_devopt_method_xtoc(control_method_t m);
 control_method_t get_devopt_method_ctox(char c);
-char get_devop_power_xtoc(detect_power_t p);
-detect_power_t get_devop_power_ctox(char c);
+char get_devopt_power_xtoc(detect_power_t p);
+detect_power_t get_devopt_power_ctox(char c);
 
 
 char get_devopt_method_xtoc(control_method_t m)
@@ -130,7 +130,7 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 			opt->device.lightswitch.data.four[0] = 0;
 			opt->device.lightswitch.data.four[1] = 0;
 			opt->device.lightswitch.data.four[2] = 0;
-			opt->device.lightswitch.data.four[4] = 0;
+			opt->device.lightswitch.data.four[3] = 0;
 		}
 		return opt;
 		
@@ -410,7 +410,7 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 				opt->device.irrelay.mode = 0;
 			}
 
-			incode_ctoxs(&opt->device.irrelay.data, data+3, 2);
+			incode_ctoxs(opt->device.irrelay.data, data+3, 2);
 		}
 		else
 		{
