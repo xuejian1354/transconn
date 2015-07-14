@@ -120,6 +120,9 @@ tr_frame_type_t get_trframe_from_ch(char trfra)
 	case TR_FRAME_PUT_DEV:
 		return TRFRAME_PUT_DEV;
 
+	case TR_FRAME_TRANS:
+		return TRFRAME_TRANS;
+
 	default:
 		break;
 	}
@@ -145,6 +148,9 @@ char get_trframe_to_ch(tr_frame_type_t trfra)
 
 	case TRFRAME_PUT_DEV:
 		return TR_FRAME_PUT_DEV;
+
+	case TRFRAME_TRANS:
+		return TR_FRAME_TRANS;
 
 	default:
 		break;

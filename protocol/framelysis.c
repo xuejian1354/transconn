@@ -136,6 +136,14 @@ fr_app_type_t get_frapp_type_from_str(char *app_type)
 	{
 		return FRAPP_AIRCONTROLLER;
 	}
+	else if(!strncmp(FR_APP_HUMITURE_DETECTION, app_type, 2))
+	{
+		return FRAPP_HUMITURE_DETECTION;
+	}
+	else if(!strncmp(FR_APP_SOLENOID_VALVE, app_type, 2))
+	{
+		return FRAPP_SOLENOID_VALVE;
+	}
 
 	return FRAPP_NONE;
 }
@@ -186,6 +194,14 @@ int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 
 	case FRAPP_AIRCONTROLLER:
 		strcpy(dst, FR_APP_AIRCONTROLLER);
+		break;
+
+	case FRAPP_HUMITURE_DETECTION:
+		strcpy(dst, FR_APP_HUMITURE_DETECTION);
+		break;
+
+	case FRAPP_SOLENOID_VALVE:
+		strcpy(dst, FR_APP_SOLENOID_VALVE);
 		break;
 
 	default:

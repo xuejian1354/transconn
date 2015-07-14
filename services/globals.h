@@ -64,7 +64,7 @@
 Old version not ed_type on gateway frame
 This macro just support that
 */
-#define LACK_EDTYPE_SUPPORT
+//#define LACK_EDTYPE_SUPPORT
 
 //transport layer listening connection max number
 #define TRANS_THREAD_MAX_NUM	5

@@ -138,6 +138,39 @@ next_zdev:				p_dev = p_dev->next;
 			}
 #endif
 			break;
+
+		case TRFRAME_TRANS:
+#ifdef COMM_SERVER
+			p_gw = query_gateway_info(pi->sn);
+
+			if(p_gw == NULL)
+			{
+				pi_t mpi;
+				memcpy(mpi.sn, pi->sn, sizeof(zidentify_no_t));
+				mpi.trans_type = TRTYPE_UDP_NORMAL;
+				mpi.fr_type = TRFRAME_GET;
+				mpi.data = ipaddr;
+				mpi.data_len = strlen(ipaddr);
+				
+				send_frame_udp_request(ipaddr, TRHEAD_PI, &mpi);
+			}
+			else
+			{
+				memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
+				memcpy(p_gw->ipaddr, ipaddr, strlen(ipaddr));
+
+				set_gateway_check(p_gw->gw_no, p_gw->rand);
+				
+				bi_t bi;
+				memcpy(bi.sn, pi->sn, sizeof(zidentify_no_t));
+				bi.trans_type = TRTYPE_UDP_NORMAL;
+				bi.fr_type = TRFRAME_REG;
+				bi.data = ipaddr;
+				bi.data_len = strlen(ipaddr);
+				send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);				
+			}
+#endif
+			break;
 		}
 		break;
 

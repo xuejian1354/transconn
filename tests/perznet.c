@@ -26,8 +26,6 @@
 
 #define WARNS()	printf("[e.g.]\n./perznet /dev/ttyS1 [permit|forbid] 0000\n")
 
-//static uint8 _client_no[8] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
-
 int main(int argc, char **argv)
 {
 	char serial_port[16] = "/dev/ttyS1";

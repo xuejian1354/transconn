@@ -40,6 +40,7 @@
 #define TR_FRAME_GET		'3'
 #define TR_FRAME_PUT_GW		'4'
 #define TR_FRAME_PUT_DEV	'5'
+#define TR_FRAME_TRANS		'6'
 
 #define TR_INFO_NONE		'0'
 #define TR_INFO_IP			'1'
@@ -95,6 +96,7 @@ typedef enum
 	TRFRAME_GET,
 	TRFRAME_PUT_GW,
 	TRFRAME_PUT_DEV,
+	TRFRAME_TRANS,
 	TRFRAME_NONE,
 }tr_frame_type_t;
 
