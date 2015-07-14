@@ -4,3 +4,4 @@ connect_listen
 .Makefile.swp
 include/*/
 tests/client
+tests/perznet

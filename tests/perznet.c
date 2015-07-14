@@ -26,15 +26,30 @@
 
 #define WARNS()	printf("[e.g.]\n./perznet /dev/ttyS1 [permit|forbid] 0000\n")
 
+//static uint8 _client_no[8] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
+
 int main(int argc, char **argv)
 {
 	char serial_port[16] = "/dev/ttyS1";
+	char *test_no = "1234567890ABCDEF";
 	char cmd[8] = ZDEVICE_CMD_PERMIT;
 	char zaddr[5] = "0000";
-	char sen_format[24] = {0};
+	char sen_format[64] = {0};
 
 	if(argc > 1)
 	{
+		if(!strncmp(argv[1], "transadd", 8))
+		{
+#ifdef SERIAL_SUPPORT
+			if(serial_init(serial_port) < 0)			//initial serial port
+			{
+				WARNS();
+				return -1;
+			}
+#endif
+			goto transadd;
+		}
+		
 		memset(serial_port, 0, sizeof(serial_port));
 		sprintf(serial_port, "%s", argv[1]);
 	}
@@ -86,5 +101,10 @@ int main(int argc, char **argv)
 	}
 
 	return 0;
+
+transadd:
+	sprintf(sen_format, "DC:%s%s19D:/CJ/000001:O\r\n:O\r\n", test_no, test_no);
+	serial_write(sen_format, 57);
+	printf("Permit add zdevice net\n%s\n", sen_format);
 }
 
