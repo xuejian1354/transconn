@@ -37,32 +37,6 @@ typedef struct Dev_Info
 	struct Dev_Info *next;
 }dev_info_t;
 
-
-typedef struct Gw_Info
-{
-	zidentify_no_t gw_no;
-	fr_app_type_t zapp_type;
-	uint16 zpanid;
-	uint16 zchannel;
-	dev_opt_t *zgw_opt;
-	uint32 rand;
-	tr_trans_type_t trans_type;
-	uint8 ipaddr[IP_ADDR_MAX_SIZE];
-	uint8 ip_len;
-	uint8 serverip_addr[IP_ADDR_MAX_SIZE];
-	uint8 serverip_len;
-	pthread_mutex_t lock;
-	dev_info_t *p_dev;
-	struct Gw_Info *next;
-}gw_info_t;
-
-typedef struct
-{
-	gw_info_t *p_gw;
-	pthread_mutex_t lock;
-	long max_num;
-}gw_list_t;
-
 typedef struct Cli_Info
 {
 	cidentify_no_t cidentify_no;
@@ -82,6 +56,38 @@ typedef struct
 	pthread_mutex_t lock;
 	long max_num;
 }cli_list_t;
+
+typedef struct Cli_Contain
+{
+	cli_info_t *p_cli;
+	struct Cli_Contain *next;
+}cli_contain_t;
+
+typedef struct Gw_Info
+{
+	zidentify_no_t gw_no;
+	fr_app_type_t zapp_type;
+	uint16 zpanid;
+	uint16 zchannel;
+	dev_opt_t *zgw_opt;
+	uint32 rand;
+	tr_trans_type_t trans_type;
+	uint8 ipaddr[IP_ADDR_MAX_SIZE];
+	uint8 ip_len;
+	uint8 serverip_addr[IP_ADDR_MAX_SIZE];
+	uint8 serverip_len;
+	pthread_mutex_t lock;
+	dev_info_t *p_dev;
+	cli_contain_t *p_contain;
+	struct Gw_Info *next;
+}gw_info_t;
+
+typedef struct
+{
+	gw_info_t *p_gw;
+	pthread_mutex_t lock;
+	long max_num;
+}gw_list_t;
 
 typedef struct
 {
@@ -134,6 +140,9 @@ gw_list_t *get_gateway_list();
 int add_gateway_info(gw_info_t *m_gw);
 gw_info_t *query_gateway_info(zidentify_no_t gw_no);
 int del_gateway_info(zidentify_no_t gw_no);
+int add_contain_info(cli_contain_t **contain, cli_contain_t *m_contain);
+cli_contain_t *query_contain_info(cli_contain_t *contain, cidentify_no_t cidentify_no);
+int del_contain_info(cli_contain_t **contain, cidentify_no_t cidentify_no);
 #endif
 
 

@@ -30,6 +30,7 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 	switch(pi->trans_type)
 	{
 	case TRTYPE_UDP_NORMAL:
+	case TRTYPE_UDP_TRANS:
 		switch(pi->fr_type)
 		{
 		case TRFRAME_CON:
@@ -40,7 +41,7 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 			{
 				pi_t mpi;
 				memcpy(mpi.sn, pi->sn, sizeof(zidentify_no_t));
-				mpi.trans_type = TRTYPE_UDP_NORMAL;
+				mpi.trans_type = pi->trans_type;
 				mpi.fr_type = TRFRAME_GET;
 				mpi.data = ipaddr;
 				mpi.data_len = strlen(ipaddr);
@@ -49,6 +50,7 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 			}
 			else
 			{
+				p_gw->trans_type = pi->trans_type;
 				memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
 				memcpy(p_gw->ipaddr, ipaddr, strlen(ipaddr));
 
@@ -87,7 +89,7 @@ next_zdev:				p_dev = p_dev->next;
 				
 				bi_t bi;
 				memcpy(bi.sn, pi->sn, sizeof(zidentify_no_t));
-				bi.trans_type = TRTYPE_UDP_NORMAL;
+				bi.trans_type = pi->trans_type;
 				bi.fr_type = TRFRAME_REG;
 				bi.data = ipaddr;
 				bi.data_len = strlen(ipaddr);
@@ -147,7 +149,7 @@ next_zdev:				p_dev = p_dev->next;
 			{
 				pi_t mpi;
 				memcpy(mpi.sn, pi->sn, sizeof(zidentify_no_t));
-				mpi.trans_type = TRTYPE_UDP_NORMAL;
+				mpi.trans_type = pi->trans_type;
 				mpi.fr_type = TRFRAME_GET;
 				mpi.data = ipaddr;
 				mpi.data_len = strlen(ipaddr);
@@ -156,6 +158,7 @@ next_zdev:				p_dev = p_dev->next;
 			}
 			else
 			{
+				p_gw->trans_type = pi->trans_type;
 				memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
 				memcpy(p_gw->ipaddr, ipaddr, strlen(ipaddr));
 
@@ -163,7 +166,7 @@ next_zdev:				p_dev = p_dev->next;
 				
 				bi_t bi;
 				memcpy(bi.sn, pi->sn, sizeof(zidentify_no_t));
-				bi.trans_type = TRTYPE_UDP_NORMAL;
+				bi.trans_type = pi->trans_type;
 				bi.fr_type = TRFRAME_REG;
 				bi.data = ipaddr;
 				bi.data_len = strlen(ipaddr);
@@ -191,6 +194,7 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 	switch(bi->trans_type)
 	{
 	case TRTYPE_UDP_NORMAL:
+	case TRTYPE_UDP_TRANS:
 		switch(bi->fr_type)
 		{
 		case TRFRAME_REG:
@@ -229,6 +233,7 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 			
 			if(p_gw != NULL)
 			{
+				p_gw->trans_type = bi->trans_type;
 				p_gw->ip_len = strlen(ipaddr);
 				memset(p_gw->ipaddr, 0, sizeof(p_gw->ipaddr));
 				memcpy(p_gw->ipaddr, ipaddr, p_gw->ip_len);
@@ -276,7 +281,6 @@ void gp_handler(struct sockaddr_in *addr, gp_t *gp)
 	dev_info_t *p_dev = NULL;
 	
 #ifdef COMM_SERVER
-	gp_t mgp;
 	rp_t mrp, rp;
 	uc_t m_uc;
 	uo_t m_uo;
@@ -330,13 +334,18 @@ void gp_handler(struct sockaddr_in *addr, gp_t *gp)
 	return;
 
 dev_match:	
-	memcpy(mgp.zidentify_no, gp->zidentify_no, sizeof(zidentify_no_t));
-	memcpy(mgp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
-	mgp.trans_type = TRTYPE_UDP_NORMAL;
-	mgp.tr_info = TRINFO_IP;
-	mgp.data = m_info->ipaddr;
-	mgp.data_len = m_info->ip_len;
-	send_frame_udp_request(p_gw->ipaddr, TRHEAD_GP, &mgp);
+	if(p_gw->trans_type != TRTYPE_UDP_TRANS)
+	{
+		
+		gp_t mgp;
+		memcpy(mgp.zidentify_no, gp->zidentify_no, sizeof(zidentify_no_t));
+		memcpy(mgp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
+		mgp.trans_type = TRTYPE_UDP_NORMAL;
+		mgp.tr_info = TRINFO_IP;
+		mgp.data = m_info->ipaddr;
+		mgp.data_len = m_info->ip_len;
+		send_frame_udp_request(p_gw->ipaddr, TRHEAD_GP, &mgp);
+	}
 
 	memcpy(m_uo.head, FR_HEAD_UO, 3);
 	m_uo.type = get_frnet_type_to_ch(p_dev->znet_type);
@@ -351,7 +360,7 @@ dev_match:
 
 	memcpy(mrp.zidentify_no, p_gw->gw_no, sizeof(zidentify_no_t));
 	memcpy(mrp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
-	mrp.trans_type = TRTYPE_UDP_NORMAL;
+	mrp.trans_type = p_gw->trans_type;
 	mrp.tr_info = TRINFO_DATA;
 	mrp.data = frbuffer->data;
 	mrp.data_len = frbuffer->size;
@@ -548,27 +557,33 @@ void gd_handler(struct sockaddr_in *addr, gd_t *gd)
 	return;
 
 gdev_match:
-	if(gd->tr_info != TRINFO_HOLD)
+	if(p_gw->trans_type != TRTYPE_UDP_TRANS)
 	{
 		gd_t mgd;
 		memcpy(mgd.zidentify_no, gd->zidentify_no, sizeof(zidentify_no_t));
 		memcpy(mgd.cidentify_no, gd->cidentify_no, sizeof(cidentify_no_t));
 		mgd.trans_type = TRTYPE_UDP_NORMAL;
-		mgd.tr_info = TRINFO_IP;
+		if(gd->tr_info != TRINFO_HOLD)
+		{
+			mgd.tr_info = TRINFO_IP;
+		}
+		else
+		{
+			mgd.tr_info = TRINFO_HOLD;
+		}
 		mgd.data = ipaddr;
 		mgd.data_len = strlen(ipaddr);
 		send_frame_udp_request(p_gw->ipaddr, TRHEAD_GD, &mgd);
 	}
 	else
 	{
-		gd_t mgd;
-		memcpy(mgd.zidentify_no, gd->zidentify_no, sizeof(zidentify_no_t));
-		memcpy(mgd.cidentify_no, gd->cidentify_no, sizeof(cidentify_no_t));
-		mgd.trans_type = TRTYPE_UDP_NORMAL;
-		mgd.tr_info = TRINFO_HOLD;
-		mgd.data = ipaddr;
-		mgd.data_len = strlen(ipaddr);
-		send_frame_udp_request(p_gw->ipaddr, TRHEAD_GD, &mgd);
+		cli_info_t *p_cli = query_client_info(gd->cidentify_no);
+		cli_contain_t *m_contain = calloc(1, sizeof(cli_contain_t));
+		m_contain->p_cli = p_cli;
+		if(add_contain_info(&p_gw->p_contain, m_contain) != 0)
+		{
+			free(m_contain);
+		}
 	}
 
 	dev_info_t *p_dev = p_gw->p_dev;
@@ -944,6 +959,37 @@ void ub_handler(struct sockaddr_in *addr, ub_t *ub)
 {
 #ifdef COMM_SERVER
 	ub_t mub;
+	gw_info_t *p_gw = NULL;
+	cli_contain_t *t_contain = NULL;
+
+	if(!memcmp(ub->cidentify_no, get_common_no(), sizeof(cidentify_no_t))
+		&& ub->trans_type == TRTYPE_UDP_TRANS)
+	{
+		p_gw = get_gateway_list()->p_gw;
+		while(p_gw != NULL)
+		{
+			if(!memcmp(p_gw->gw_no, ub->zidentify_no, sizeof(zidentify_no_t)))
+			{
+				goto trans_cli_match;
+			}
+			
+			dev_info_t *p_dev = p_gw->p_dev;
+			while(p_dev != NULL)
+			{
+				if(!memcmp(p_dev->zidentity_no, ub->zidentify_no, sizeof(zidentify_no_t)))
+				{
+					goto trans_cli_match;
+				}
+
+				p_dev = p_dev->next;
+			}
+
+			p_gw = p_gw->next;
+		}
+		
+		return;
+	}
+	
 	cli_info_t *p_cli = get_client_list()->p_cli;
 	while(p_cli != NULL)
 	{
@@ -965,6 +1011,25 @@ client_match:
 	mub.data = ub->data;
 	mub.data_len = ub->data_len;
 	send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &mub);
+	return;
+
+trans_cli_match:
+	memcpy(mub.zidentify_no, ub->zidentify_no, sizeof(zidentify_no_t));
+	memcpy(mub.cidentify_no, ub->cidentify_no, sizeof(cidentify_no_t));
+	mub.trans_type = TRTYPE_UDP_NORMAL;
+	mub.tr_info = ub->tr_info;
+	mub.data = ub->data;
+	mub.data_len = ub->data_len;
+	
+	t_contain = p_gw->p_contain;
+	while(t_contain != NULL)
+	{
+		memset(mub.cidentify_no, 0, sizeof(cidentify_no_t));
+		memcpy(mub.cidentify_no, 
+			t_contain->p_cli->cidentify_no, sizeof(cidentify_no_t));
+		send_frame_udp_request(t_contain->p_cli->ipaddr, TRHEAD_UB, &mub);
+		t_contain = t_contain->next;
+	}
 	return;
 #endif
 }

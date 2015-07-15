@@ -201,6 +201,7 @@ gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
     }
 	
 	gw_info->p_dev = NULL;
+	gw_info->p_contain = NULL;
 	gw_info->next = NULL;
 
 	return gw_info;
@@ -584,6 +585,7 @@ int add_gateway_info(gw_info_t *m_gw)
 			t_gw->zpanid = m_gw->zpanid;
 			t_gw->zchannel = m_gw->zchannel;
 			t_gw->rand = m_gw->rand;
+			t_gw->trans_type = m_gw->trans_type;
 			t_gw->ip_len = m_gw->ip_len;
 			set_devopt_data_fromopt(t_gw->zgw_opt, m_gw->zgw_opt);
 			memset(t_gw->ipaddr, 0, sizeof(t_gw->ipaddr));
@@ -681,6 +683,16 @@ int del_gateway_info(zidentify_no_t gw_no)
 				free(pre_dev);
 			}
 
+			cli_contain_t *pre_contain = t_gw->p_contain;
+			cli_contain_t *pcontain = t_gw->p_contain;
+			
+			while(pcontain != NULL)
+			{
+				pre_contain = pcontain;
+				pcontain = pcontain->next;
+				free(pre_contain);
+			}
+
 			free(t_gw);
 			return 0;
 		}
@@ -688,6 +700,125 @@ int del_gateway_info(zidentify_no_t gw_no)
 
 	return -1;
 }
+
+int add_contain_info(cli_contain_t **contain, cli_contain_t *m_contain)
+{
+	cli_contain_t *pre_contain =  NULL;
+	cli_contain_t *t_contain = *contain;
+
+	if(m_contain == NULL || m_contain->p_cli == NULL)
+	{
+		return -1;
+	}
+	else
+	{
+		m_contain->next = NULL;
+	}
+
+	while(t_contain != NULL)
+	{
+		if(memcmp(t_contain->p_cli->cidentify_no, 
+			m_contain->p_cli->cidentify_no, sizeof(cidentify_no_t)))
+		{
+			pre_contain = t_contain;
+			t_contain = t_contain->next;
+		}
+		else
+		{
+			if(m_contain->p_cli->ip_len != 0)
+			{
+				t_contain->p_cli->trans_type = m_contain->p_cli->trans_type;
+				memset(t_contain->p_cli->ipaddr, 0, 
+						sizeof(t_contain->p_cli->ipaddr));
+				memcpy(t_contain->p_cli->ipaddr, 
+						m_contain->p_cli->ipaddr, 
+						m_contain->p_cli->ip_len);
+				t_contain->p_cli->ip_len = m_contain->p_cli->ip_len;
+			}
+			
+			if(m_contain->p_cli->serverip_len != 0)
+			{
+				memset(t_contain->p_cli->serverip_addr, 0, 
+					sizeof(t_contain->p_cli->serverip_addr));
+				memcpy(t_contain->p_cli->serverip_addr, 
+						m_contain->p_cli->serverip_addr, 
+						m_contain->p_cli->serverip_len);
+				t_contain->p_cli->serverip_len = m_contain->p_cli->serverip_len;
+			}
+			t_contain->p_cli->check_count = m_contain->p_cli->check_count;
+			t_contain->p_cli->check_conn = m_contain->p_cli->check_conn;
+
+			if(pre_contain != NULL)
+			{
+				pre_contain->next = t_contain->next;
+				t_contain->next = *contain;
+				*contain = t_contain;
+			}
+			
+			return 1;
+		}
+	}
+
+	m_contain->next = *contain;
+	*contain = m_contain;
+
+	return 0;
+}
+
+
+
+cli_contain_t *query_contain_info(cli_contain_t *contain, cidentify_no_t cidentify_no)
+{
+	cli_contain_t *t_contain = contain;
+
+
+	while(t_contain != NULL)
+	{
+		if(memcmp(t_contain->p_cli->cidentify_no, cidentify_no, sizeof(cidentify_no_t)))
+		{
+			t_contain = t_contain->next;
+		}
+		else
+		{
+			return t_contain;
+		}
+	}
+
+	return NULL;
+}
+
+int del_contain_info(cli_contain_t **contain, cidentify_no_t cidentify_no)
+{
+	cli_contain_t *pre_contain =  NULL;
+	cli_contain_t *t_contain = *contain;
+
+
+	while(t_contain != NULL)
+	{
+		if(memcmp(t_contain->p_cli->cidentify_no, cidentify_no, sizeof(cidentify_no_t)))
+		{
+			pre_contain = t_contain;
+			t_contain = t_contain->next;
+		}
+		else
+		{
+			if(pre_contain != NULL)
+			{
+				pre_contain->next = t_contain->next;
+			}
+			else
+			{
+				*contain = t_contain->next;
+			}
+
+			free(t_contain);
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
 #endif
 
 

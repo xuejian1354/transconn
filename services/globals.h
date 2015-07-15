@@ -94,6 +94,10 @@ void set_tcp_port(int port);
 void set_udp_port(int port);
 #endif
 
+#ifdef COMM_SERVER
+uint8 *get_common_no();
+#endif
+
 int mach_init();
 void event_init();
 

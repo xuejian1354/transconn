@@ -28,6 +28,7 @@ static int udp_port = TRANS_UDP_REMOTE_PORT;
 #ifdef COMM_SERVER
 static int tcp_port = TRANS_TCP_PORT;
 static int udp_port = TRANS_UDP_PORT;
+static uint8 _common_no[8] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
 #endif
 
 #ifdef COMM_CLIENT
@@ -62,6 +63,13 @@ void set_tcp_port(int port)
 void set_udp_port(int port)
 {
 	udp_port = port;
+}
+#endif
+
+#ifdef COMM_SERVER
+uint8 *get_common_no()
+{
+	return _common_no;
 }
 #endif
 

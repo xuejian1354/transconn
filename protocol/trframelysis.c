@@ -65,6 +65,9 @@ tr_trans_type_t get_trtrans_from_ch(char trans)
 	case TR_TYPE_UDP_TRAVERSAL:
 		return TRTYPE_UDP_TRAVERSAL;
 
+	case TR_TYPE_UDP_TRANS:
+		return TRTYPE_UDP_TRANS;
+
 	case TR_TYPE_TCP_LONG:
 		return TRTYPE_TCP_LONG;
 
@@ -87,6 +90,9 @@ char get_trtrans_to_ch(tr_trans_type_t trans)
 
 	case TRTYPE_UDP_TRAVERSAL:
 		return TR_TYPE_UDP_TRAVERSAL;
+
+	case TRTYPE_UDP_TRANS:
+		return TR_TYPE_UDP_TRANS;
 
 	case TRTYPE_TCP_LONG:
 		return TR_TYPE_TCP_LONG;
