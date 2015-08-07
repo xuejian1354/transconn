@@ -360,7 +360,7 @@ dev_match:
 
 	memcpy(mrp.zidentify_no, p_gw->gw_no, sizeof(zidentify_no_t));
 	memcpy(mrp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
-	mrp.trans_type = p_gw->trans_type;
+	mrp.trans_type = TRTYPE_UDP_NORMAL;
 	mrp.tr_info = TRINFO_DATA;
 	mrp.data = frbuffer->data;
 	mrp.data_len = frbuffer->size;
