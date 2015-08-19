@@ -379,7 +379,7 @@ void socket_udp_sendto(char *addr, char *data, int len)
 
 	if(saddr[0]==0 || iport==0)
 	{
-		printf("error ip address\n");
+		DE_PRINTF("error ip address, addr=%s\n", addr);
 		return;
 	}
 	

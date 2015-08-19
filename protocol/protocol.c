@@ -413,7 +413,8 @@ int add_client_info(cli_info_t *m_info)
 		}
 		else
 		{
-			if(m_info->ip_len != 0)
+			if(m_info->ip_len != 0
+				&& t_cli->ipaddr != m_info->ipaddr)
 			{
 				t_cli->trans_type = m_info->trans_type;
 				memset(t_cli->ipaddr, 0, sizeof(t_cli->ipaddr));
@@ -421,7 +422,8 @@ int add_client_info(cli_info_t *m_info)
 				t_cli->ip_len = m_info->ip_len;
 			}
 			
-			if(m_info->serverip_len != 0)
+			if(m_info->serverip_len != 0
+				&& t_cli->serverip_addr != m_info->serverip_addr)
 			{
 				memset(t_cli->serverip_addr, 0, sizeof(t_cli->serverip_addr));
 				memcpy(t_cli->serverip_addr, m_info->serverip_addr, m_info->serverip_len);
@@ -588,10 +590,17 @@ int add_gateway_info(gw_info_t *m_gw)
 			t_gw->trans_type = m_gw->trans_type;
 			t_gw->ip_len = m_gw->ip_len;
 			set_devopt_data_fromopt(t_gw->zgw_opt, m_gw->zgw_opt);
-			memset(t_gw->ipaddr, 0, sizeof(t_gw->ipaddr));
-			memcpy(t_gw->ipaddr, m_gw->ipaddr, m_gw->ip_len);
-			memset(t_gw->serverip_addr, 0, sizeof(t_gw->serverip_addr));
-			memcpy(t_gw->serverip_addr, m_gw->serverip_addr, m_gw->serverip_len);
+			if(t_gw->ipaddr != m_gw->ipaddr)
+			{
+				memset(t_gw->ipaddr, 0, sizeof(t_gw->ipaddr));
+				memcpy(t_gw->ipaddr, m_gw->ipaddr, m_gw->ip_len);
+			}
+
+			if(t_gw->serverip_addr !=m_gw->serverip_addr)
+			{
+				memset(t_gw->serverip_addr, 0, sizeof(t_gw->serverip_addr));
+				memcpy(t_gw->serverip_addr, m_gw->serverip_addr, m_gw->serverip_len);
+			}
 
 			if(pre_gw != NULL)
 			{
@@ -725,7 +734,8 @@ int add_contain_info(cli_contain_t **contain, cli_contain_t *m_contain)
 		}
 		else
 		{
-			if(m_contain->p_cli->ip_len != 0)
+			if(m_contain->p_cli->ip_len != 0
+				&& t_contain->p_cli->ipaddr != m_contain->p_cli->ipaddr)
 			{
 				t_contain->p_cli->trans_type = m_contain->p_cli->trans_type;
 				memset(t_contain->p_cli->ipaddr, 0, 
@@ -736,7 +746,8 @@ int add_contain_info(cli_contain_t **contain, cli_contain_t *m_contain)
 				t_contain->p_cli->ip_len = m_contain->p_cli->ip_len;
 			}
 			
-			if(m_contain->p_cli->serverip_len != 0)
+			if(m_contain->p_cli->serverip_len != 0
+				&& t_contain->p_cli->serverip_addr != m_contain->p_cli->serverip_addr)
 			{
 				memset(t_contain->p_cli->serverip_addr, 0, 
 					sizeof(t_contain->p_cli->serverip_addr));
