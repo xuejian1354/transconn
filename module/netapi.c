@@ -30,8 +30,14 @@ typedef enum
 	DE_UDP_RECV
 }deudp_print_t;
 
+static void set_udp_print_flag(uint8 flag);
 static void udp_data_show(deudp_print_t deprint, uint8 flag, 
 		struct sockaddr_in *addr, char *data, int len);
+
+static uint8 udp_print_flag = DE_PRINT_UDP_PORT;
+#ifdef DE_TRANS_UDP_STREAM_LOG
+static struct sockaddr_in ulog_addr;
+#endif
 #endif
 
 #ifdef TRANS_UDP_SERVICE
@@ -301,6 +307,12 @@ int socket_udp_service_init(int port)
 	server_addr.sin_family = PF_INET;
 	server_addr.sin_port = htons(port);
 	server_addr.sin_addr.s_addr = inet_addr(get_server_ip());
+
+#ifdef DE_TRANS_UDP_STREAM_LOG
+	ulog_addr.sin_family = PF_INET;
+	ulog_addr.sin_port = htons(DE_UDP_PORT);
+	ulog_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+#endif
 	
 	if (bind(udpfd, (struct sockaddr *)&m_addr, sizeof(struct sockaddr)) < 0)
 	{
@@ -328,7 +340,7 @@ void socket_udp_recvfrom()
 				(struct sockaddr *)&client_addr, &socklen);
 
 #if(DE_PRINT_UDP_PORT!=0)
-	udp_data_show(DE_UDP_RECV, DE_PRINT_UDP_PORT, &client_addr, buf, nbytes);
+	udp_data_show(DE_UDP_RECV, udp_print_flag, &client_addr, buf, nbytes);
 #endif
 
 	frhandler_arg_t *frarg = get_frhandler_arg_alloc(udpfd, &client_addr, buf, nbytes);
@@ -381,13 +393,26 @@ void socket_udp_sendto(char *addr, char *data, int len)
 		(struct sockaddr *)&maddr, sizeof(struct sockaddr));
 
 #if(DE_PRINT_UDP_PORT!=0)
-	udp_data_show(DE_UDP_SEND, DE_PRINT_UDP_PORT, &maddr, data, len);
+	udp_data_show(DE_UDP_SEND, udp_print_flag, &maddr, data, len);
 	//PRINT_HEX(data, len);
 #endif
 }
 #endif
 
 #if(DE_PRINT_UDP_PORT!=0)
+void set_udp_print_flag(uint8 flag)
+{
+	udp_print_flag = flag;
+}
+
+#ifdef DE_TRANS_UDP_STREAM_LOG
+void delog_udp_sendto(char *data, int len)
+{
+	sendto(udpfd, data, len, 0, 
+		(struct sockaddr *)&ulog_addr, sizeof(struct sockaddr));
+}
+#endif
+
 void udp_data_show(deudp_print_t deprint, uint8 flag, 
 		struct sockaddr_in *addr, char *data, int len)
 {
@@ -451,6 +476,33 @@ void udp_data_show(deudp_print_t deprint, uint8 flag,
 				goto show_end;	
 			}
 			break;
+		}
+	}
+
+	if(deprint == DE_UDP_RECV
+		&& addr->sin_port == htons(DE_UDP_PORT)
+		&& addr->sin_addr.s_addr == inet_addr("127.0.0.1"))
+	{
+		if(len >= 13 && !memcmp(data, DEU_CMD_PREFIX, 11))
+		{
+			uint8 flag;
+			incode_ctoxs(&flag, data+11, 2);
+			set_udp_print_flag(flag);
+			DE_PRINTF("\n%s%X succeed\n\n", DEU_CMD_PREFIX, flag);
+		}
+		else
+		{
+			DE_PRINTF("\nUnrecognized cmd:%s", data);
+			DE_PRINTF("follow:\"%s%s\"\n", DEU_CMD_PREFIX, "value(hex)");
+			DE_PRINTF("value:\n");
+			DE_PRINTF("  PI:  01\n");
+			DE_PRINTF("  BI:  02\n");
+			DE_PRINTF("  GP:  04\n");
+			DE_PRINTF("  RP:  08\n");
+			DE_PRINTF("  GD:  10\n");
+			DE_PRINTF("  RD:  20\n");
+			DE_PRINTF("  DC:  40\n");
+			DE_PRINTF("  UB:  80\n\n");
 		}
 	}
 

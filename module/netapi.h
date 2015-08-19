@@ -46,4 +46,8 @@ void socket_udp_sendto(char *addr, char *data, int len);
 void socket_udp_recvfrom();
 #endif
 
+#if(DE_PRINT_UDP_PORT!=0) && defined(DE_TRANS_UDP_STREAM_LOG)
+void delog_udp_sendto(char *data, int len);
+#endif
+
 #endif  // __NETAPI_H__

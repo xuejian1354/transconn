@@ -40,7 +40,7 @@ $(foreach s,$(SOURCES), \
 
 
 .PHONY: all clean
-all:$(TARGET) perznet
+all:$(TARGET) perznet deulog
 
 $(TARGET):$(OBJS)
 	$(TARGET_CC) -o $@ $(OBJS) $(LDFLAGS)
@@ -53,5 +53,9 @@ perznet:perznet.c $(TESTTOP)module/serial.c
 	$(TARGET_CC) -o $@ $^ -DSERIAL_SUPPORT $(INCLUDE) $(LDFLAGS)
 	$(TARGET_STRIP) $@
 
+deulog:deulog.c
+	$(TARGET_CC) -o $@ $^ $(INCLUDE) -DDE_TRANS_UDP_STREAM_LOG $(LDFLAGS)
+	$(TARGET_STRIP) $@
+
 clean:
-	$(RM) *.o $(TARGET) perznet
+	$(RM) *.o $(TARGET) perznet deulog

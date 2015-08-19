@@ -19,9 +19,20 @@
 
 #include <debug/dconfig.h>
 
-#define DLOG_FILE   "/tmp/trans_log.txt"
+//#define DE_TRANS_UDP_STREAM_LOG
 
-#define DE_PRINTF(args...)  printf(args);
+//#define DLOG_FILE   "/tmp/trans_log.txt"
+
+#ifdef DE_TRANS_UDP_STREAM_LOG
+#define DE_PRINTF(args...)  \
+st(  \
+	char buf[256] = {0};  \
+	sprintf(buf, args);  \
+	delog_udp_sendto(buf, strlen(buf));	  \
+)
+#else
+#define DE_PRINTF(args...)	printf(args)
+#endif
 
 /*#define   DE_PRINTF(args...)  \
 st( \
@@ -49,14 +60,14 @@ st(																					\
 																					\
 	if(argc > 4)																	\
 	{																				\
-		DE_PRINTF("Usage: %s [Serial Port] [TCP Port] [UDP Port]\n", TARGET_NAME);	\
+		printf("Usage: %s [Serial Port] [TCP Port] [UDP Port]\n", TARGET_NAME);	\
 		return -1;																	\
 	}																				\
 																					\
-	DE_PRINTF("%s start!\n", TARGET_NAME);											\
-	DE_PRINTF("Server:%s\nIP:%s\n", 												\
+	printf("%s start!\n", TARGET_NAME);											\
+	printf("Server:%s\nIP:%s\n", 												\
 		get_server_name_from_ip(get_server_ip()), get_server_ip());					\
-	DE_PRINTF("Serial Port:%s, TCP Port:%d, UDP Port:%d\n", 						\
+	printf("Serial Port:%s, TCP Port:%d, UDP Port:%d\n", 						\
 		get_serial_port(), get_tcp_port(), get_udp_port());							\
 )
 
@@ -71,14 +82,14 @@ st(																					\
 																					\
 	if (argc > 3)																	\
 	{																				\
-		DE_PRINTF("Usage:%s [TCP Port] [UDP Port]\n", TARGET_NAME);					\
+		printf("Usage:%s [TCP Port] [UDP Port]\n", TARGET_NAME);					\
 		return -1;																	\
 	}																				\
 																					\
-	DE_PRINTF("%s start!\n", TARGET_NAME);											\
-	DE_PRINTF("Server:%s\nIP:%s\n", 												\
+	printf("%s start!\n", TARGET_NAME);											\
+	printf("Server:%s\nIP:%s\n", 												\
 		get_server_name_from_ip((char *)get_server_ip()), get_server_ip());			\
-	DE_PRINTF("TCP Port:%d, UDP Port:%d\n", get_tcp_port(), get_udp_port());		\
+	printf("TCP Port:%d, UDP Port:%d\n", get_tcp_port(), get_udp_port());		\
 )
 
 #else

@@ -16,6 +16,7 @@
  */
 #include <services/globals.h>
 #include <module/balancer.h>
+#include <module/netapi.h>
 
 int main(int argc, char **argv)
 {

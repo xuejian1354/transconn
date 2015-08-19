@@ -60,6 +60,11 @@
 #define TRANS_UDP_REMOTE_PORT	11578
 #endif
 
+#ifdef DE_TRANS_UDP_STREAM_LOG
+#define DEU_CMD_PREFIX	"set deflag="
+#define DE_UDP_PORT		12688
+#endif
+
 /*
 Old version not ed_type on gateway frame
 This macro just support that
