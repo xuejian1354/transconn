@@ -542,6 +542,17 @@ void gd_handler(struct sockaddr_in *addr, gd_t *gd)
 			goto gdev_match;
 		}
 
+		dev_info_t *p_dev = p_gw->p_dev;
+		while(p_dev != NULL)
+		{
+			if(!memcmp(p_dev->zidentity_no, gd->zidentify_no, sizeof(zidentify_no_t)))
+			{
+				goto gdev_match;
+			}
+
+			p_dev = p_dev->next;
+		}
+
 		p_gw = p_gw->next;
 	}
 
@@ -584,6 +595,16 @@ gdev_match:
 		{
 			free(m_contain);
 		}
+
+		rd_t crd;
+		memcpy(crd.zidentify_no, gd->zidentify_no, sizeof(zidentify_no_t));
+		memcpy(crd.cidentify_no, gd->cidentify_no, sizeof(cidentify_no_t));
+		crd.trans_type = TRTYPE_UDP_NORMAL;
+		crd.tr_info = TRINFO_FOUND;
+		crd.data = NULL;
+		crd.data_len = 0;
+		send_frame_udp_request(ipaddr, TRHEAD_RD, &crd);
+		return;
 	}
 
 	dev_info_t *p_dev = p_gw->p_dev;

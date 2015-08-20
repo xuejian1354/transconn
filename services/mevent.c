@@ -264,7 +264,7 @@ void set_gateway_check(zidentify_no_t gw_no, int rand)
 	timer_event_param_t timer_param;
 
 	timer_param.resident = 0;
-	timer_param.interval = 15;
+	timer_param.interval = 24;
 	timer_param.count = 1;
 	timer_param.immediate = 0;
 	timer_param.arg = (void *)gw_no;
