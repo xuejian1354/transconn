@@ -72,10 +72,12 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 		opt = calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
-		if(len >= 2)
+		if(len >= DEVOPT_LIGHTSWITCH_ONE_DATASTR_FIX_SIZE)
 		{
 			opt->device.lightswitch.nums = 1;
-			incode_ctoxs(opt->device.lightswitch.data.one, data, 2);
+			incode_ctoxs(opt->device.lightswitch.data.one, 
+							data, 
+							DEVOPT_LIGHTSWITCH_ONE_DATASTR_FIX_SIZE);
 		}
 		else
 		{
@@ -87,10 +89,12 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 		opt = calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
-		if(len >= 4)
+		if(len >= DEVOPT_LIGHTSWITCH_TWO_DATASTR_FIX_SIZE)
 		{
 			opt->device.lightswitch.nums = 2;
-			incode_ctoxs(opt->device.lightswitch.data.two, data, 4);
+			incode_ctoxs(opt->device.lightswitch.data.two, 
+							data, 
+							DEVOPT_LIGHTSWITCH_TWO_DATASTR_FIX_SIZE);
 		}
 		else
 		{
@@ -103,10 +107,12 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 		opt = calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
-		if(len >= 6)
+		if(len >= DEVOPT_LIGHTSWITCH_THREE_DATASTR_FIX_SIZE)
 		{
 			opt->device.lightswitch.nums = 3;
-			incode_ctoxs(opt->device.lightswitch.data.three, data, 6);
+			incode_ctoxs(opt->device.lightswitch.data.three, 
+							data, 
+							DEVOPT_LIGHTSWITCH_THREE_DATASTR_FIX_SIZE);
 		}
 		else
 		{
@@ -120,10 +126,12 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 		opt = calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
-		if(len >= 8)
+		if(len >= DEVOPT_LIGHTSWITCH_FOUR_DATASTR_FIX_SIZE)
 		{
 			opt->device.lightswitch.nums = 4;
-			incode_ctoxs(opt->device.lightswitch.data.four, data, 8);
+			incode_ctoxs(opt->device.lightswitch.data.four, 
+							data, 
+							DEVOPT_LIGHTSWITCH_FOUR_DATASTR_FIX_SIZE);
 		}
 		else
 		{
@@ -131,6 +139,22 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 			opt->device.lightswitch.data.four[1] = 0;
 			opt->device.lightswitch.data.four[2] = 0;
 			opt->device.lightswitch.data.four[3] = 0;
+		}
+		return opt;
+
+	case FRAPP_HUELIGHT: 
+		opt = calloc(1, sizeof(dev_opt_t));
+		opt->type = type;
+		opt->common.method = DEV_CONTROL_BOTH;
+		if(len >= DEVOPT_HUELIGHT_DATASTR_FIX_SIZE)
+		{
+			incode_ctoxs(&opt->device.huelight, 
+							data, 
+							DEVOPT_HUELIGHT_DATASTR_FIX_SIZE);
+		}
+		else
+		{
+			memset(&opt->device.huelight, 0, 5);
 		}
 		return opt;
 		
@@ -315,6 +339,20 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 			opt->common.method = get_devopt_method_ctox(data[0]);
 			incode_ctoxs(&opt->device.lightswitch.nums, data+1, 2);
 			incode_ctoxs(opt->device.lightswitch.data.four, data+3, 8);
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+
+	case FRAPP_HUELIGHT: 
+		if(len >= DEVOPT_HUELIGHT_FIX_SIZE)
+		{
+			opt->common.method = get_devopt_method_ctox(data[0]);
+			incode_ctoxs(&opt->device.huelight, 
+							data+1, 
+							DEVOPT_HUELIGHT_DATASTR_FIX_SIZE);
 		}
 		else
 		{
@@ -562,6 +600,15 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		incode_xtocs(buffer->data+1, &opt->device.lightswitch.nums, 1);
 		incode_xtocs(buffer->data+3, opt->device.lightswitch.data.four, 4);
 		return buffer;
+
+	case FRAPP_HUELIGHT: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_HUELIGHT_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		
+		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
+		incode_xtocs(buffer->data+1, &opt->device.huelight, 4);
+		return buffer;
 		
 	case FRAPP_ALARM: 
 		buffer = calloc(1, sizeof(fr_buffer_t));
@@ -774,6 +821,17 @@ int set_devopt_data(dev_opt_t *opt, uint8 *data, int len)
 			return -1;
 		}
 		break;
+
+	case FRAPP_HUELIGHT: 
+		if(len >= 5)
+		{
+			memcpy(&opt->device.huelight, data, 5);
+		}
+		else
+		{
+			return -1;
+		}
+		break;
 		
 	case FRAPP_ALARM: 
 		if(len >=1)
@@ -851,6 +909,13 @@ fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt)
 		buffer->size = DEVOPT_LIGHTSWITCH_FOUR_DATASTR_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
 		incode_xtocs(buffer->data, opt->device.lightswitch.data.four, 4);
+		return buffer;
+
+	case FRAPP_HUELIGHT: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_HUELIGHT_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		incode_xtocs(buffer->data, opt->device.huelight, 5);
 		return buffer;
 		
 	case FRAPP_ALARM: 
@@ -941,6 +1006,10 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 		dst->device.lightswitch.data.four[1] = src->device.lightswitch.data.four[1];
 		dst->device.lightswitch.data.four[2] = src->device.lightswitch.data.four[2];
 		dst->device.lightswitch.data.four[3] = src->device.lightswitch.data.four[3];
+		break;
+
+	case FRAPP_HUELIGHT: 		
+		memcpy(&dst->device.huelight, &src->device.huelight, 5);
 		break;
 		
 	case FRAPP_ALARM: 
@@ -1052,6 +1121,16 @@ void devopt_de_print(dev_opt_t *opt)
 			opt->device.lightswitch.data.four[1], 
 			opt->device.lightswitch.data.four[2], 
 			opt->device.lightswitch.data.four[3]);
+		break;
+
+	case FRAPP_HUELIGHT: 
+		DE_PRINTF("[HueLight]\n");
+		DE_PRINTF("data:%02X %02X %02X %02X %02X\n\n", 
+			opt->device.huelight.bright, 
+			opt->device.huelight.saturation, 
+			opt->device.huelight.red, 
+			opt->device.huelight.green,
+			opt->device.huelight.blue);
 		break;
 		
 	case FRAPP_ALARM: 

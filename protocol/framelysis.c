@@ -112,6 +112,10 @@ fr_app_type_t get_frapp_type_from_str(char *app_type)
 	{
 		return FRAPP_LIGHTSWITCH_FOUR;
 	}
+	else if(!strncmp(FR_APP_HUELIGHT, app_type, 2))
+	{
+		return FRAPP_HUELIGHT;
+	}
 	else if(!strncmp(FR_APP_ALARM, app_type, 2))
 	{
 		return FRAPP_ALARM;
@@ -170,6 +174,10 @@ int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 
 	case FRAPP_LIGHTSWITCH_FOUR:
 		strcpy(dst, FR_APP_LIGHTSWITCH_FOUR);
+		break;
+
+	case FRAPP_HUELIGHT:
+		strcpy(dst, FR_APP_HUELIGHT);
 		break;
 
 	case FRAPP_ALARM:
