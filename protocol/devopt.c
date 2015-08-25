@@ -607,7 +607,7 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		buffer->data = calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
-		incode_xtocs(buffer->data+1, &opt->device.huelight, 4);
+		incode_xtocs(buffer->data+1, &opt->device.huelight, 5);
 		return buffer;
 		
 	case FRAPP_ALARM: 
