@@ -915,7 +915,7 @@ fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt)
 		buffer = calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_HUELIGHT_DATASTR_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
-		incode_xtocs(buffer->data, opt->device.huelight, 4);
+		incode_xtocs(buffer->data, &opt->device.huelight, 4);
 		return buffer;
 		
 	case FRAPP_ALARM: 
