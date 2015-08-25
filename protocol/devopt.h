@@ -32,7 +32,7 @@
 #define DEVOPT_LIGHTSWITCH_TWO_FIX_SIZE		7
 #define DEVOPT_LIGHTSWITCH_THREE_FIX_SIZE	9
 #define DEVOPT_LIGHTSWITCH_FOUR_FIX_SIZE	11
-#define DEVOPT_HUELIGHT_FIX_SIZE			11
+#define DEVOPT_HUELIGHT_FIX_SIZE			9
 #define DEVOPT_ALARM_FIX_SIZE				3
 #define DEVOPT_IRRELAY_FIX_SIZE				5
 #define DEVOPT_IRDETECT_FIX_SIZE			5
@@ -42,7 +42,7 @@
 #define DEVOPT_LIGHTSWITCH_TWO_DATASTR_FIX_SIZE		4
 #define DEVOPT_LIGHTSWITCH_THREE_DATASTR_FIX_SIZE	6
 #define DEVOPT_LIGHTSWITCH_FOUR_DATASTR_FIX_SIZE	8
-#define DEVOPT_HUELIGHT_DATASTR_FIX_SIZE			10
+#define DEVOPT_HUELIGHT_DATASTR_FIX_SIZE			8
 #define DEVOPT_ALARM_DATASTR_FIX_SIZE				2
 #define DEVOPT_IRRELAY_DATASTR_FIX_SIZE				5
 #define DEVOPT_IRDETECT_DATASTR_FIX_SIZE			2
@@ -105,11 +105,10 @@ typedef struct Switch_Opt
 
 typedef struct HueLight_Opt
 {
+	uint8 onoff;
 	uint8 bright;
+	uint8 hue;
 	uint8 saturation;
-	uint8 red;
-	uint8 green;
-	uint8 blue;
 }huelight_opt_t;
 
 typedef struct Alarm_Opt

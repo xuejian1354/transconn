@@ -154,7 +154,7 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 		}
 		else
 		{
-			memset(&opt->device.huelight, 0, 5);
+			memset(&opt->device.huelight, 0, 4);
 		}
 		return opt;
 		
@@ -607,7 +607,7 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		buffer->data = calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
-		incode_xtocs(buffer->data+1, &opt->device.huelight, 5);
+		incode_xtocs(buffer->data+1, &opt->device.huelight, 4);
 		return buffer;
 		
 	case FRAPP_ALARM: 
@@ -823,9 +823,9 @@ int set_devopt_data(dev_opt_t *opt, uint8 *data, int len)
 		break;
 
 	case FRAPP_HUELIGHT: 
-		if(len >= 5)
+		if(len >= 4)
 		{
-			memcpy(&opt->device.huelight, data, 5);
+			memcpy(&opt->device.huelight, data, 4);
 		}
 		else
 		{
@@ -915,7 +915,7 @@ fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt)
 		buffer = calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_HUELIGHT_DATASTR_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
-		incode_xtocs(buffer->data, opt->device.huelight, 5);
+		incode_xtocs(buffer->data, opt->device.huelight, 4);
 		return buffer;
 		
 	case FRAPP_ALARM: 
@@ -1009,7 +1009,7 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 		break;
 
 	case FRAPP_HUELIGHT: 		
-		memcpy(&dst->device.huelight, &src->device.huelight, 5);
+		memcpy(&dst->device.huelight, &src->device.huelight, 4);
 		break;
 		
 	case FRAPP_ALARM: 
@@ -1125,12 +1125,11 @@ void devopt_de_print(dev_opt_t *opt)
 
 	case FRAPP_HUELIGHT: 
 		DE_PRINTF("[HueLight]\n");
-		DE_PRINTF("data:%02X %02X %02X %02X %02X\n\n", 
-			opt->device.huelight.bright, 
-			opt->device.huelight.saturation, 
-			opt->device.huelight.red, 
-			opt->device.huelight.green,
-			opt->device.huelight.blue);
+		DE_PRINTF("data:%02X %02X %02X %02X\n\n", 
+			opt->device.huelight.onoff, 
+			opt->device.huelight.bright,  
+			opt->device.huelight.hue, 
+			opt->device.huelight.saturation);
 		break;
 		
 	case FRAPP_ALARM: 
