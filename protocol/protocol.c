@@ -1059,7 +1059,8 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 				{
 					if(get_gateway_info()->zgw_opt->type == FRAPP_HUELIGHT
 						&& !memcmp(get_gateway_info()->zgw_opt->device.huelight.sclient, 
-								p_cli->cidentify_no, sizeof(cidentify_no_t)))
+								p_cli->cidentify_no, sizeof(cidentify_no_t))
+						&& !(get_gateway_info()->zgw_opt->device.huelight.onoff & 0x10))
 					{
 						p_cli = p_cli->next;
 						continue;
@@ -1070,7 +1071,8 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 					if(dev_info != NULL 
 						&& dev_info->zdev_opt->type == FRAPP_HUELIGHT
 						&& !memcmp(dev_info->zdev_opt->device.huelight.sclient, 
-								p_cli->cidentify_no, sizeof(cidentify_no_t)))
+								p_cli->cidentify_no, sizeof(cidentify_no_t))
+						&& !(dev_info->zdev_opt->device.huelight.onoff & 0x10))
 					{
 						p_cli = p_cli->next;
 						continue;
