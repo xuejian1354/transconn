@@ -851,6 +851,11 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 				
 				goto Handle_UR_free;
 			}
+			else if(p_mgw->zgw_opt && p_mgw->zgw_opt->type == FRAPP_HUELIGHT)
+			{
+				memcpy(p_mgw->zgw_opt->device.huelight.sclient, 
+							dc->cidentify_no, sizeof(cidentify_no_t));
+			}
 			
 			buffer = get_switch_buffer_alloc(HEAD_DE, p_mgw->zgw_opt, de);
 		}
@@ -907,6 +912,11 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 				get_buffer_free(frbuffer);
 				
 				goto Handle_UR_free;
+			}
+			else if(dev_info->zdev_opt && dev_info->zdev_opt->type == FRAPP_HUELIGHT)
+			{
+				memcpy(dev_info->zdev_opt->device.huelight.sclient, 
+							dc->cidentify_no, sizeof(cidentify_no_t));
 			}
 			
 			buffer = get_switch_buffer_alloc(HEAD_DE, 

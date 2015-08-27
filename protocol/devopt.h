@@ -109,6 +109,7 @@ typedef struct HueLight_Opt
 	uint8 bright;
 	uint8 hue;
 	uint8 saturation;
+	cidentify_no_t sclient;
 }huelight_opt_t;
 
 typedef struct Alarm_Opt

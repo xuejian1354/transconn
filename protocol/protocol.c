@@ -1054,6 +1054,29 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 			while(p_cli != NULL)
 			{
 				ub_t ub;
+				
+				if(znet_addr == 0 )
+				{
+					if(get_gateway_info()->zgw_opt->type == FRAPP_HUELIGHT
+						&& !memcmp(get_gateway_info()->zgw_opt->device.huelight.sclient, 
+								p_cli->cidentify_no, sizeof(cidentify_no_t)))
+					{
+						p_cli = p_cli->next;
+						continue;
+					}
+				}
+				else
+				{
+					if(dev_info != NULL 
+						&& dev_info->zdev_opt->type == FRAPP_HUELIGHT
+						&& !memcmp(dev_info->zdev_opt->device.huelight.sclient, 
+								p_cli->cidentify_no, sizeof(cidentify_no_t)))
+					{
+						p_cli = p_cli->next;
+						continue;
+					}
+				}
+				
 				memcpy(ub.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 				memcpy(ub.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
 				ub.trans_type = p_cli->trans_type;
