@@ -23,6 +23,7 @@
 static char serial_port[16] = "/dev/ttyS1";
 static int tcp_port = TRANS_TCP_PORT;
 static int udp_port = TRANS_UDP_REMOTE_PORT;
+static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #endif
 
 #ifdef COMM_SERVER
@@ -63,6 +64,13 @@ void set_tcp_port(int port)
 void set_udp_port(int port)
 {
 	udp_port = port;
+}
+#endif
+
+#ifdef COMM_CLIENT
+uint8 *get_broadcast_no()
+{
+	return _broadcast_no;
 }
 #endif
 

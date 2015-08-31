@@ -416,8 +416,42 @@ gw_match:
 	{
 		free(m_info);
 	}
-	
-	if((p_dev=query_zdevice_info_with_sn(gp->zidentify_no)) == NULL)
+
+	if(!memcmp(gp->zidentify_no, get_broadcast_no(), sizeof(zidentify_no_t)))
+	{
+		rp_t mrp;
+		memcpy(mrp.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+		memcpy(mrp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
+		mrp.trans_type = gp->trans_type;
+		mrp.tr_info = TRINFO_UPDATE;
+
+		dev_info_t *t_dev = get_gateway_info()->p_dev;
+		while(t_dev != NULL)
+		{
+			uo_t m_uo;
+			memcpy(m_uo.head, FR_HEAD_UO, 3);
+			m_uo.type = get_frnet_type_to_ch(t_dev->znet_type);
+			get_frapp_type_to_str(m_uo.ed_type, t_dev->zapp_type);
+			incode_xtocs(m_uo.ext_addr, t_dev->zidentity_no, 8);
+			incode_xtoc16(m_uo.short_addr, t_dev->znet_addr);
+			m_uo.data = NULL;
+			m_uo.data_len = 0;
+			memcpy(m_uo.tail, FR_TAIL, 4);
+			
+			frbuffer = get_buffer_alloc(HEAD_UO, &m_uo);
+			mrp.data = frbuffer->data;
+			mrp.data_len = frbuffer->size;
+			send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
+			get_buffer_free(frbuffer);
+
+			usleep(1500);
+			t_dev = t_dev->next;
+		}
+		
+		set_rp_check(query_client_info(gp->cidentify_no));
+		return;
+	}
+	else if((p_dev=query_zdevice_info_with_sn(gp->zidentify_no)) == NULL)
 	{
 		return;
 	}
