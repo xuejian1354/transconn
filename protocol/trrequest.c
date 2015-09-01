@@ -425,6 +425,7 @@ gw_match:
 		mrp.trans_type = gp->trans_type;
 		mrp.tr_info = TRINFO_UPDATE;
 
+		int isFound = 0;
 		dev_info_t *t_dev = get_gateway_info()->p_dev;
 		while(t_dev != NULL)
 		{
@@ -445,40 +446,53 @@ gw_match:
 			get_buffer_free(frbuffer);
 
 			usleep(1500);
+			isFound = 1;
 			t_dev = t_dev->next;
 		}
+
+		if(isFound)
+		{
+			mrp.tr_info = TRINFO_FOUND;
+		}
+		else
+		{
+			mrp.tr_info = TRINFO_DISMATCH;
+		}
 		
+		mrp.data = NULL;
+		mrp.data_len = 0;
+		send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
 		set_rp_check(query_client_info(gp->cidentify_no));
 		return;
 	}
-	else if((p_dev=query_zdevice_info_with_sn(gp->zidentify_no)) == NULL)
+	else if((p_dev=query_zdevice_info_with_sn(gp->zidentify_no)) != NULL)
 	{
+		uo_t m_uo;
+		memcpy(m_uo.head, FR_HEAD_UO, 3);
+		m_uo.type = get_frnet_type_to_ch(p_dev->znet_type);
+		get_frapp_type_to_str(m_uo.ed_type, p_dev->zapp_type);
+		incode_xtocs(m_uo.ext_addr, p_dev->zidentity_no, 8);
+		incode_xtoc16(m_uo.short_addr, p_dev->znet_addr);
+		m_uo.data = NULL;
+		m_uo.data_len = 0;
+		memcpy(m_uo.tail, FR_TAIL, 4);
+		
+		frbuffer = get_buffer_alloc(HEAD_UO, &m_uo);
+		
+		rp_t mrp;
+		memcpy(mrp.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+		memcpy(mrp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
+		mrp.trans_type = gp->trans_type;
+		mrp.tr_info = TRINFO_UPDATE;
+		mrp.data = frbuffer->data;
+		mrp.data_len = frbuffer->size;
+		send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
+		
+		get_buffer_free(frbuffer);
+		set_rp_check(query_client_info(gp->cidentify_no));
 		return;
 	}
 
-	uo_t m_uo;
-	memcpy(m_uo.head, FR_HEAD_UO, 3);
-	m_uo.type = get_frnet_type_to_ch(p_dev->znet_type);
-	get_frapp_type_to_str(m_uo.ed_type, p_dev->zapp_type);
-	incode_xtocs(m_uo.ext_addr, p_dev->zidentity_no, 8);
-	incode_xtoc16(m_uo.short_addr, p_dev->znet_addr);
-	m_uo.data = NULL;
-	m_uo.data_len = 0;
-	memcpy(m_uo.tail, FR_TAIL, 4);
-	
-	frbuffer = get_buffer_alloc(HEAD_UO, &m_uo);
-	
-	rp_t mrp;
-	memcpy(mrp.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-	memcpy(mrp.cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
-	mrp.trans_type = gp->trans_type;
-	mrp.tr_info = TRINFO_UPDATE;
-	mrp.data = frbuffer->data;
-	mrp.data_len = frbuffer->size;
-	send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
-	
-	get_buffer_free(frbuffer);
-	set_rp_check(query_client_info(gp->cidentify_no));
 #endif
 }
 
