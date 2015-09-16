@@ -400,17 +400,29 @@ gw_match:
 	{
 		return;
 	}
-
+	
 	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
 	memcpy(m_info->cidentify_no, gp->cidentify_no, sizeof(cidentify_no_t));
 	m_info->trans_type = gp->trans_type;
-	memcpy(m_info->ipaddr, gp->data, gp->data_len);
-	m_info->ip_len = gp->data_len;
-	memcpy(m_info->serverip_addr, ipaddr, strlen(ipaddr));
-	m_info->serverip_len = strlen(ipaddr);
 	m_info->check_count = 3;
 	m_info->check_conn = 1;
 	m_info->next = NULL;
+
+	if(gp->tr_info == TRINFO_IP)
+	{
+		
+		memcpy(m_info->ipaddr, gp->data, gp->data_len);
+		m_info->ip_len = gp->data_len;
+		memcpy(m_info->serverip_addr, ipaddr, strlen(ipaddr));
+		m_info->serverip_len = strlen(ipaddr);
+	}
+	else
+	{
+		memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
+		m_info->ip_len = strlen(ipaddr);
+		GET_SERVER_IP(m_info->serverip_addr);
+		m_info->serverip_len = strlen(m_info->serverip_addr);
+	}
 	
 	if(add_client_info(m_info) != 0)
 	{
