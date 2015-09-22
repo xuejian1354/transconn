@@ -208,7 +208,6 @@ void *uart_read_func(void *p)
         i = 0;
         memset(rbuf, 0, sizeof(rbuf));
         rlen = read(serial_id, rbuf, sizeof(rbuf));
-
         while(i < rlen)
         {
             if(0 == step)
@@ -216,6 +215,7 @@ void *uart_read_func(void *p)
                 switch(rbuf[i])
                 {
                 case 'U':
+				case 'D':
                     if(0 == mcount)
 					{
 						tmpFrame[0] = rbuf[i];
@@ -239,6 +239,14 @@ void *uart_read_func(void *p)
                     break;
 
                 case ':':
+					if(1 == mcount)
+					{
+                        step = 1;
+						tmpFrame[1] = 'E';
+						mcount++;
+						tmpFrame[2] = rbuf[i];
+						mcount++;
+                    }
                     if(2 == mcount)
 					{
                         step = 1;
@@ -320,6 +328,16 @@ serial_update:
                 step = 0;
 				mcount = 0;
 
+				if(!memcmp("DE:", tmpFrame, 3))
+				{
+					 uint8 mFrame[SERIAL_MAX_LEN]={0};
+					 memcpy(mFrame, "D:", 2);
+					 memcpy(mFrame+2, tmpFrame+3, dataLen-3);
+					 memcpy(tmpFrame, mFrame, dataLen-1);
+					 tmpFrame[dataLen] = 0;
+					 dataLen--;
+				}
+			
 #ifdef DE_PRINT_SERIAL_PORT
 				DE_PRINTF("serial read:%s\n", tmpFrame);
 				//PRINT_HEX(tmpFrame, dataLen);

@@ -30,6 +30,8 @@
 //#define SELECT_SUPPORT
 //#define DEBUG_CONSOLE_SUPPORT
 
+#define BIND_SUPERBUTTON_CTRL_SUPPORT
+
 #ifdef LOAD_BALANCE_SUPPORT
 #define BALANCE_SERVER_FILE		"/etc/balance_serlist"
 #endif

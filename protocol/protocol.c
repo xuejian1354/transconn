@@ -21,6 +21,16 @@
 #include <protocol/trrequest.h>
 #include <services/mevent.h>
 
+/* Used for SuperButton Functions */
+#define SB_OPT_CFG				'!'
+#define SB_OPT_DEVREG			'@'
+#define SB_OPT_PAIR				'#'
+#define SB_OPT_PAIRREG			'$'
+#define SB_OPT_MATCH			'%'
+#define SB_OPT_RESET			'^'
+#define SB_OPT_CTRL				'&'
+#define SB_OPT_REMOTE_CTRL		'*'
+
 #ifdef COMM_CLIENT
 static gw_info_t gw_info;
 #endif
@@ -1106,6 +1116,79 @@ UR_FREE:
 	case HEAD_DE:
 	{
 		de_t *de = (de_t *)p;
+#ifdef BIND_SUPERBUTTON_CTRL_SUPPORT
+		if(de->data_len > 17 && de->data[0] == SB_OPT_CFG)
+		{
+			int i = 0;
+			int size = (de->data_len-17)/16;
+			
+			uint8 own_mac_str[18] = {0};
+			memcpy(own_mac_str, de->data+1, 16);
+				
+			while(i < size)
+			{
+				int is_match = 0;
+				zidentify_no_t cur_mac = {0};
+				incode_ctoxs(cur_mac, de->data+17+16*i, 16);
+				
+				dev_info_t *p_dev = get_gateway_info()->p_dev;
+				while(p_dev != NULL)
+				{
+					if(!memcmp(p_dev->zidentity_no, cur_mac, sizeof(zidentify_no_t)))
+					{
+						is_match = 1;
+						break;
+					}
+					
+					p_dev = p_dev->next;
+				}
+
+				if(is_match)
+				{
+					uint8 mbuf[32] = {0};
+					sprintf(mbuf, "D:/FC/%04X%c%s:O\r\n", 
+										p_dev->znet_addr,
+										SB_OPT_DEVREG,
+										own_mac_str);
+					serial_write(mbuf, 31);
+					usleep(200000);
+				}
+				else
+				{}
+				
+				i++;
+			}
+		}
+		else if(de->data_len > 36 && de->data[0] == SB_OPT_MATCH)
+		{
+			zidentify_no_t match_mac = {0};
+			uint8 data_tail[24] = {0};
+			
+			incode_ctoxs(match_mac, de->data+1, 16);
+			memcpy(data_tail, de->data+17, 20);
+
+			dev_info_t *p_dev = get_gateway_info()->p_dev;
+			while(p_dev != NULL)
+			{
+				if(!memcmp(p_dev->zidentity_no, match_mac, sizeof(zidentify_no_t)))
+				{
+					uint8 mbuf[56] = {0};	
+					uint8 gw_mac[18] = {0};
+					incode_xtocs(gw_mac, get_gateway_info()->gw_no, 8);
+					sprintf(mbuf, "D:/FC/%04X%c%s%s:O\r\n", 
+										p_dev->znet_addr, 
+										SB_OPT_MATCH, 
+										gw_mac, 
+										data_tail);
+					
+					serial_write(mbuf, 51);
+					break;
+				}
+				
+				p_dev = p_dev->next;
+			}
+		}
+#endif
 		get_frame_free(HEAD_DE, de);
 	}
 	break;
