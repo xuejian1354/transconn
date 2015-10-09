@@ -24,6 +24,10 @@ int main(int argc, char **argv)
 	serlist_read_from_confile();
 #endif
 
+#ifdef READ_CONF_FILE
+	conf_read_from_file();
+#endif
+
 	START_PARAMS();
 
 #ifdef THREAD_POOL_SUPPORT

@@ -125,17 +125,7 @@ typedef struct
 	tr_frame_type_t fr_type;
 	int data_len;
 	uint8 *data;
-}pi_t;
-
-
-typedef struct
-{
-	uint8 sn[8];
-	tr_trans_type_t trans_type;
-	tr_frame_type_t fr_type;
-	uint16 data_len;
-	uint8 *data;
-}bi_t;
+}pi_t, bi_t;
 
 
 typedef struct

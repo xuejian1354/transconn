@@ -65,6 +65,8 @@
 #define DE_UDP_PORT		12688
 #endif
 
+#define GLOBAL_CONF_UPAPK_DIR	"shomely_update_dir"
+
 /*
 Old version not ed_type on gateway frame
 This macro just support that
@@ -86,6 +88,15 @@ st(															\
 
 typedef byte zidentify_no_t[8];
 typedef byte cidentify_no_t[8];
+
+#ifdef READ_CONF_FILE
+typedef struct
+{
+#ifdef REMOTE_UPDATE_APK
+	char upapk_dir[64];
+#endif
+}global_conf_t;
+#endif
 
 #ifdef COMM_CLIENT
 char *get_serial_port();
@@ -112,6 +123,14 @@ void event_init();
 
 #ifdef CLIENT_TEST
 void set_target_ip(char *ipaddr, int len);
+#endif
+
+#ifdef READ_CONF_FILE
+void conf_read_from_file();
+
+#ifdef REMOTE_UPDATE_APK
+void reapk_version_code(char *ipaddr, cidentify_no_t cidentify_no);
+#endif
 #endif
 
 #endif	//__GLOBALS_H__

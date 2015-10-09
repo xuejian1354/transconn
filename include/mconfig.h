@@ -36,5 +36,9 @@
 #define BALANCE_SERVER_FILE		"/etc/balance_serlist"
 #endif
 
+#ifdef READ_CONF_FILE
+#define CONF_FILE	"/etc/transconn.conf"
+#endif
+
 #endif //__MCONFIG_H__
 

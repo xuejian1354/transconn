@@ -1002,6 +1002,17 @@ Handle_UR_free:
 #ifdef COMM_SERVER
 	dc_t mdc;
 	gw_info_t *p_gw = get_gateway_list()->p_gw;
+
+#ifdef REMOTE_UPDATE_APK
+	if(!memcmp(dc->zidentify_no, dc->cidentify_no, sizeof(cidentify_no_t))
+		&& dc->trans_type == TRTYPE_UDP_NORMAL
+		&& dc->tr_info == TRINFO_UPDATE)
+	{
+		reapk_version_code(ipaddr, dc->cidentify_no);
+		return;
+	}
+#endif
+	
 	while(p_gw != NULL)
 	{
 		if(!memcmp(p_gw->gw_no, dc->zidentify_no, sizeof(zidentify_no_t)))

@@ -16,6 +16,7 @@
 #include "globals.h"
 #include <pthread.h>
 #include <errno.h>
+#include <dirent.h>
 #include <services/mevent.h>
 #include <protocol/protocol.h>
 
@@ -30,6 +31,13 @@ static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 static int tcp_port = TRANS_TCP_PORT;
 static int udp_port = TRANS_UDP_PORT;
 static uint8 _common_no[8] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
+#endif
+
+#ifdef READ_CONF_FILE
+global_conf_t g_conf = {0};
+
+static void get_read_line(char *line, int len);
+static void set_conf_val(char *cmd, char *val);
 #endif
 
 #ifdef COMM_CLIENT
@@ -142,3 +150,155 @@ void event_init()
 #endif
 #endif
 }
+
+#ifdef READ_CONF_FILE
+void conf_read_from_file()
+{
+	FILE *fp = NULL;
+	char buf[128] = {0};
+		
+	if((fp = fopen(CONF_FILE, "r")) != NULL)
+	{
+		while(fgets(buf, sizeof(buf), fp) != NULL)
+		{
+			get_read_line(buf, strlen(buf));	
+			memset(buf, 0, sizeof(buf));
+		}
+	}
+}
+
+void get_read_line(char *line, int len)
+{
+	int i, s;
+	int is_ignore = 0;
+
+	int cmd_ph, cmd_pt, val_ph, val_pt;
+	char p_isset = 0x07;
+	
+	if(line == NULL || len < 3)
+	{
+		return;
+	}
+	
+	for(i=0; i<len; i++)
+	{	
+		switch(*(line+i))
+		{
+		case ' ':
+			break;
+
+		case '#':
+			if(!is_ignore)
+			{
+				return;
+			}
+			
+		default:
+			is_ignore = 1;
+			if(p_isset & 0x01)
+			{
+				cmd_ph = i;
+				p_isset &= ~0x01;
+			}
+			else if(p_isset & 0x02)
+			{
+				if(*(line+i) == '=')
+				{
+					int j;
+					for(j=i-1; j>=cmd_ph; j--)
+					{
+						if(*(line+j) != ' ')
+						{
+							cmd_pt = j+1;
+							p_isset &= ~0x02;
+							break;
+						}
+					}
+				}
+			}
+			else if(p_isset & 0x04)
+			{
+				val_ph = i;
+				p_isset &= ~0x04;
+			}
+			
+			break;
+		}
+	}
+
+	for(s=len-2; s>=val_ph; s--)
+	{
+		if(*(line+s) != ' ')
+		{
+			val_pt = s+1;
+			break;
+		}
+	}
+
+	if((cmd_ph < cmd_pt)
+		&& (cmd_pt < val_ph)
+		&& (val_ph < val_pt))
+	{
+		char cmd[64] = {0};
+		char val[64] = {0};
+
+		memcpy(cmd, line+cmd_ph, cmd_pt-cmd_ph);
+		memcpy(val, line+val_ph, val_pt-val_ph);
+
+		set_conf_val(cmd, val);
+	}
+}
+
+void set_conf_val(char *cmd, char *val)
+{
+#ifdef REMOTE_UPDATE_APK
+	if(!strcmp(cmd, GLOBAL_CONF_UPAPK_DIR))
+	{
+		strcpy(g_conf.upapk_dir, val);
+	}
+#endif
+}
+
+#ifdef REMOTE_UPDATE_APK
+void reapk_version_code(char *ipaddr, cidentify_no_t cidentify_no)
+{
+	ub_t ub;
+	DIR *dp;
+	struct dirent *ep;
+
+	int version_code = 0;
+	
+	memcpy(ub.zidentify_no, cidentify_no, sizeof(cidentify_no_t));
+	memcpy(ub.cidentify_no, cidentify_no, sizeof(cidentify_no_t));
+	ub.trans_type = TRTYPE_UDP_NORMAL;
+	ub.tr_info = TRINFO_REDATA;
+
+	if((dp = opendir(g_conf.upapk_dir)) != NULL)
+	{
+		while((ep = readdir(dp)) != NULL)
+		{
+			int f_len = strlen(ep->d_name);
+			
+			if(f_len > 12
+				&& !strncmp(ep->d_name, "SHomely_", 8)
+				&& !strncmp(ep->d_name+f_len-4, ".apk", 4))
+			{
+				char codestr[16] = {0};
+				memcpy(codestr, ep->d_name+8, f_len-12);
+				int tcode = atoi(codestr);
+				version_code = version_code>tcode?version_code:tcode;
+			}
+		}
+	}
+
+	char data[4];
+	incode_xtoc16(data, version_code);
+	
+	ub.data = data;
+	ub.data_len = 4;
+		
+	send_frame_udp_request(ipaddr, TRHEAD_UB, &ub);
+}
+#endif
+#endif
+
