@@ -275,6 +275,20 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 		}
 		return opt;
 
+	case FRAPP_RELAYSOCKET: 
+		opt = calloc(1, sizeof(dev_opt_t));
+		opt->type = type;
+		opt->common.method = DEV_CONTROL_BOTH;
+		if(len >= 2)
+		{
+			incode_ctoxs(opt->device.relaysocket.data, data, 2);
+		}
+		else
+		{
+			opt->device.relaysocket.data[0] = 0;
+		}
+		return opt;
+
 	default: return NULL;
 	}
 }
@@ -544,6 +558,18 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		}
 		return 0;
 
+	case FRAPP_RELAYSOCKET: 
+		if(len >= DEVOPT_RELAYSOCKET_FIX_SIZE)
+		{
+			opt->common.method = get_devopt_method_ctox(data[0]);
+			incode_ctoxs(opt->device.relaysocket.data, data+1, 2);
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+
 	default: return -1;
 	}
 
@@ -751,7 +777,16 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		buffer->data = calloc(1, buffer->size);
 		memcpy(buffer->data, 
 			opt->device.aircontroller.current_buffer, buffer->size);
-		return buffer;		
+		return buffer;
+
+	case FRAPP_RELAYSOCKET: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_RELAYSOCKET_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		
+		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
+		incode_xtocs(buffer->data+1, opt->device.relaysocket.data, 1);
+		return buffer;
 
 	default: return NULL;
 	}
@@ -866,6 +901,17 @@ int set_devopt_data(dev_opt_t *opt, uint8 *data, int len)
 		}
 		break;
 
+	case FRAPP_RELAYSOCKET: 
+		if(len >=1)
+		{
+			opt->device.relaysocket.data[0] = data[0];
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+
 	default: return -1;
 	}
 
@@ -970,6 +1016,13 @@ fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt)
 		buffer->data = calloc(1, buffer->size);
 		memcpy(buffer->data, 
 			opt->device.aircontroller.current_buffer, buffer->size);
+		return buffer;
+
+	case FRAPP_RELAYSOCKET: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_RELAYSOCKET_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		incode_xtocs(buffer->data, opt->device.relaysocket.data, 1);
 		return buffer;
 
 	default: return NULL;
@@ -1086,6 +1139,10 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 		}
 		break;
 
+	case FRAPP_RELAYSOCKET: 
+		dst->device.relaysocket.data[0] = src->device.relaysocket.data[0];
+		break;
+
 	default: return -1;
 	}
 
@@ -1163,6 +1220,11 @@ void devopt_de_print(dev_opt_t *opt)
 			opt->device.aircontroller.pm25_thresmode, 
 			opt->device.aircontroller.pm25_threshold,
 			opt->device.aircontroller.pm25_val);
+		break;
+
+	case FRAPP_RELAYSOCKET: 
+		DE_PRINTF("[RelaySocket]\n");
+		DE_PRINTF("data:%02X\n\n", opt->device.relaysocket.data[0]);
 		break;
 	}
 }
