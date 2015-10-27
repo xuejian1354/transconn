@@ -2,7 +2,11 @@
 transconn
 connect_listen
 *.swp
-include/*/
+
+include/*
+!include/*.mk
+!include/*.h
+
 tests/client
 tests/perznet
 tests/deulog
