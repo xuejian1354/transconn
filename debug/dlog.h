@@ -44,57 +44,6 @@ st( \
     }   \
 )*/
 
-#ifdef COMM_CLIENT
-#define START_PARAMS(...)								\
-st(																					\
-	if(argc > 1)																	\
-	{																				\
-		set_serial_port(argv[1]);													\
-	}																				\
-																					\
-	if (argc > 2)																	\
-		set_tcp_port(atoi(argv[2]));												\
-																					\
-	if(argc > 3)																	\
-		set_udp_port(atoi(argv[3]));												\
-																					\
-	if(argc > 4)																	\
-	{																				\
-		printf("Usage: %s [Serial Port] [TCP Port] [UDP Port]\n", TARGET_NAME);	\
-		return -1;																	\
-	}																				\
-																					\
-	printf("%s start!\n", TARGET_NAME);											\
-	printf("Server:%s\nIP:%s\n", 												\
-		get_server_name_from_ip(get_server_ip()), get_server_ip());					\
-	printf("Serial Port:%s, TCP Port:%d, UDP Port:%d\n", 						\
-		get_serial_port(), get_tcp_port(), get_udp_port());							\
-)
-
-#elif defined(COMM_SERVER)
-#define START_PARAMS(...)											\
-st(																					\
-	if (argc > 1)																	\
-		set_tcp_port(atoi(argv[1]));												\
-																					\
-	if (argc > 2)																	\
-		set_udp_port(atoi(argv[2]));												\
-																					\
-	if (argc > 3)																	\
-	{																				\
-		printf("Usage:%s [TCP Port] [UDP Port]\n", TARGET_NAME);					\
-		return -1;																	\
-	}																				\
-																					\
-	printf("%s start!\n", TARGET_NAME);											\
-	printf("Server:%s\nIP:%s\n", 												\
-		get_server_name_from_ip((char *)get_server_ip()), get_server_ip());			\
-	printf("TCP Port:%d, UDP Port:%d\n", get_tcp_port(), get_udp_port());		\
-)
-
-#else
-#define START_PARAMS(...)
-#endif
 
 #define PRINT_HEX(data, len)			\
 st(										\

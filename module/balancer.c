@@ -133,7 +133,7 @@ int del_relser_info(char *name)
 }
 
 
-void serlist_read_from_confile(void)
+int serlist_read_from_confile(void)
 {
 	FILE *fp = NULL;
 	char buf[64] = {0};
@@ -181,7 +181,18 @@ void serlist_read_from_confile(void)
 			
 			memset(buf, 0, sizeof(buf));
 		}
+
+		if(p_serlist->max_num == 0)
+		{
+			return -1;
+		}
 	}
+	else
+	{
+		return -1;
+	}
+
+	return 0;
 }
 
 line_data_t *serlist_linehandle(char *buf, int len)

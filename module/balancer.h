@@ -51,7 +51,7 @@ typedef struct RelSer_List
 	int max_num;
 }relser_list_t;
 
-void serlist_read_from_confile(void);
+int serlist_read_from_confile(void);
 const char *get_server_ip(void);
 const char *get_server_ip_from_name(char *name);
 const char *get_server_name_from_ip(char *ip);

@@ -20,15 +20,20 @@
 
 int main(int argc, char **argv)
 {
-#ifdef LOAD_BALANCE_SUPPORT
-	serlist_read_from_confile();
-#endif
-
 #ifdef READ_CONF_FILE
-	conf_read_from_file();
+	if(conf_read_from_file() < 0)
+	{
+		return -1;
+	}
 #endif
 
-	START_PARAMS();
+#ifdef DB_API_SUPPORT
+#endif
+
+	if(start_params(argc, argv) != 0)
+	{
+		return 1;
+	}
 
 #ifdef THREAD_POOL_SUPPORT
 	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)

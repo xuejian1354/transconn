@@ -45,6 +45,9 @@
 //#define TRANS_UDP_SESS_QUEUE
 #endif
 
+//serial dev
+#define TRANS_SERIAL_DEV	"/dev/ttyS1"
+
 //tcp protocol using port
 #define TRANS_TCP_PORT	11565
 
@@ -65,7 +68,24 @@
 #define DE_UDP_PORT		12688
 #endif
 
-#define GLOBAL_CONF_UPAPK_DIR	"shomely_update_dir"
+#define GLOBAL_CONF_SERIAL_PORT		"serial_port"
+#define GLOBAL_CONF_TCP_PORT		"tcp_port"
+#define GLOBAL_CONF_UDP_PORT		"udp_port"
+
+#define GLOBAL_CONF_UPAPK_DIR		"shomely_update_dir"
+
+#define GLOBAL_CONF_DATABASE		"db_database"
+#define GLOBAL_CONF_DBUSER			"db_username"
+#define GLOBAL_CONF_DBPASS			"db_password"
+
+#define GLOBAL_CONF_ISSETVAL_SERIAL		0x00000001
+#define GLOBAL_CONF_ISSETVAL_TCP		0x00000002
+#define GLOBAL_CONF_ISSETVAL_UDP		0x00000004
+#define GLOBAL_CONF_ISSETVAL_UPAPK		0x00000008
+#define GLOBAL_CONF_ISSETVAL_DB			0x00000010
+#define GLOBAL_CONF_ISSETVAL_DBUSER		0x00000020
+#define GLOBAL_CONF_ISSETVAL_DBPASS		0x00000040
+
 
 /*
 Old version not ed_type on gateway frame
@@ -81,10 +101,19 @@ This macro just support that
 
 #define IP_ADDR_MAX_SIZE	24
 
+#ifdef COMM_CLIENT
 #define GET_SERVER_IP(ipaddr)								\
 st(															\
 	sprintf(ipaddr, "%s:%d", get_server_ip(), get_udp_port());	\
 )
+#endif
+
+#ifdef COMM_SERVER
+#define GET_SERVER_IP(ipaddr)								\
+st(															\
+	sprintf(ipaddr, "%s:%d", "0.0.0.0", get_udp_port());	\
+)
+#endif
 
 typedef byte zidentify_no_t[8];
 typedef byte cidentify_no_t[8];
@@ -92,8 +121,27 @@ typedef byte cidentify_no_t[8];
 #ifdef READ_CONF_FILE
 typedef struct
 {
+	uint32 isset_flag;
+#ifdef SERIAL_SUPPORT
+	char serial_port[16];
+#endif
+
+#ifdef TRANS_TCP_SERVER
+	int tcp_port;
+#endif
+
+#ifdef TRANS_UDP_SERVICE
+	int udp_port;
+#endif
+
 #ifdef REMOTE_UPDATE_APK
 	char upapk_dir[64];
+#endif
+
+#ifdef DB_API_SUPPORT
+	char db_name[32];
+	char db_user[32];
+	char db_password[64];
 #endif
 }global_conf_t;
 #endif
@@ -118,6 +166,7 @@ uint8 *get_broadcast_no();
 uint8 *get_common_no();
 #endif
 
+int start_params(int argc, char **argv);
 int mach_init();
 void event_init();
 
@@ -126,7 +175,7 @@ void set_target_ip(char *ipaddr, int len);
 #endif
 
 #ifdef READ_CONF_FILE
-void conf_read_from_file();
+int conf_read_from_file();
 
 #ifdef REMOTE_UPDATE_APK
 void reapk_version_code(char *ipaddr, cidentify_no_t cidentify_no);

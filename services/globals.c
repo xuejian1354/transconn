@@ -21,7 +21,7 @@
 #include <protocol/protocol.h>
 
 #ifdef COMM_CLIENT
-static char serial_port[16] = "/dev/ttyS1";
+static char serial_port[16] = TRANS_SERIAL_DEV;
 static int tcp_port = TRANS_TCP_PORT;
 static int udp_port = TRANS_UDP_REMOTE_PORT;
 static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -38,6 +38,7 @@ global_conf_t g_conf = {0};
 
 static void get_read_line(char *line, int len);
 static void set_conf_val(char *cmd, char *val);
+static int get_conf_setval();
 #endif
 
 #ifdef COMM_CLIENT
@@ -88,6 +89,163 @@ uint8 *get_common_no()
 	return _common_no;
 }
 #endif
+
+int start_params(int argc, char **argv)
+{
+	if(argc > 1 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")))
+	{
+#ifdef SERIAL_SUPPORT
+  #ifdef TRANS_TCP_SERVER
+		printf("Usage: %s [Serial Port] [TCP Port]\n", TARGET_NAME);
+    #ifdef TRANS_UDP_SERVICE
+		printf("Usage: %s [Serial Port] [TCP Port] [UDP Port]\n", TARGET_NAME);
+    #endif
+  #elif defined(TRANS_UDP_SERVICE)
+		printf("Usage: %s [Serial Port] [UDP Port]\n", TARGET_NAME);
+  #else
+  		printf("Usage: %s [Serial Port]\n", TARGET_NAME);
+  #endif
+#elif defined(TRANS_TCP_SERVER)  
+  #ifdef TRANS_UDP_SERVICE
+  		printf("Usage: %s [TCP Port] [UDP Port]\n", TARGET_NAME);
+  #else
+  		printf("Usage: %s [TCP Port]\n", TARGET_NAME);
+  #endif
+#elif defined(TRANS_UDP_SERVICE)
+		printf("Usage: %s [UDP Port]\n", TARGET_NAME);
+#else
+		printf("Usage: %s\n", TARGET_NAME);
+#endif
+		return 1;
+	}
+
+
+#ifdef SERIAL_SUPPORT
+	if(argc > 1)
+	{
+		set_serial_port(argv[1]);
+	}
+	else
+	{
+  #ifdef READ_CONF_FILE
+		set_serial_port(g_conf.serial_port);
+  #else
+		set_serial_port(TRANS_SERIAL_DEV);
+  #endif
+	}
+	
+  #ifdef TRANS_TCP_SERVER
+  	if(argc > 2)
+  	{
+		set_tcp_port(atoi(argv[2]));
+  	}
+	else
+	{
+	#ifdef READ_CONF_FILE
+		set_tcp_port(g_conf.tcp_port);
+    #else
+		set_tcp_port(TRANS_TCP_PORT);
+    #endif
+	}
+	
+    #ifdef TRANS_UDP_SERVICE
+
+	if(argc > 3)
+	{
+		set_udp_port(atoi(argv[3]));
+	}
+	else
+	{
+      #ifdef READ_CONF_FILE
+		set_udp_port(g_conf.udp_port);
+      #else
+		set_udp_port(TRANS_UDP_PORT);
+      #endif
+	}
+    #endif
+	
+  #elif defined(TRANS_UDP_SERVICE)
+	if(argc > 2)
+  	{
+		set_udp_port(atoi(argv[2]));
+  	}
+	else
+	{
+	#ifdef READ_CONF_FILE
+		set_udp_port(g_conf.udp_port);
+    #else
+		set_udp_port(TRANS_UDP_PORT);
+    #endif
+	}
+  #endif
+
+#elif defined(TRANS_TCP_SERVER)
+	if(argc > 1)
+  	{
+		set_tcp_port(atoi(argv[1]));
+  	}
+	else
+	{
+  #ifdef READ_CONF_FILE
+		set_tcp_port(g_conf.tcp_port);
+  #else
+		set_tcp_port(TRANS_TCP_PORT);
+  #endif
+	}
+
+  #ifdef TRANS_UDP_SERVICE
+  	if(argc > 2)
+  	{
+		set_udp_port(atoi(argv[2]));
+  	}
+	else
+	{
+    #ifdef READ_CONF_FILE
+		set_udp_port(g_conf.udp_port);
+    #else
+		set_udp_port(TRANS_UDP_PORT);
+    #endif
+	}
+  #endif
+  
+#elif defined(TRANS_UDP_SERVICE)
+	if(argc > 1)
+  	{
+		set_udp_port(atoi(argv[1]));
+  	}
+	else
+	{
+    #ifdef READ_CONF_FILE
+		set_udp_port(g_conf.udp_port);
+    #else
+		set_udp_port(TRANS_UDP_PORT);
+    #endif
+	}
+#else
+#warning "No Comm protocol be selected, please set uart, tcp or udp."
+#endif
+
+#ifdef COMM_CLIENT
+	printf("Gateway Start!\n");
+#else
+	printf("Server Start!\n");
+#endif
+
+#ifdef SERIAL_SUPPORT
+	printf("Serial port device:\"%s\"\n", get_serial_port());
+#endif
+
+#ifdef TRANS_TCP_SERVER
+	printf("TCP transmit port:%d\n", get_tcp_port());
+#endif
+
+#ifdef TRANS_UDP_SERVICE
+	printf("UDP transmit port:%d\n", get_udp_port());
+#endif
+
+	return 0;
+}
+
 
 int mach_init()
 {
@@ -152,10 +310,11 @@ void event_init()
 }
 
 #ifdef READ_CONF_FILE
-void conf_read_from_file()
+int conf_read_from_file()
 {
 	FILE *fp = NULL;
 	char buf[128] = {0};
+	g_conf.isset_flag = 0;
 		
 	if((fp = fopen(CONF_FILE, "r")) != NULL)
 	{
@@ -165,6 +324,18 @@ void conf_read_from_file()
 			memset(buf, 0, sizeof(buf));
 		}
 	}
+	else
+	{
+		printf("Error: Read \"%s\" error, please set configuration file\n", CONF_FILE);
+		return -1;
+	}
+
+	if(get_conf_setval() < 0)
+	{
+		return -1;
+	}
+
+	return 0;
 }
 
 void get_read_line(char *line, int len)
@@ -251,12 +422,114 @@ void get_read_line(char *line, int len)
 
 void set_conf_val(char *cmd, char *val)
 {
+#ifdef SERIAL_SUPPORT
+	if(!strcmp(cmd, GLOBAL_CONF_SERIAL_PORT))
+	{
+		strcpy(g_conf.serial_port, val);
+		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_SERIAL;
+	}
+#endif
+
+#ifdef TRANS_TCP_SERVER
+	if(!strcmp(cmd, GLOBAL_CONF_TCP_PORT))
+	{
+		g_conf.tcp_port = atoi(val);
+		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_TCP;
+	}
+#endif
+
+#ifdef TRANS_UDP_SERVICE
+	if(!strcmp(cmd, GLOBAL_CONF_UDP_PORT))
+	{
+		g_conf.udp_port = atoi(val);
+		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UDP;
+	}
+#endif
+
 #ifdef REMOTE_UPDATE_APK
 	if(!strcmp(cmd, GLOBAL_CONF_UPAPK_DIR))
 	{
 		strcpy(g_conf.upapk_dir, val);
+		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UPAPK;
 	}
 #endif
+
+#ifdef DB_API_SUPPORT
+	if(!strcmp(cmd, GLOBAL_CONF_DATABASE))
+	{
+		strcpy(g_conf.db_name, val);
+		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_DB;
+	}
+	else if(!strcmp(cmd, GLOBAL_CONF_DBUSER))
+	{
+		strcpy(g_conf.db_user, val);
+		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_DBUSER;
+	}
+	else if(!strcmp(cmd, GLOBAL_CONF_DBPASS))
+	{
+		strcpy(g_conf.db_password, val);
+		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_DBPASS;
+	}
+#endif
+}
+
+int get_conf_setval()
+{
+	int i;
+	uint32 issetflags[] = {
+#ifdef SERIAL_SUPPORT
+					GLOBAL_CONF_ISSETVAL_SERIAL,
+#endif
+#ifdef TRANS_TCP_SERVER
+					GLOBAL_CONF_ISSETVAL_TCP,
+#endif
+#ifdef TRANS_UDP_SERVICE
+					GLOBAL_CONF_ISSETVAL_UDP,
+#endif
+#ifdef REMOTE_UPDATE_APK
+					GLOBAL_CONF_ISSETVAL_UPAPK,
+#endif
+#ifdef DB_API_SUPPORT
+					GLOBAL_CONF_ISSETVAL_DB,
+					GLOBAL_CONF_ISSETVAL_DBUSER,
+					GLOBAL_CONF_ISSETVAL_DBPASS,
+#endif
+					};
+
+	char *issetvals[] = {
+#ifdef SERIAL_SUPPORT
+					GLOBAL_CONF_SERIAL_PORT,
+#endif
+#ifdef TRANS_TCP_SERVER
+					GLOBAL_CONF_TCP_PORT,
+#endif
+#ifdef TRANS_UDP_SERVICE
+					GLOBAL_CONF_UDP_PORT,
+#endif
+#ifdef REMOTE_UPDATE_APK
+					GLOBAL_CONF_UPAPK_DIR,
+#endif
+#ifdef DB_API_SUPPORT
+					GLOBAL_CONF_DATABASE,
+					GLOBAL_CONF_DBUSER,
+					GLOBAL_CONF_DBPASS,
+#endif
+					};
+
+
+	for(i=0; i<sizeof(issetflags)/sizeof(uint32); i++)
+	{
+		if(!(g_conf.isset_flag & issetflags[i]))
+		{
+			printf("Error: val \"%s\" is not set in \"%s\"\n",
+							issetvals[i],
+							CONF_FILE);
+			
+			return -1;
+		}
+	}
+	
+	return 0;
 }
 
 #ifdef REMOTE_UPDATE_APK

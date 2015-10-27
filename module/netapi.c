@@ -42,7 +42,7 @@ static struct sockaddr_in ulog_addr;
 
 #ifdef TRANS_UDP_SERVICE
 static int udpfd;
-static struct sockaddr_in m_addr, server_addr;
+static struct sockaddr_in m_addr;
 #endif
 #ifdef TRANS_TCP_SERVER
 static int tcpfd;
@@ -303,10 +303,6 @@ int socket_udp_service_init(int port)
 	m_addr.sin_family = PF_INET;
 	m_addr.sin_port = htons(port);
 	m_addr.sin_addr.s_addr = htonl(INADDR_ANY);//inet_addr("192.168.1.1");
-
-	server_addr.sin_family = PF_INET;
-	server_addr.sin_port = htons(port);
-	server_addr.sin_addr.s_addr = inet_addr(get_server_ip());
 
 #ifdef DE_TRANS_UDP_STREAM_LOG
 	ulog_addr.sin_family = PF_INET;

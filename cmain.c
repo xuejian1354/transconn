@@ -19,10 +19,19 @@
 int main(int argc, char **argv)
 {
 #ifdef LOAD_BALANCE_SUPPORT
-	serlist_read_from_confile();
+	if(serlist_read_from_confile() < 0)
+	{
+		printf("Error: Read \"%s\" fail, please set correct server list file\n", 
+			BALANCE_SERVER_FILE);
+		
+		return -1;
+	}
 #endif
 	
-	START_PARAMS();
+	if(start_params(argc, argv) != 0)
+	{
+		return 1;
+	}
 
 #ifdef THREAD_POOL_SUPPORT
 	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
