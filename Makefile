@@ -54,12 +54,12 @@ include $(TOPDIR)/include/include.mk
 
 $(SERVER_TARGET):$(inc_deps) server_comshow $(SERVER_OBJS)
 	$(call echocmd,TAR,$(SERVER_TARGET), \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) -O2 -o $@ $(SERVER_OBJS) $(STD_LDFLAGS) $(patsubst %,%-s,$(LDFLAGS)))
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -O2 -o $@ $(SERVER_OBJS) $(STD_LDFLAGS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG))
 	@$(STARGET_STRIP) $@
 
 $(CLIENT_TARGET):$(inc_deps) client_comshow $(CLIENT_OBJS)
 	$(call echocmd,TAR,$(CLIENT_TARGET), \
-	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ $(CLIENT_OBJS) $(LDPATH) $(STD_LDFLAGS) $(patsubst %,%-c,$(LDFLAGS)))
+	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) $(LDPATH) $(CLIENT_LDPATH) -O2 -o $@ $(CLIENT_OBJS) $(STD_LDFLAGS) $(patsubst %,%-c,$(LDFLAGS)) $(CLIENT_LDFLAG))
 	@$(CTARGET_STRIP) $@
 
 %-s.o:%.c mconfig/server_config
@@ -88,7 +88,7 @@ sclean:
 	(find -name "*-s.[oa]" | xargs $(RM)) && $(RM) $(SERVER_TARGET)
 
 clean:cclean sclean
-	$(RM) -r $(dir $(inc_deps))
+	$(RM) -r $(dir $(inc_deps)) $(inc_dirs_deps)
 
 help:
 	@echo "help:"

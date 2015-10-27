@@ -17,6 +17,7 @@
 #include <services/globals.h>
 #include <module/balancer.h>
 #include <module/netapi.h>
+#include <module/dbopt.h>
 
 int main(int argc, char **argv)
 {
@@ -28,6 +29,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef DB_API_SUPPORT
+	sql_test();
 #endif
 
 	if(start_params(argc, argv) != 0)
