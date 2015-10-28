@@ -475,6 +475,7 @@ void udp_data_show(deudp_print_t deprint, uint8 flag,
 		}
 	}
 
+#ifdef DE_TRANS_UDP_STREAM_LOG
 	if(deprint == DE_UDP_RECV
 		&& addr->sin_port == htons(DE_UDP_PORT)
 		&& addr->sin_addr.s_addr == inet_addr("127.0.0.1"))
@@ -501,6 +502,7 @@ void udp_data_show(deudp_print_t deprint, uint8 flag,
 			DE_PRINTF("  UB:  80\n\n");
 		}
 	}
+#endif
 
 	return;
 	
