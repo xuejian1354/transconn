@@ -34,7 +34,7 @@ static uint8 _common_no[8] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
 #endif
 
 #ifdef READ_CONF_FILE
-global_conf_t g_conf = {0};
+static global_conf_t g_conf = {0};
 
 static void get_read_line(char *line, int len);
 static void set_conf_val(char *cmd, char *val);
@@ -310,6 +310,11 @@ void event_init()
 }
 
 #ifdef READ_CONF_FILE
+global_conf_t *get_global_conf()
+{
+	return &g_conf;
+}
+
 int conf_read_from_file()
 {
 	FILE *fp = NULL;

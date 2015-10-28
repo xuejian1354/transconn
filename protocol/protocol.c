@@ -17,6 +17,7 @@
 #include "protocol.h"
 #include <mincode.h>
 #include <module/serial.h>
+#include <module/dbopt.h>
 #include <protocol/trframelysis.h>
 #include <protocol/trrequest.h>
 #include <services/mevent.h>
@@ -284,6 +285,9 @@ int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev)
 				pre_dev->next = t_dev->next;
 				t_dev->next = gw_info->p_dev;
 				gw_info->p_dev = t_dev;
+#ifdef DB_API_SUPPORT
+				Sql_AddZdev(t_dev);
+#endif
 				pthread_mutex_unlock(&gw_info->lock);
 			}
 			
@@ -294,6 +298,9 @@ int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev)
 	pthread_mutex_lock(&gw_info->lock);
 	m_dev->next = gw_info->p_dev;
 	gw_info->p_dev = m_dev;
+#ifdef DB_API_SUPPORT
+	Sql_AddZdev(m_dev);
+#endif
 	pthread_mutex_unlock(&gw_info->lock);
 
 	return 0;
@@ -348,6 +355,9 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 			pthread_mutex_unlock(&gw_info->lock);
 
 			get_devopt_data_free(t_dev->zdev_opt);
+#ifdef DB_API_SUPPORT
+			Sql_DelZdev(t_dev->zidentity_no);
+#endif
 			free(t_dev);
 			return 0;
 		}
@@ -618,9 +628,12 @@ int add_gateway_info(gw_info_t *m_gw)
 				pre_gw->next = t_gw->next;
 				t_gw->next = gw_list.p_gw;
 				gw_list.p_gw = t_gw;
+#ifdef DB_API_SUPPORT
+				Sql_AddGateway(t_gw);
+#endif
 				pthread_mutex_unlock(&gw_list.lock);
 			}
-			
+
 			return 1;
 		}
 	}
@@ -628,11 +641,15 @@ int add_gateway_info(gw_info_t *m_gw)
 	pthread_mutex_lock(&gw_list.lock);
 	m_gw->next = gw_list.p_gw;
 	gw_list.p_gw = m_gw;
+#ifdef DB_API_SUPPORT
+	Sql_AddGateway(m_gw);
+#endif
+	
 	if(gw_list.max_num >= SERVER_GW_LIST_MAX_NUM)
 	{
 		if(pre_before != NULL)
 			pre_before->next = NULL;
-		
+
 		free(pre_gw);
 	}
 	else
@@ -660,6 +677,14 @@ gw_info_t *query_gateway_info(zidentify_no_t gw_no)
 			return t_gw;
 		}
 	}
+
+#ifdef DB_API_SUPPORT
+	if((t_gw = Sql_QueryGateway(gw_no)) != NULL 
+		&& add_gateway_info(t_gw) == 0)
+	{
+		return t_gw;
+	}
+#endif
 
 	return NULL;
 }
@@ -712,6 +737,9 @@ int del_gateway_info(zidentify_no_t gw_no)
 				free(pre_contain);
 			}
 
+#ifdef DB_API_SUPPORT
+			Sql_DelGateway(gw_no);
+#endif
 			free(t_gw);
 			return 0;
 		}
