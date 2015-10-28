@@ -19,16 +19,45 @@
 #define DB_SERVER	"localhost"
 #define DB_PORT		3306
 
-extern global_conf_t g_conf;
+int Sql_AddZdev(dev_info_t *m_dev)
+{
+	return 0;
+}
 
-void sql_test()
+dev_info_t *Sql_QueryZdev(zidentify_no_t zidentity_no)
+{
+	return NULL;
+}
+
+int Sql_DelZdev(zidentify_no_t zidentity_no)
+{
+	return 0;
+}
+
+int Sql_AddGateway(gw_info_t *m_gw)
+{
+	return 0;
+}
+
+gw_info_t *Sql_QueryGateway(zidentify_no_t gw_no)
+{
+	return NULL;
+}
+
+int Sql_DelGateway(zidentify_no_t gw_no)
+{
+	return 0;
+}
+
+void Sql_Test()
 {
      MYSQL mysql_conn;
+	 global_conf_t *m_conf = get_global_conf();
 
      if (mysql_init(&mysql_conn) != NULL)
      {
-         if (mysql_real_connect(&mysql_conn, DB_SERVER, g_conf.db_user, 
-		 	g_conf.db_password, g_conf.db_name, 0, NULL, 0) != NULL)
+         if (mysql_real_connect(&mysql_conn, DB_SERVER, m_conf->db_user, 
+		 		m_conf->db_password, m_conf->db_name, 0, NULL, 0) != NULL)
 		 {
 		 	printf("%s:GOOD!\n", __func__);
          }

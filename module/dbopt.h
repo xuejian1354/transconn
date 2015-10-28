@@ -18,8 +18,17 @@
 #define __DBOPT_H__
 
 #include <services/globals.h>
+#include <protocol/protocol.h>
 #include <mysql/mysql.h>
 
-void sql_test();
+int Sql_AddZdev(dev_info_t *m_dev);
+dev_info_t *Sql_QueryZdev(zidentify_no_t zidentity_no);
+int Sql_DelZdev(zidentify_no_t zidentity_no);
+
+int Sql_AddGateway(gw_info_t *m_gw);
+gw_info_t *Sql_QueryGateway(zidentify_no_t gw_no);
+int Sql_DelGateway(zidentify_no_t gw_no);
+
+void Sql_Test();
 
 #endif	//__DBOPT_H__

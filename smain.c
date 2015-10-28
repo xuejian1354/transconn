@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef DB_API_SUPPORT
-	sql_test();
+	Sql_Test();
 #endif
 
 	if(start_params(argc, argv) != 0)

@@ -175,6 +175,7 @@ void set_target_ip(char *ipaddr, int len);
 #endif
 
 #ifdef READ_CONF_FILE
+global_conf_t *get_global_conf();
 int conf_read_from_file();
 
 #ifdef REMOTE_UPDATE_APK
