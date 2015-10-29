@@ -29,7 +29,12 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef DB_API_SUPPORT
-	Sql_Test();
+	if(sql_init() < 0)
+	{
+		sql_release();
+		return -1;
+	}
+	sql_release();
 #endif
 
 	if(start_params(argc, argv) != 0)
@@ -88,6 +93,6 @@ int main(int argc, char **argv)
 	}
 
 end:	
-	printf("end!(#>_<#)\n");
+	printf("%s()%d : end!(#>_<#)\n", __FUNCTION__, __LINE__);
 	return 0;
 }

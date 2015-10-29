@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 
 	if(argc > 4)
 	{
-		printf("error params\n");
+		printf("%s()%d : error params\n", __FUNCTION__, __LINE__);
 		WARNS();
 		return -1;
 	}

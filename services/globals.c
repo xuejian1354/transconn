@@ -263,8 +263,8 @@ int mach_init()
 	
 	if(pthread_mutex_init(&(get_gateway_info()->lock), NULL) != 0)
     {
-        fprintf(stderr, "%s: pthread_mutext_init failed, errno:%d, error:%s\n",
-            __FUNCTION__, errno, strerror(errno));
+        fprintf(stderr, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
+            __FUNCTION__, __LINE__, errno, strerror(errno));
         return -1;
     }
 
@@ -274,8 +274,8 @@ int mach_init()
 
 	if(pthread_mutex_init(&(get_client_list()->lock), NULL) != 0)
     {
-        fprintf(stderr, "%s: pthread_mutext_init failed, errno:%d, error:%s\n",
-            __FUNCTION__, errno, strerror(errno));
+        fprintf(stderr, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
+            __FUNCTION__, __LINE__, errno, strerror(errno));
         return -1;
     }
 #endif
@@ -287,8 +287,8 @@ int mach_init()
 
 	if(pthread_mutex_init(&(get_gateway_list()->lock), NULL) != 0)
     {
-        fprintf(stderr, "%s: pthread_mutext_init failed, errno:%d, error:%s\n",
-            __FUNCTION__, errno, strerror(errno));
+        fprintf(stderr, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
+            __FUNCTION__, __LINE__, errno, strerror(errno));
         return -1;
     }
 #endif
@@ -331,7 +331,9 @@ int conf_read_from_file()
 	}
 	else
 	{
-		printf("Error: Read \"%s\" error, please set configuration file\n", CONF_FILE);
+		printf("%s()%d :  Read \"%s\" error, please set configuration file\n", 
+			__FUNCTION__, __LINE__, 
+			CONF_FILE);
 		return -1;
 	}
 
@@ -526,7 +528,8 @@ int get_conf_setval()
 	{
 		if(!(g_conf.isset_flag & issetflags[i]))
 		{
-			printf("Error: val \"%s\" is not set in \"%s\"\n",
+			printf("%s()%d : val \"%s\" is not set in \"%s\"\n",
+							__FUNCTION__, __LINE__, 
 							issetvals[i],
 							CONF_FILE);
 			
