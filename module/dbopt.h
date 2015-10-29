@@ -21,14 +21,18 @@
 #include <protocol/protocol.h>
 #include <mysql/mysql.h>
 
-int Sql_AddZdev(dev_info_t *m_dev);
-dev_info_t *Sql_QueryZdev(zidentify_no_t zidentity_no);
-int Sql_DelZdev(zidentify_no_t zidentity_no);
+int sql_init();
+void sql_release();
+int sql_isuse();
 
-int Sql_AddGateway(gw_info_t *m_gw);
-gw_info_t *Sql_QueryGateway(zidentify_no_t gw_no);
-int Sql_DelGateway(zidentify_no_t gw_no);
+int sql_add_zdev(dev_info_t *m_dev);
+dev_info_t *sql_query_zdev(zidentify_no_t zidentity_no);
+int sql_del_zdev(zidentify_no_t zidentity_no);
 
-void Sql_Test();
+int sql_add_gateway(gw_info_t *m_gw);
+gw_info_t *sql_query_gateway(zidentify_no_t gw_no);
+int sql_gel_gateway(zidentify_no_t gw_no);
+
+void sql_test();
 
 #endif	//__DBOPT_H__

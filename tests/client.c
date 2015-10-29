@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 	}
 
 end:	
-	printf("end!(#>_<#)\n");
+	printf("%s()%d : end!(#>_<#)\n", __FUNCTION__, __LINE__);
 	return 0;
 }
 

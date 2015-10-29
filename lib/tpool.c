@@ -54,7 +54,7 @@ int tpool_create(int max_thr_num)
     tpool = calloc(1, sizeof(tpool_t));
     if(!tpool)
     {
-        fprintf(stderr, "%s: calloc failed\n", __FUNCTION__);
+        fprintf(stderr, "%s()%d : calloc failed\n", __FUNCTION__, __LINE__);
         return -1;
     }
 
@@ -63,15 +63,15 @@ int tpool_create(int max_thr_num)
     tpool->queue_head = NULL;
     if(pthread_mutex_init(&tpool->queue_lock, NULL) != 0)
     {
-        fprintf(stderr, "%s: pthread_mutext_init failed, errno:%d, error:%s\n",
-            __FUNCTION__, errno, strerror(errno));
+        fprintf(stderr, "%s()%d : pthread_mutext_init failed, errno:%d, error:%s\n",
+            __FUNCTION__, __LINE__, errno, strerror(errno));
         return -1;
     }
 
     tpool->thr_id = calloc(max_thr_num, sizeof(pthread_t));
     if(!tpool->thr_id)
     {
-        fprintf(stderr, "%s: calloc failed\n", __FUNCTION__);
+        fprintf(stderr, "%s()%d : calloc failed\n", __FUNCTION__, __LINE__);
         return -1;
     }
 
@@ -79,8 +79,8 @@ int tpool_create(int max_thr_num)
     {
         if(pthread_create(&tpool->thr_id[i], NULL, thread_routine, NULL) != 0)
         {
-            fprintf(stderr, "%s: pthread_create failed, errno:%d, erro:%s\n", 
-                __FUNCTION__, errno, strerror(errno));
+            fprintf(stderr, "%s()%d : pthread_create failed, errno:%d, erro:%s\n", 
+                __FUNCTION__, __LINE__, errno, strerror(errno));
             return -1;
         }
     }
@@ -129,14 +129,14 @@ int tpool_add_work(void *(*routine)(void *), void *arg)
 
     if(!routine)
     {
-        fprintf(stderr, "%s: Invalid argument\n", __FUNCTION__);
+        fprintf(stderr, "%s()%d : Invalid argument\n", __FUNCTION__, __LINE__);
         return -1;
     }
 
     work = malloc(sizeof(tpool_work_t));
     if(!work)
     {
-        fprintf(stderr, "%s: malloc failed\n", __FUNCTION__);
+        fprintf(stderr, "%s()%d : malloc failed\n", __FUNCTION__, __LINE__);
         return -1;
     }
     work->routine = routine;

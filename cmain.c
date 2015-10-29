@@ -21,7 +21,8 @@ int main(int argc, char **argv)
 #ifdef LOAD_BALANCE_SUPPORT
 	if(serlist_read_from_confile() < 0)
 	{
-		printf("Error: Read \"%s\" fail, please set correct server list file\n", 
+		printf("%s()%d : Read \"%s\" fail, please set correct server list file\n",
+			__FUNCTION__, __LINE__, 
 			BALANCE_SERVER_FILE);
 		
 		return -1;
@@ -105,7 +106,7 @@ int main(int argc, char **argv)
 	}
 
 end:	
-	printf("end!(#>_<#)\n");
+	printf("%s()%d : end!(#>_<#)\n", __FUNCTION__, __LINE__);
 	return 0;
 }
 
