@@ -66,40 +66,46 @@ char *get_current_time()
 }
 
 int sql_init()
-{	 global_conf_t *m_conf = get_global_conf();
+{
+	global_conf_t *m_conf = get_global_conf();
 
-     if (mysql_init(&mysql_conn) == NULL)
-     {
-	 	printf("%s()%d: sql init fails\n", __FUNCTION__, __LINE__);
+	if (mysql_init(&mysql_conn) == NULL)
+	{
+		printf("%s()%d: sql init failed\n", __FUNCTION__, __LINE__);
 		return -1;
-     }
+	}
 
-	 is_userful = 1;
-	 
-     if (mysql_real_connect(&mysql_conn, DB_SERVER, m_conf->db_user, 
-	 		m_conf->db_password, m_conf->db_name, 0, NULL, 0) == NULL)
-     {
-		printf("%s()%d : sql connect \"%s\" fails\n", 
-					__FUNCTION__, __LINE__, m_conf->db_name);	
-			return -1;
-	 }
+	is_userful = 1;
 
-	 printf("%s()%d : sql connect \"%s\"\n", 
-	 			__FUNCTION__, __LINE__, m_conf->db_name);	
+	if (mysql_real_connect(&mysql_conn, DB_SERVER, m_conf->db_user, 
+		m_conf->db_password, m_conf->db_name, 0, NULL, 0) == NULL)
+	{
+		printf("%s()%d : sql connect \"%s\" failed\n", 
+			__FUNCTION__, __LINE__, m_conf->db_name);
+		return -1;
+	}
 
-	 if(pthread_mutex_init(&sql_lock, NULL) != 0)
-    {
-        fprintf(stderr, "%s()%d :  pthread_mutext_init failed\n",
-			__FUNCTION__, __LINE__);
+	printf("%s()%d : sql connect \"%s\"\n", 
+		__FUNCTION__, __LINE__, m_conf->db_name);
+
+	if(mysql_set_character_set(&mysql_conn, "utf8"))
+	{
+		printf("%s()%d : sql character set failed\n", __FUNCTION__, __LINE__);
+		return -1;
+	} 
+
+	if(pthread_mutex_init(&sql_lock, NULL) != 0)
+	{
+		printf("%s()%d :  pthread_mutext_init failed\n", __FUNCTION__, __LINE__);
         return -1;
-    }
+	}
 
 	if(pthread_mutex_init(&sql_add_lock, NULL) != 0)
-    {
-        fprintf(stderr, "%s()%d :  pthread_mutext_init failed\n",
+	{
+		fprintf(stderr, "%s()%d :  pthread_mutext_init failed\n",
 			__FUNCTION__, __LINE__);
-        return -1;
-    }
+		return -1;
+	}
 
 	return 0;
 }
@@ -451,13 +457,14 @@ void sql_test()
          }
 		 else 
 		 {
-		 	printf("%s()%d : sql connection fails.\n", __FUNCTION__, __LINE__);
+		 	printf("%s()%d : sql connection failed.\n", __FUNCTION__, __LINE__);
 		 }
       }
 	 else
 	 {
-	 	printf("%s()%d : sql initialization fails.\n", __FUNCTION__, __LINE__);
+	 	printf("%s()%d : sql initialization failed.\n", __FUNCTION__, __LINE__);
 	 }
 
      mysql_close(&mysql_conn);
 }
+

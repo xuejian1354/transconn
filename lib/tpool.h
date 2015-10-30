@@ -36,6 +36,7 @@ typedef struct tpool {
     pthread_t		*thr_id;	/* thread id array */
     tpool_work_t	*queue_head;	/* thread task list */
     pthread_mutex_t	queue_lock;
+	pthread_mutex_t	func_lock;
     pthread_cond_t	queue_ready;
 } tpool_t;
 
