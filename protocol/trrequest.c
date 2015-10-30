@@ -243,10 +243,18 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 				GET_SERVER_IP(p_gw->serverip_addr);
 				p_gw->serverip_len = strlen(p_gw->serverip_addr);
 				set_gateway_check(p_gw->gw_no, p_gw->rand);
+#ifdef DB_API_SUPPORT
+				pthread_mutex_lock(get_sql_add_lock());
+				if(sql_add_gateway(p_gw) != 0)
+#else
 				if(add_gateway_info(p_gw) != 0)
+#endif
 				{
 					get_gateway_frame_free(p_gw);
 				}
+#ifdef DB_API_SUPPORT
+				pthread_mutex_unlock(get_sql_add_lock());
+#endif
 			}
 #endif
 			break;

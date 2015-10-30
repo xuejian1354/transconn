@@ -93,7 +93,7 @@ void *udp_read_func(void *p)
 	while(1)
 	{
 		int nbytes;
-		char buf[256] = {0};
+		char buf[1024] = {0};
 
 		nbytes = recvfrom(fd, buf, sizeof(buf), 0, NULL, NULL);
 		printf("%s", buf);

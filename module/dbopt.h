@@ -32,7 +32,7 @@ dev_info_t *sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no);
 int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no);
 
 int sql_add_gateway(gw_info_t *m_gw);
-gw_info_t *sql_query_gateway(zidentify_no_t gw_no);
+int sql_query_gateway(zidentify_no_t gw_no);
 int sql_gel_gateway(zidentify_no_t gw_no);
 
 void sql_test();

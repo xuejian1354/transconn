@@ -4,7 +4,7 @@ ifeq ($(TOPDIR),)
 $(error TOPDIR value no set)
 endif
 
-inc_dirs :=/usr/local/mariadb/include/mysql
+inc_dirs :=
 
 inc_files := $(strip $(foreach n, $(SUB_MODULES), \
 			  $(patsubst %, $(n)/%, \
