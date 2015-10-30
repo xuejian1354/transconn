@@ -40,8 +40,11 @@ static void *thread_routine(void *arg)
         tpool->queue_head = tpool->queue_head->next;
         pthread_mutex_unlock(&tpool->queue_lock);
 
+		pthread_mutex_lock(&tpool->func_lock);
         work->routine(work->arg);
-        free(work);
+		free(work);
+		pthread_mutex_unlock(&tpool->func_lock);
+        
     }
 
     return NULL;
@@ -62,6 +65,13 @@ int tpool_create(int max_thr_num)
     tpool->shutdown = 0;
     tpool->queue_head = NULL;
     if(pthread_mutex_init(&tpool->queue_lock, NULL) != 0)
+    {
+        fprintf(stderr, "%s()%d : pthread_mutext_init failed, errno:%d, error:%s\n",
+            __FUNCTION__, __LINE__, errno, strerror(errno));
+        return -1;
+    }
+
+	if(pthread_mutex_init(&tpool->func_lock, NULL) != 0)
     {
         fprintf(stderr, "%s()%d : pthread_mutext_init failed, errno:%d, error:%s\n",
             __FUNCTION__, __LINE__, errno, strerror(errno));

@@ -467,3 +467,4 @@ void sql_test()
 
      mysql_close(&mysql_conn);
 }
+
