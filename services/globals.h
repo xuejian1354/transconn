@@ -94,7 +94,8 @@ This macro just support that
 //#define LACK_EDTYPE_SUPPORT
 
 //transport layer listening connection max number
-#define TRANS_THREAD_MAX_NUM	5
+#define TRANS_SERVER_THREAD_MAX_NUM		12
+#define TRANS_CLIENT_THREAD_MAX_NUM		6
 
 //single frame max size
 #define MAXSIZE	1024
