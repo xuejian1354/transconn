@@ -26,7 +26,7 @@
 #ifdef DE_TRANS_UDP_STREAM_LOG
 #define DE_PRINTF(args...)  \
 st(  \
-	char buf[256] = {0};  \
+	char buf[1024] = {0};  \
 	sprintf(buf, args);  \
 	delog_udp_sendto(buf, strlen(buf));	  \
 )

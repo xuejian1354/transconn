@@ -141,7 +141,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 	    }
 		pthread_mutex_unlock(&sql_lock);
 
-		return 1;
+		return add_zdev_info(p_gw, m_dev);
 	}
 
 	SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s", 
@@ -257,16 +257,135 @@ int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 
 int sql_add_gateway(gw_info_t *m_gw)
 {
-	return 0;
+	char apptype_str[4] = {0};
+	get_frapp_type_to_str(apptype_str, m_gw->zapp_type);
+
+	char gwno_str[24] = {0};
+	incode_xtocs(gwno_str, m_gw->gw_no, sizeof(zidentify_no_t));
+	
+	fr_buffer_t *frbuffer = get_devopt_data_to_str(m_gw->zgw_opt);
+	char data[24] = {0};
+	if(frbuffer != NULL)
+	{
+		memcpy(data, frbuffer->data, frbuffer->size);
+		get_buffer_free(frbuffer);
+	}
+
+	int ret = sql_query_gateway(m_gw->gw_no);
+	if(ret > 0)
+	{
+		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s", 
+			"INSERT INTO gateways (id, gwsn, apptype, ipaddr, ",
+			"name, data, created_at, updated_at) VALUES (NULL, \'",
+			gwno_str,
+			"\', \'",
+			apptype_str,
+			"\', \'",
+			m_gw->ipaddr,
+			"\', NULL, \'",
+			data,
+			"\', \'0000-00-00 00:00:00.000000\', \'0000-00-00 00:00:00.000000\')");
+
+		DE_PRINTF("%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+		pthread_mutex_lock(&sql_lock);
+		if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+	    {
+			pthread_mutex_unlock(&sql_lock);
+	       	DE_PRINTF("%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+		   	return -1;
+	    }
+		pthread_mutex_unlock(&sql_lock);
+		
+		return add_gateway_info(m_gw);
+
+	}
+	else if(ret == 0)
+	{
+		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s", 
+				"UPDATE gateways SET apptype=\'",
+				apptype_str,
+				"\', data=\'",
+				data,
+				"\', ipaddr=\'",
+				m_gw->ipaddr,
+				"\' WHERE gwsn=\'",
+				gwno_str,
+				"\'");
+
+		DE_PRINTF("%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+		pthread_mutex_lock(&sql_lock);
+		if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+	    {
+			pthread_mutex_unlock(&sql_lock);
+	       	DE_PRINTF("%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+		   	return -1;
+	    }
+		pthread_mutex_unlock(&sql_lock);
+
+		return add_gateway_info(m_gw);
+	}
+
+	return -1;
 }
 
-gw_info_t *sql_query_gateway(zidentify_no_t gw_no)
+int sql_query_gateway(zidentify_no_t gw_no)
 {
-	return NULL;
+	char gwno_str[24] = {0};
+	incode_xtocs(gwno_str, gw_no, sizeof(zidentify_no_t));
+	SET_CMD_LINE("%s%s%s", 
+		"SELECT * FROM gateways WHERE gwsn=\'", 
+		gwno_str, 
+		"\'");
+
+	//DE_PRINTF("%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF("%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF("%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		return -1;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums > 1 && !memcmp(mysql_row[1], gwno_str, sizeof(zidentify_no_t)))
+		{
+			mysql_free_result(mysql_res);
+			return 0;
+		}
+	}
+
+    mysql_free_result(mysql_res);
+	return 1;
 }
 
 int sql_gel_gateway(zidentify_no_t gw_no)
 {
+	char gwno_str[24] = {0};
+	incode_xtocs(gwno_str, gw_no, sizeof(zidentify_no_t));
+	
+	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE serialnum=\'",
+		gwno_str,
+		"\'");
+
+	//DE_PRINTF("%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF("%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
+	
 	return 0;
 }
 
