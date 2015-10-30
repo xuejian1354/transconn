@@ -17,6 +17,7 @@
 #include "trrequest.h"
 #include <protocol/protocol.h>
 #include <module/balancer.h>
+#include <module/dbopt.h>
 
 void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 {
@@ -255,12 +256,19 @@ void bi_handler(struct sockaddr_in *addr, bi_t *bi)
 			if((p_gw=query_gateway_info(bi->sn)) != NULL)
 			{
 				p_dev = get_zdev_frame_alloc(bi->data, bi->data_len);
-			
+#ifdef DB_API_SUPPORT
+				pthread_mutex_lock(get_sql_add_lock());
+				if(p_dev != NULL && sql_add_zdev(p_gw, p_dev) != 0)
+#else
 				if(p_dev != NULL && add_zdev_info(p_gw, p_dev) != 0)
+#endif
 				{
 					get_devopt_data_free(p_dev->zdev_opt);
 					get_zdev_frame_free(p_dev);
 				}
+#ifdef DB_API_SUPPORT
+				pthread_mutex_unlock(get_sql_add_lock());
+#endif
 			}
 #endif
 			break;

@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 		sql_release();
 		return -1;
 	}
-	sql_release();
+	//sql_release();
 #endif
 
 	if(start_params(argc, argv) != 0)
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 	}
 
 #ifdef THREAD_POOL_SUPPORT
-	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
+	if (tpool_create(TRANS_SERVER_THREAD_MAX_NUM) < 0)
 	{
 		return -1;
 	}

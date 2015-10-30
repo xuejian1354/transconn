@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 	}
 
 #ifdef THREAD_POOL_SUPPORT
-	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
+	if (tpool_create(TRANS_CLIENT_THREAD_MAX_NUM) < 0)
 	{
 		return -1;
 	}

@@ -21,13 +21,15 @@
 #include <protocol/protocol.h>
 #include <mysql/mysql.h>
 
+pthread_mutex_t *get_sql_add_lock();
+
 int sql_init();
 void sql_release();
 int sql_isuse();
 
-int sql_add_zdev(dev_info_t *m_dev);
-dev_info_t *sql_query_zdev(zidentify_no_t zidentity_no);
-int sql_del_zdev(zidentify_no_t zidentity_no);
+int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev);
+dev_info_t *sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no);
+int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no);
 
 int sql_add_gateway(gw_info_t *m_gw);
 gw_info_t *sql_query_gateway(zidentify_no_t gw_no);
