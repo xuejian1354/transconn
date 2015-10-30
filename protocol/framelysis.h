@@ -19,6 +19,8 @@
 
 #include <services/globals.h>
 
+#define ZH_TYPE_NAME
+
 //frame head
 #define FR_HEAD_UC	"UC:"	//coord up data
 #define FR_HEAD_UO	"UO:"	//device up data
@@ -85,10 +87,38 @@ typedef enum
 
 typedef enum
 {
+    TN_GW,
+    TN_SW1,
+    TN_SW2,
+    TN_SW3,
+    TN_SW4,
+    TN_HUE,
+    TN_ALARM,
+    TN_IRDECT,
+    TN_DOORS,
+    TN_PM25,
+    TN_IRRELAY,
+    TN_AIRCON,
+    TN_RELAY,
+    TN_HT,
+    TN_VALVE,
+    TN_NUMS
+}type_name_t;
+
+
+typedef enum
+{
 	FRNET_ROUTER = 0,
 	FRNET_ENDDEV = 1,
 	FRNET_NONE,
 }fr_net_type_t;
+
+typedef struct
+{
+    fr_app_type_t type;
+    char *val;
+}zh_el_t;
+
 
 //Coordinator info frame
 typedef struct
@@ -159,6 +189,9 @@ typedef struct
 	uint8 *data;
 	uint8 size;
 }fr_buffer_t;
+
+char *get_name(type_name_t tn);
+char *get_name_from_type(fr_app_type_t type);
 
 fr_head_type_t get_frhead_from_str(char *head);
 int get_frhead_to_str(char *dst, fr_head_type_t head_type);

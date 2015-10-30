@@ -35,6 +35,70 @@
 #define FRAME_BUFFER_SIZE 	256
 #define MAX_OPTDATA_SIZE	FRAME_DATA_SIZE
 
+
+#ifdef ZH_TYPE_NAME
+static zh_el_t zh_tables[TN_NUMS+1] =
+{
+    { FRAPP_CONNECTOR, "网关" },
+    { FRAPP_LIGHTSWITCH_ONE, "一位开关" },
+    { FRAPP_LIGHTSWITCH_TWO, "二位开关" },
+    { FRAPP_LIGHTSWITCH_THREE, "三位开关" },
+    { FRAPP_LIGHTSWITCH_FOUR, "四位开关" },
+    { FRAPP_HUELIGHT, "调色灯" },
+    { FRAPP_ALARM, "报警器" },
+    { FRAPP_IR_DETECTION, "人体感应" },
+    { FRAPP_DOOR_SENSOR, "门磁" },
+    { FRAPP_ENVDETECTION, "PM2.5检测" },
+    { FRAPP_IR_RELAY, "红外转发" },
+    { FRAPP_AIRCONTROLLER, "环境检测仪" },
+    { FRAPP_RELAYSOCKET, "中继开关" },
+    { FRAPP_HUMITURE_DETECTION, "温湿度" },
+    { FRAPP_SOLENOID_VALVE, "电磁阀" },
+    { FRAPP_NONE, "" }
+};
+
+#else
+static zh_el_t zh_tables[TN_NUMS+1] =
+{
+    { FRAPP_CONNECTOR, "Gateway" },
+    { FRAPP_LIGHTSWITCH_ONE, "LightSwitchI" },
+    { FRAPP_LIGHTSWITCH_TWO, "LightSwitchII" },
+    { FRAPP_LIGHTSWITCH_THREE, "LightSwitchIII" },
+    { FRAPP_LIGHTSWITCH_FOUR, "LightSwitchIV" },
+    { FRAPP_HUELIGHT, "HueLight" },
+    { FRAPP_ALARM, "Alarm" },
+    { FRAPP_IR_DETECTION, "InfraredMoving" },
+    { FRAPP_DOOR_SENSOR, "DoorSensor" },
+    { FRAPP_ENVDETECTION, "PM2.5" },
+    { FRAPP_IR_RELAY, "InfraredControl" },
+    { FRAPP_AIRCONTROLLER, "EnvControl" },
+    { FRAPP_RELAYSOCKET, "NetRelay" },
+    { FRAPP_HUMITURE_DETECTION, "Humiture" },
+    { FRAPP_SOLENOID_VALVE, "Valve" },
+    { FRAPP_NONE, "" }
+};
+#endif
+
+
+char *get_name(type_name_t tn)
+{
+	return zh_tables[tn].val;
+}
+
+char *get_name_from_type(fr_app_type_t type)
+{
+	int i;
+	for(i=0; i<TN_NUMS; i++)
+	{
+		if(type == zh_tables[i].type)
+		{
+			return zh_tables[i].val;
+		}
+	}
+
+	return zh_tables[TN_NUMS].val;
+}
+
 fr_head_type_t get_frhead_from_str(char *head)
 {
 	if(!strncmp(FR_HEAD_UC, head, 3))
