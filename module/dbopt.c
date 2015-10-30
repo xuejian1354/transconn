@@ -15,9 +15,12 @@
  * GNU General Public License for more details.
  */
 #include "dbopt.h"
+#include "time.h"
 
 #define DB_SERVER	"localhost"
 #define DB_PORT		3306
+
+#define NO_AREA		"未设置"
 
 #define GET_CMD_LINE()	cmdline
 
@@ -35,12 +38,31 @@ static pthread_mutex_t sql_lock;
 static pthread_mutex_t sql_add_lock;
 
 static int is_userful = 0;
-
 static char cmdline[1024];
+static char mix_type_name[24];
+static char current_time[64];
 
 pthread_mutex_t *get_sql_add_lock()
 {
 	return &sql_add_lock;
+}
+
+char *get_mix_name(fr_app_type_t type, uint8 s1, uint8 s2)
+{
+	bzero(mix_type_name, sizeof(mix_type_name));
+	sprintf(mix_type_name, "%s%02X%02X", get_name_from_type(type), s1, s2);
+	return mix_type_name;
+}
+
+char *get_current_time()
+{
+	time_t t;
+	time(&t);
+	bzero(current_time, sizeof(current_time));
+	struct tm *tp= localtime(&t);
+	strftime(current_time, 100, "%Y-%m-%d %H:%M:%S", tp); 
+
+	return current_time;
 }
 
 int sql_init()
@@ -116,15 +138,19 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 
 	if(sql_query_zdev(p_gw, m_dev->zidentity_no) != NULL)
 	{
-		SET_CMD_LINE("%s%04X%s%s%s%s%s%s%s%s%s%s%s", 
+		SET_CMD_LINE("%s%04X%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
 				"UPDATE devices SET shortaddr=\'",
 				m_dev->znet_addr,
 				"\', apptype=\'",
 				apptype_str,
+				"\', updatetime=\'",
+				get_current_time(),
 				"\', data=\'",
 				data,
 				"\', ipaddr=\'",
 				p_gw->ipaddr,
+				"\', updated_at=\'",
+				get_current_time(),
 				"\', gwsn=\'",
 				gwno,
 				"\' WHERE serialnum=\'",
@@ -144,7 +170,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 		return add_zdev_info(p_gw, m_dev);
 	}
 
-	SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s", 
+	SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
 		"INSERT INTO devices (id, serialnum, apptype, shortaddr, ipaddr, ",
 		"commtocol, gwsn, name, area, updatetime, isonline, iscollect, ",
 		"ispublic, users, data, created_at, updated_at) VALUES (NULL, \'",
@@ -157,9 +183,21 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 		p_gw->ipaddr,
 		"\', \'01\', \'",
 		gwno,
-		"\', NULL, NULL, NULL, NULL, NULL, NULL, NULL, \'",
+		"\', \'",
+		get_mix_name(m_dev->zapp_type, 
+			p_gw->gw_no[sizeof(zidentify_no_t)-1], 
+			m_dev->zidentity_no[sizeof(zidentify_no_t)-1]),
+		"\', \'",
+		NO_AREA,
+		"\', \'",
+		get_current_time(),
+		"\', \'1\', \'0\', \'0\', \'\', \'",
 		data,
-		"\', \'0000-00-00 00:00:00.000000\', \'0000-00-00 00:00:00.000000\')");
+		"\', \'",
+		get_current_time(),
+		"\', \'",
+		get_current_time(),
+		"\')");
 
 	DE_PRINTF("%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 	pthread_mutex_lock(&sql_lock);
@@ -274,7 +312,7 @@ int sql_add_gateway(gw_info_t *m_gw)
 	int ret = sql_query_gateway(m_gw->gw_no);
 	if(ret > 0)
 	{
-		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s", 
+		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
 			"INSERT INTO gateways (id, gwsn, apptype, ipaddr, ",
 			"name, data, created_at, updated_at) VALUES (NULL, \'",
 			gwno_str,
@@ -282,9 +320,17 @@ int sql_add_gateway(gw_info_t *m_gw)
 			apptype_str,
 			"\', \'",
 			m_gw->ipaddr,
-			"\', NULL, \'",
+			"\', \'",
+			get_mix_name(m_gw->zapp_type, 
+				m_gw->gw_no[sizeof(zidentify_no_t)-2], 
+				m_gw->gw_no[sizeof(zidentify_no_t)-1]),
+			"\', \'",
 			data,
-			"\', \'0000-00-00 00:00:00.000000\', \'0000-00-00 00:00:00.000000\')");
+			"\', \'",
+			get_current_time(),
+			"\', \'",
+			get_current_time(),
+			"\')");
 
 		DE_PRINTF("%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 		pthread_mutex_lock(&sql_lock);
@@ -301,13 +347,15 @@ int sql_add_gateway(gw_info_t *m_gw)
 	}
 	else if(ret == 0)
 	{
-		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s", 
+		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s", 
 				"UPDATE gateways SET apptype=\'",
 				apptype_str,
 				"\', data=\'",
 				data,
 				"\', ipaddr=\'",
 				m_gw->ipaddr,
+				"\', updated_at=\'",
+				get_current_time(),
 				"\' WHERE gwsn=\'",
 				gwno_str,
 				"\'");
