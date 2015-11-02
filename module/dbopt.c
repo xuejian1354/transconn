@@ -299,6 +299,48 @@ int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 	return 0;
 }
 
+int sql_uponline_zdev(gw_info_t *p_gw, 
+			uint8 isonline , uint16* znet_addrs, int addrs_len)
+{	
+	int i = 0;
+	char gwno[24] = {0};
+	char addrs_str[512] = {0};
+	
+	if(p_gw == NULL || addrs_len <= 0)
+	{
+		return -1;
+	}
+
+	sprintf(addrs_str, "\'%04X\'", znet_addrs[i++]);
+	while( i < addrs_len )
+	{
+		sprintf(addrs_str+strlen(addrs_str), ", \'%04X\'", znet_addrs[i++]);
+	}
+	
+	incode_xtocs(gwno, p_gw->gw_no, sizeof(zidentify_no_t));
+
+	SET_CMD_LINE("%s%d%s%s%s%s%s", 
+				"UPDATE devices SET isonline=\'",
+				isonline,
+				"\' WHERE shortaddr IN (",
+				addrs_str,
+				") AND gwsn=\'",
+				gwno,
+				"\'");
+
+	//DE_PRINTF("%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF("%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
+	
+	return 0;
+}
+
 int sql_add_gateway(gw_info_t *m_gw)
 {
 	char apptype_str[4] = {0};
