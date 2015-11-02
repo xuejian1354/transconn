@@ -173,7 +173,7 @@ void socket_tcp_server_recv(int fd)
 #ifdef TIMER_SUPPORT
 		tpool_add_work(analysis_capps_frame, frarg);
 #else
-		analysis_capps_frame(frarg);
+		analysis_capps_frame(frarg, NULL);
 #endif
 #endif
 	}
@@ -343,7 +343,7 @@ void socket_udp_recvfrom()
 #ifdef TIMER_SUPPORT
 	tpool_add_work(analysis_capps_frame, frarg);
 #else
-	analysis_capps_frame(frarg);
+	analysis_capps_frame(frarg, NULL);
 #endif
 
 #ifdef TRANS_UDP_SESS_QUEUE

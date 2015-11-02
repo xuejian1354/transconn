@@ -37,16 +37,16 @@
 
 #ifdef TIMER_SUPPORT
 #ifdef COMM_CLIENT
-void *gateway_refresh(void *p);
-void *upload_event(void *p);
-void *stand_event(void *p);
-void *zdev_watch(void *p);
-void *cli_watch(void *p);
-void *rp_watch(void *p);
+void *gateway_refresh(void *p, pthread_mutex_t *lock);
+void *upload_event(void *p, pthread_mutex_t *lock);
+void *stand_event(void *p, pthread_mutex_t *lock);
+void *zdev_watch(void *p, pthread_mutex_t *lock);
+void *cli_watch(void *p, pthread_mutex_t *lock);
+void *rp_watch(void *p, pthread_mutex_t *lock);
 #endif
 
 #ifdef COMM_CLIENT
-void *gateway_refresh(void *p)
+void *gateway_refresh(void *p, pthread_mutex_t *lock)
 {
 	serial_write("D:/BR/0000:O\r\n", 14);
 
@@ -66,7 +66,7 @@ void *gateway_refresh(void *p)
 	return NULL;
 }
 
-void *upload_event(void *p)
+void *upload_event(void *p, pthread_mutex_t *lock)
 {
 	char ipaddr[24] = {0};
 	GET_SERVER_IP(ipaddr);
@@ -93,7 +93,7 @@ void *upload_event(void *p)
 	return NULL;
 }
 
-void *stand_event(void *p)
+void *stand_event(void *p, pthread_mutex_t *lock)
 {
  	cli_info_t *p_cli = get_client_list()->p_cli;
 
@@ -136,7 +136,7 @@ void *stand_event(void *p)
 	return NULL;
 }
 
-void *zdev_watch(void *p)
+void *zdev_watch(void *p, pthread_mutex_t *lock)
 {
 	uint16 znet_addr = (uint16)((int)p);
 	DE_PRINTF("del zdevice from list, zdev no:%04X\n\n", znet_addr);
@@ -144,7 +144,7 @@ void *zdev_watch(void *p)
 	del_zdevice_info(znet_addr);
 }
 
-void *cli_watch(void *p)
+void *cli_watch(void *p, pthread_mutex_t *lock)
 {
 	cli_info_t *p_cli = (cli_info_t *)p;
 
@@ -156,7 +156,7 @@ void *cli_watch(void *p)
 }
 
 
-void *rp_watch(void *p)
+void *rp_watch(void *p, pthread_mutex_t *lock)
 {
 	cli_info_t *p_cli = (cli_info_t *)p;
 	if(p_cli == NULL)
@@ -246,7 +246,7 @@ void set_rp_check(cli_info_t *p_cli)
 #endif
 
 #ifdef COMM_SERVER
-void *gateway_watch(void *p)
+void *gateway_watch(void *p, pthread_mutex_t *lock)
 {
 	char gwno[18] = {0};
 	incode_xtocs(gwno, p, sizeof(zidentify_no_t));

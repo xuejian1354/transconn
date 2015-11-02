@@ -149,7 +149,7 @@ int del_contain_info(cli_contain_t **contain, cidentify_no_t cidentify_no);
 #ifdef COMM_CLIENT
 void analysis_zdev_frame(frhandler_arg_t *arg);
 #endif
-void analysis_capps_frame(frhandler_arg_t *arg);
+void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock);
 
 fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type, 
 	dev_opt_t *opt, void *frame);

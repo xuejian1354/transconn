@@ -1201,11 +1201,17 @@ UR_FREE:
 }
 #endif
 
-void analysis_capps_frame(frhandler_arg_t *arg)
+void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 {
+
+	if(lock != NULL)
+	{
+		pthread_mutex_lock(lock);
+	}
+	
 	if(arg == NULL)
 	{
-		return;
+		goto capp_end;
 	}
 	
   	cli_info_t *cli_info;
@@ -1215,7 +1221,7 @@ void analysis_capps_frame(frhandler_arg_t *arg)
 	
 	if(p == NULL)
 	{
-		return;
+		goto capp_end;
 	}
 	
 	switch(head_type)
@@ -1288,6 +1294,12 @@ void analysis_capps_frame(frhandler_arg_t *arg)
 	}
 
 	get_frhandler_arg_free(arg);
+
+capp_end:
+	if(lock != NULL)
+	{
+		pthread_mutex_unlock(lock);
+	}
 }
 
 fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type, 
