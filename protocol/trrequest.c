@@ -56,6 +56,12 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 				memcpy(p_gw->ipaddr, ipaddr, strlen(ipaddr));
 
 				int zdevs_nums = pi->data_len/4;
+#ifdef DB_API_SUPPORT
+				int online_nums = 0;
+				int offline_nums = 0;
+				uint16 online_addrs[ZDEVICE_MAX_NUM] = {0};
+				uint16 offline_addrs[ZDEVICE_MAX_NUM] = {0};
+#endif
 				if(zdevs_nums > 0 && zdevs_nums <= ZDEVICE_MAX_NUM)
 				{
 					p_dev = p_gw->p_dev;
@@ -68,22 +74,33 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 							incode_ctox16(&znet_addr, pi->data+(i<<2));
 							if(p_dev->znet_addr == znet_addr)
 							{
+								online_addrs[online_nums++] = p_dev->znet_addr;
 								goto next_zdev;
 							}
 						}
 
+						offline_addrs[offline_nums++] = p_dev->znet_addr;
 						del_zdev_info(p_gw, p_dev->znet_addr);
 next_zdev:				p_dev = p_dev->next;
 					}
+
+#ifdef DB_API_SUPPORT
+					sql_uponline_zdev(p_gw, 0, offline_addrs, offline_nums);
+					sql_uponline_zdev(p_gw, 1, online_addrs, online_nums);
+#endif
 				}
 				else if(zdevs_nums == 0)
 				{
 					p_dev = p_gw->p_dev;
 					while(p_dev != NULL)
 					{
+						offline_addrs[offline_nums++] = p_dev->znet_addr;
 						del_zdev_info(p_gw, p_dev->znet_addr);
 						p_dev = p_dev->next;
 					}
+#ifdef DB_API_SUPPORT
+					sql_uponline_zdev(p_gw, 0, offline_addrs, offline_nums);
+#endif
 				}
 				
 				set_gateway_check(p_gw->gw_no, p_gw->rand);
