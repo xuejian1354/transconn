@@ -74,12 +74,14 @@ $(eval $(call dependlibs-relations,$(SERVER_TARGET),$(LDFLAGS),-s))
 $(eval $(call dependlibs-relations,$(CLIENT_TARGET),$(LDFLAGS),-c))
 
 server_comshow:
+	@echo "\n"===========================================================
+	@echo **compile server:
 	@echo ===========================================================
-	@echo compile server:
 
 client_comshow:
+	@echo "\n"===========================================================
+	@echo **compile client:
 	@echo ===========================================================
-	@echo compile client:
 
 cclean:
 	(find -name "*-c.[oa]" | xargs $(RM)) && $(RM) $(CLIENT_TARGET)

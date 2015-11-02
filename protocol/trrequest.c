@@ -74,12 +74,15 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 							incode_ctox16(&znet_addr, pi->data+(i<<2));
 							if(p_dev->znet_addr == znet_addr)
 							{
+#ifdef DB_API_SUPPORT
 								online_addrs[online_nums++] = p_dev->znet_addr;
+#endif
 								goto next_zdev;
 							}
 						}
-
+#ifdef DB_API_SUPPORT
 						offline_addrs[offline_nums++] = p_dev->znet_addr;
+#endif
 						del_zdev_info(p_gw, p_dev->znet_addr);
 next_zdev:				p_dev = p_dev->next;
 					}
@@ -94,7 +97,9 @@ next_zdev:				p_dev = p_dev->next;
 					p_dev = p_gw->p_dev;
 					while(p_dev != NULL)
 					{
+#ifdef DB_API_SUPPORT
 						offline_addrs[offline_nums++] = p_dev->znet_addr;
+#endif
 						del_zdev_info(p_gw, p_dev->znet_addr);
 						p_dev = p_dev->next;
 					}
