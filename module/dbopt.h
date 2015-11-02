@@ -31,6 +31,9 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev);
 dev_info_t *sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no);
 int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no);
 
+int sql_uponline_zdev(gw_info_t *p_gw, 
+			uint8 isonline , uint16* znet_addrs, int addrs_len);
+
 int sql_add_gateway(gw_info_t *m_gw);
 int sql_query_gateway(zidentify_no_t gw_no);
 int sql_gel_gateway(zidentify_no_t gw_no);
