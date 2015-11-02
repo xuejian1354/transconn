@@ -21,7 +21,7 @@
 
 #ifdef TIMER_SUPPORT
 
-typedef void *(*timer_callback_t)(void *);
+typedef void *(*timer_callback_t)(void *, pthread_mutex_t *);
 
 typedef struct
 {

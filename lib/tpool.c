@@ -40,10 +40,8 @@ static void *thread_routine(void *arg)
         tpool->queue_head = tpool->queue_head->next;
         pthread_mutex_unlock(&tpool->queue_lock);
 
-		pthread_mutex_lock(&tpool->func_lock);
-        work->routine(work->arg);
+        work->routine(work->arg, &tpool->func_lock);
 		free(work);
-		pthread_mutex_unlock(&tpool->func_lock);
         
     }
 
@@ -133,7 +131,7 @@ void tpool_destroy()
 }
 
 
-int tpool_add_work(void *(*routine)(void *), void *arg)
+int tpool_add_work(void *(*routine)(void *, pthread_mutex_t *), void *arg)
 {
     tpool_work_t *work, *member;
 

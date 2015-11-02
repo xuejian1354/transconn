@@ -25,7 +25,7 @@
 
 /* excute task list */
 typedef struct tpool_work {
-    void *(*routine)(void *);	/* task func */
+    void *(*routine)(void *, pthread_mutex_t *);	/* task func */
     void		*arg;		/* task param */
     struct tpool_work	*next;
 } tpool_work_t;
@@ -43,5 +43,5 @@ typedef struct tpool {
 
 int tpool_create(int max_thr_num);
 void tpool_destroy();
-int tpool_add_work(void *(*routine)(void *), void *arg);
+int tpool_add_work(void *(*routine)(void *, pthread_mutex_t *), void *arg);
 #endif //__TPOOL_H__
