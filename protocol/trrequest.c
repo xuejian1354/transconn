@@ -1169,7 +1169,7 @@ client_match:
 	mub.tr_info = ub->tr_info;
 	mub.data = ub->data;
 	mub.data_len = ub->data_len;
-	enable_datalog_atime();
+	//enable_datalog_atime();
 	send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &mub);
 	return;
 
@@ -1187,7 +1187,7 @@ trans_cli_match:
 		memset(mub.cidentify_no, 0, sizeof(cidentify_no_t));
 		memcpy(mub.cidentify_no, 
 			t_contain->p_cli->cidentify_no, sizeof(cidentify_no_t));
-		enable_datalog_atime();
+		//enable_datalog_atime();
 		send_frame_udp_request(t_contain->p_cli->ipaddr, TRHEAD_UB, &mub);
 		t_contain = t_contain->next;
 	}

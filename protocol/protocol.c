@@ -963,12 +963,12 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 				
 				if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
 				{
-					enable_datalog_atime();
+					//enable_datalog_atime();
 					send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
 				}
 				else if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
 				{
-					enable_datalog_atime();
+					//enable_datalog_atime();
 					send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
 				}
 
@@ -1103,10 +1103,12 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 				ub.data_len = frbuffer->size;
 				if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
 				{
+					//enable_datalog_atime();
 					send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
 				}
 				else if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
 				{
+					//enable_datalog_atime();
 					send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
 				}
 
