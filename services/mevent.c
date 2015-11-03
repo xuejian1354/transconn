@@ -139,7 +139,7 @@ void *stand_event(void *p, pthread_mutex_t *lock)
 void *zdev_watch(void *p, pthread_mutex_t *lock)
 {
 	uint16 znet_addr = (uint16)((int)p);
-	DE_PRINTF("del zdevice from list, zdev no:%04X\n\n", znet_addr);
+	DE_PRINTF(1, "del zdevice from list, zdev no:%04X\n\n", znet_addr);
 	
 	del_zdevice_info(znet_addr);
 }
@@ -150,7 +150,7 @@ void *cli_watch(void *p, pthread_mutex_t *lock)
 
 	char clino[18] = {0};
 	incode_xtocs(clino, p_cli->cidentify_no, sizeof(cidentify_no_t));
-	DE_PRINTF("del client from list, cli no:%s\n\n", clino);
+	DE_PRINTF(1, "del client from list, cli no:%s\n\n", clino);
 	
 	del_client_info(p_cli->cidentify_no);
 }
@@ -173,6 +173,7 @@ void *rp_watch(void *p, pthread_mutex_t *lock)
 		rp.tr_info = TRINFO_UPDATE;
 		rp.data = NULL;
 		rp.data_len = 0;
+		enable_datalog_atime();
 		send_frame_udp_request(p_cli->ipaddr, TRHEAD_RP, &rp);
 		
 		set_rp_check(p_cli);
@@ -250,7 +251,7 @@ void *gateway_watch(void *p, pthread_mutex_t *lock)
 {
 	char gwno[18] = {0};
 	incode_xtocs(gwno, p, sizeof(zidentify_no_t));
-	DE_PRINTF("del gateway from list, gw no:%s\n\n", gwno);
+	DE_PRINTF(1, "del gateway from list, gw no:%s\n\n", gwno);
 	
 	del_gateway_info(p);
 }

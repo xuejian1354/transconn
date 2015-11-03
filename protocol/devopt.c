@@ -1155,34 +1155,34 @@ void devopt_de_print(dev_opt_t *opt)
 	switch(opt->type)
 	{
 	case FRAPP_LIGHTSWITCH_ONE: 
-		DE_PRINTF("[LightSwitchOne]\n");
-		DE_PRINTF("data:%02X\n\n", opt->device.lightswitch.data.one[0]);
+		DE_PRINTF(0, "[LightSwitchOne]\n");
+		DE_PRINTF(0, "data:%02X\n\n", opt->device.lightswitch.data.one[0]);
 		break;
 		
 	case FRAPP_LIGHTSWITCH_TWO: 
-		DE_PRINTF("[LightSwitchTwo]\n");
-		DE_PRINTF("data:%02X %02X\n\n", opt->device.lightswitch.data.two[0], 
+		DE_PRINTF(0, "[LightSwitchTwo]\n");
+		DE_PRINTF(0, "data:%02X %02X\n\n", opt->device.lightswitch.data.two[0], 
 			opt->device.lightswitch.data.two[1]);
 		break;
 		
 	case FRAPP_LIGHTSWITCH_THREE: 
-		DE_PRINTF("[LightSwitchThree]\n");
-		DE_PRINTF("data:%02X %02X %02X\n\n", opt->device.lightswitch.data.three[0], 
+		DE_PRINTF(0, "[LightSwitchThree]\n");
+		DE_PRINTF(0, "data:%02X %02X %02X\n\n", opt->device.lightswitch.data.three[0], 
 			opt->device.lightswitch.data.three[1], 
 			opt->device.lightswitch.data.three[2]);
 		break;
 		
 	case FRAPP_LIGHTSWITCH_FOUR: 
-		DE_PRINTF("[LightSwitchFour]\n");
-		DE_PRINTF("data:%02X %02X %02X %02X\n\n", opt->device.lightswitch.data.four[0], 
+		DE_PRINTF(0, "[LightSwitchFour]\n");
+		DE_PRINTF(0, "data:%02X %02X %02X %02X\n\n", opt->device.lightswitch.data.four[0], 
 			opt->device.lightswitch.data.four[1], 
 			opt->device.lightswitch.data.four[2], 
 			opt->device.lightswitch.data.four[3]);
 		break;
 
 	case FRAPP_HUELIGHT: 
-		DE_PRINTF("[HueLight]\n");
-		DE_PRINTF("data:%02X %02X %02X %02X\n\n", 
+		DE_PRINTF(0, "[HueLight]\n");
+		DE_PRINTF(0, "data:%02X %02X %02X %02X\n\n", 
 			opt->device.huelight.onoff, 
 			opt->device.huelight.bright,  
 			opt->device.huelight.hue, 
@@ -1190,41 +1190,41 @@ void devopt_de_print(dev_opt_t *opt)
 		break;
 		
 	case FRAPP_ALARM: 
-		DE_PRINTF("[Alarm]\n");
-		DE_PRINTF("data:%02X\n\n", opt->device.alarm.data[0]);
+		DE_PRINTF(0, "[Alarm]\n");
+		DE_PRINTF(0, "data:%02X\n\n", opt->device.alarm.data[0]);
 		break;
 		
 	case FRAPP_IR_DETECTION: 
-		DE_PRINTF("[IR Detect]\n");
-		DE_PRINTF("setting:%d, data:%02X\n\n", opt->device.irdetect.setting, 
+		DE_PRINTF(0, "[IR Detect]\n");
+		DE_PRINTF(0, "setting:%d, data:%02X\n\n", opt->device.irdetect.setting, 
 			opt->device.irdetect.status[0]);
 		break;
 		
 	case FRAPP_DOOR_SENSOR: 
-		DE_PRINTF("[Door Sensor]\n");
-		DE_PRINTF("setting:%d, data:%02X\n\n", opt->device.doorsensor.setting, 
+		DE_PRINTF(0, "[Door Sensor]\n");
+		DE_PRINTF(0, "setting:%d, data:%02X\n\n", opt->device.doorsensor.setting, 
 			opt->device.doorsensor.status[0]);
 		break;
 
 	case FRAPP_ENVDETECTION:
-		DE_PRINTF("[Env Detection]\n");
-		DE_PRINTF("thresmode:%d, threshold:%d, val:%d\n\n", 
+		DE_PRINTF(0, "[Env Detection]\n");
+		DE_PRINTF(0, "thresmode:%d, threshold:%d, val:%d\n\n", 
 			opt->device.envdetection.pm25_thresmode, 
 			opt->device.envdetection.pm25_threshold,
 			opt->device.envdetection.pm25_val);
 		break;
 
 	case FRAPP_AIRCONTROLLER:
-		DE_PRINTF("[Air Controller]\n");
-		DE_PRINTF("thresmode:%d, threshold:%d, val:%d\n\n", 
+		DE_PRINTF(0, "[Air Controller]\n");
+		DE_PRINTF(0, "thresmode:%d, threshold:%d, val:%d\n\n", 
 			opt->device.aircontroller.pm25_thresmode, 
 			opt->device.aircontroller.pm25_threshold,
 			opt->device.aircontroller.pm25_val);
 		break;
 
 	case FRAPP_RELAYSOCKET: 
-		DE_PRINTF("[RelaySocket]\n");
-		DE_PRINTF("data:%02X\n\n", opt->device.relaysocket.data[0]);
+		DE_PRINTF(0, "[RelaySocket]\n");
+		DE_PRINTF(0, "data:%02X\n\n", opt->device.relaysocket.data[0]);
 		break;
 	}
 }

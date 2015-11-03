@@ -889,6 +889,7 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 		bi.fr_type = TRFRAME_PUT_GW;
 		bi.data = buffer->data;
 		bi.data_len = buffer->size;
+		enable_datalog_atime();
 		send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
 		
 		get_buffer_free(buffer);
@@ -937,6 +938,7 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 			bi.fr_type = TRFRAME_PUT_DEV;
 			bi.data = buffer;
 			bi.data_len = ZDEVICE_BUFFER_SIZE;
+			enable_datalog_atime();
 			send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
 			
 			get_zdev_buffer_free(buffer);
@@ -958,12 +960,15 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 				ub.tr_info = TRINFO_REDATA;
 				ub.data = frbuffer->data;
 				ub.data_len = frbuffer->size;
+				
 				if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
 				{
+					enable_datalog_atime();
 					send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
 				}
 				else if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
 				{
+					enable_datalog_atime();
 					send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
 				}
 

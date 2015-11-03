@@ -42,7 +42,7 @@ int addto_tcpconn_list(tcp_conn_t *list)
 
 	if(tcp_conn_list.num >= tcp_conn_list.max_size)
 	{
-		DE_PRINTF("%s:tcp conn list num is %d, beyond max size\n", 
+		DE_PRINTF(1, "%s:tcp conn list num is %d, beyond max size\n", 
 			__FUNCTION__, tcp_conn_list.num);
 		
 		return -1;
@@ -82,7 +82,7 @@ tcp_conn_t *queryfrom_tcpconn_list(int fd)
 		}
 	}
 
-	DE_PRINTF("%s:no found connectin in tcp conn list\n", __FUNCTION__);
+	DE_PRINTF(1, "%s:no found connectin in tcp conn list\n", __FUNCTION__);
 	return NULL;
 }
 
@@ -94,7 +94,7 @@ int delfrom_tcpconn_list(int fd)
 
 	if(tcp_conn_list.num <= 0)
 	{
-		DE_PRINTF("%s:tcp conn list num is %d, no connection in list\n", 
+		DE_PRINTF(1, "%s:tcp conn list num is %d, no connection in list\n", 
 			__FUNCTION__, tcp_conn_list.num);
 		
 		return -1;
@@ -118,7 +118,7 @@ int delfrom_tcpconn_list(int fd)
 		return 0;
 	}
 
-	DE_PRINTF("%s:no found connectin in tcp conn list\n", __FUNCTION__);
+	DE_PRINTF(1, "%s:no found connectin in tcp conn list\n", __FUNCTION__);
 	return -1;
 }
 #endif

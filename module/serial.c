@@ -191,7 +191,7 @@ int serial_init(char *dev)
 int serial_write(char *data, int datalen)
 {
 #ifdef DE_PRINT_SERIAL_PORT
-	DE_PRINTF("serial write:%s\n", data);
+	DE_PRINTF(0, "serial write:%s\n", data);
 	//PRINT_HEX(data, datalen);
 #endif
 	return write(serial_id, data, datalen);
@@ -339,7 +339,7 @@ serial_update:
 				}
 			
 #ifdef DE_PRINT_SERIAL_PORT
-				DE_PRINTF("serial read:%s\n", tmpFrame);
+				DE_PRINTF(0, "serial read:%s\n", tmpFrame);
 				//PRINT_HEX(tmpFrame, dataLen);
 #endif
 

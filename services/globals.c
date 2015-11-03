@@ -41,6 +41,8 @@ static void set_conf_val(char *cmd, char *val);
 static int get_conf_setval();
 #endif
 
+static char cur_time[64];
+
 #ifdef COMM_CLIENT
 char *get_serial_port()
 {
@@ -243,9 +245,55 @@ int start_params(int argc, char **argv)
 	printf("UDP transmit port:%d\n", get_udp_port());
 #endif
 
+	FILE *fp = NULL;
+	static char logfile[32] = {0};
+    if((fp = fopen(DLOG_FILE, "a+")) != NULL)
+    {
+		char rebuf[1];
+		if(fread(rebuf, 1, 1, fp) > 0 )
+		{
+			fclose(fp);
+			
+			time_t t;
+			time(&t);
+			struct tm *tp= localtime(&t);
+			sprintf(logfile, "%s%s_", "/var/log/", TARGET_NAME);
+			strftime(logfile+strlen(logfile), 100, "%Y-%m-%d-%H:%M:%S", tp);
+			sprintf(logfile+strlen(logfile), "%s", ".log");
+
+			char cmd[256] = {0};
+			sprintf(cmd, "mv %s %s\n", DLOG_FILE, logfile);
+			system(cmd);
+			
+			if((fp = fopen(DLOG_FILE, "w+")) == NULL)
+			{
+				goto openlog_error;
+			}
+		}
+
+		fclose(fp);
+    }
+	else
+	{
+openlog_error:
+		printf("%s()%d : disable write log to \"%s\", please set correct user or goups permissions for dir \"/var/log\"\n", 
+			__FUNCTION__, __LINE__, DLOG_FILE);
+	}
+
 	return 0;
 }
 
+
+char *get_time_head()
+{
+	time_t t;
+	bzero(cur_time, sizeof(cur_time));
+	time(&t);
+	struct tm *tp= localtime(&t);
+	strftime(cur_time, 100, "[%Y-%m-%d-%H:%M:%S] ", tp);
+
+	return cur_time;
+}
 
 int mach_init()
 {
@@ -577,7 +625,8 @@ void reapk_version_code(char *ipaddr, cidentify_no_t cidentify_no)
 	
 	ub.data = data;
 	ub.data_len = 4;
-		
+
+	enable_datalog_atime();
 	send_frame_udp_request(ipaddr, TRHEAD_UB, &ub);
 }
 #endif

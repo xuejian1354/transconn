@@ -46,7 +46,8 @@ void pi_handler(struct sockaddr_in *addr, pi_t *pi)
 				mpi.fr_type = TRFRAME_GET;
 				mpi.data = ipaddr;
 				mpi.data_len = strlen(ipaddr);
-				
+
+				enable_datalog_atime();
 				send_frame_udp_request(ipaddr, TRHEAD_PI, &mpi);
 			}
 			else
@@ -141,6 +142,7 @@ next_zdev:				p_dev = p_dev->next;
 			bi.fr_type = TRFRAME_PUT_GW;
 			bi.data = frbuffer->data;
 			bi.data_len = frbuffer->size;
+			enable_datalog_atime();
 			send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
 			
 			get_buffer_free(frbuffer);
@@ -156,6 +158,7 @@ next_zdev:				p_dev = p_dev->next;
 				zbi.fr_type = TRFRAME_PUT_DEV;
 				zbi.data = buffer;
 				zbi.data_len = ZDEVICE_BUFFER_SIZE;
+				enable_datalog_atime();
 				send_frame_udp_request(ipaddr, TRHEAD_BI, &zbi);
 				
 				get_zdev_buffer_free(buffer);
@@ -176,7 +179,8 @@ next_zdev:				p_dev = p_dev->next;
 				mpi.fr_type = TRFRAME_GET;
 				mpi.data = ipaddr;
 				mpi.data_len = strlen(ipaddr);
-				
+
+				enable_datalog_atime();
 				send_frame_udp_request(ipaddr, TRHEAD_PI, &mpi);
 			}
 			else
@@ -367,6 +371,7 @@ void gp_handler(struct sockaddr_in *addr, gp_t *gp)
 	rp.tr_info = TRINFO_DATA;
 	rp.data = NULL;
 	rp.data_len = 0;
+	enable_datalog_atime();
 	send_frame_udp_request(ipaddr, TRHEAD_RP, &rp);
 	
 	return;
@@ -382,6 +387,7 @@ dev_match:
 		mgp.tr_info = TRINFO_IP;
 		mgp.data = m_info->ipaddr;
 		mgp.data_len = m_info->ip_len;
+		enable_datalog_atime();
 		send_frame_udp_request(p_gw->ipaddr, TRHEAD_GP, &mgp);
 	}
 
@@ -402,6 +408,7 @@ dev_match:
 	mrp.tr_info = TRINFO_DATA;
 	mrp.data = frbuffer->data;
 	mrp.data_len = frbuffer->size;
+	enable_datalog_atime();
 	send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
 
 	get_buffer_free(frbuffer);
@@ -427,6 +434,7 @@ gw_match:
 	mrp.tr_info = TRINFO_DATA;
 	mrp.data = frbuffer->data;
 	mrp.data_len = frbuffer->size;
+	enable_datalog_atime();
 	send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
 
 	get_buffer_free(frbuffer);
@@ -492,6 +500,7 @@ gw_match:
 			frbuffer = get_buffer_alloc(HEAD_UO, &m_uo);
 			mrp.data = frbuffer->data;
 			mrp.data_len = frbuffer->size;
+			enable_datalog_atime();
 			send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
 			get_buffer_free(frbuffer);
 
@@ -511,6 +520,7 @@ gw_match:
 		
 		mrp.data = NULL;
 		mrp.data_len = 0;
+		enable_datalog_atime();
 		send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
 		set_rp_check(query_client_info(gp->cidentify_no));
 		return;
@@ -536,6 +546,7 @@ gw_match:
 		mrp.tr_info = TRINFO_UPDATE;
 		mrp.data = frbuffer->data;
 		mrp.data_len = frbuffer->size;
+		enable_datalog_atime();
 		send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
 		
 		get_buffer_free(frbuffer);
@@ -572,6 +583,7 @@ void rp_handler(struct sockaddr_in *addr, rp_t *rp)
 		cli_info_t *p_cli = query_client_info(rp->cidentify_no);
 		if(p_cli != NULL)
 		{
+			enable_datalog_atime();
 			send_frame_udp_request(p_cli->ipaddr, TRHEAD_RP, rp);
 		}
 	}
@@ -586,6 +598,7 @@ void rp_handler(struct sockaddr_in *addr, rp_t *rp)
 			mrp.tr_info = TRINFO_IP;
 			mrp.data = NULL;
 			mrp.data_len = 0;
+			enable_datalog_atime();
 			send_frame_udp_request(rp->data, TRHEAD_RP, &mrp);
 		}
 	}
@@ -936,10 +949,12 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 					ub.data_len = frbuffer->size;
 					if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
 					{
+						enable_datalog_atime();
 						send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
 					}
 					else if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
 					{
+						enable_datalog_atime();
 						send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
 					}
 
@@ -998,10 +1013,12 @@ void dc_handler(struct sockaddr_in *addr, dc_t *dc)
 					ub.data_len = frbuffer->size;
 					if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
 					{
+						enable_datalog_atime();
 						send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
 					}
 					else if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
 					{
+						enable_datalog_atime();
 						send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
 					}
 
@@ -1079,6 +1096,7 @@ Handle_UR_free:
 	ub.tr_info = TRINFO_DISMATCH;
 	ub.data = NULL;
 	ub.data_len = 0;
+	enable_datalog_atime();
 	send_frame_udp_request(ipaddr, TRHEAD_UB, &ub);
 	
 	return;
@@ -1090,6 +1108,7 @@ gwdev_match:
 	mdc.tr_info = dc->tr_info;
 	mdc.data = dc->data;
 	mdc.data_len = dc->data_len;
+	enable_datalog_atime();
 	send_frame_udp_request(p_gw->ipaddr, TRHEAD_DC, &mdc);
 	return;
 #endif
@@ -1150,6 +1169,7 @@ client_match:
 	mub.tr_info = ub->tr_info;
 	mub.data = ub->data;
 	mub.data_len = ub->data_len;
+	enable_datalog_atime();
 	send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &mub);
 	return;
 
@@ -1167,6 +1187,7 @@ trans_cli_match:
 		memset(mub.cidentify_no, 0, sizeof(cidentify_no_t));
 		memcpy(mub.cidentify_no, 
 			t_contain->p_cli->cidentify_no, sizeof(cidentify_no_t));
+		enable_datalog_atime();
 		send_frame_udp_request(t_contain->p_cli->ipaddr, TRHEAD_UB, &mub);
 		t_contain = t_contain->next;
 	}

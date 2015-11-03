@@ -54,7 +54,7 @@ include $(TOPDIR)/include/include.mk
 
 $(SERVER_TARGET):$(inc_deps) server_comshow $(SERVER_OBJS)
 	$(call echocmd,TAR,$(SERVER_TARGET), \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -O2 -o $@ $(SERVER_OBJS) $(STD_LDFLAGS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG))
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -w -O2 -o $@ $(SERVER_OBJS) $(STD_LDFLAGS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG))
 	@$(STARGET_STRIP) $@
 
 $(CLIENT_TARGET):$(inc_deps) client_comshow $(CLIENT_OBJS)
@@ -64,7 +64,7 @@ $(CLIENT_TARGET):$(inc_deps) client_comshow $(CLIENT_OBJS)
 
 %-s.o:%.c mconfig/server_config
 	$(call echocmd,CC, $@, \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -O2 -o $@ -c $<)
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -w -O2 -o $@ -c $<)
 
 %-c.o:%.c mconfig/client_config
 	$(call echocmd,CC, $@, \

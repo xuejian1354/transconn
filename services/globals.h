@@ -15,10 +15,11 @@
  */
 #ifndef __GLOBALS_H__
 #define __GLOBALS_H__
- 
+
 #include <mconfig.h>
 #include <debug/dconfig.h>
 #include <debug/dlog.h>
+#include "time.h"
 
 //default program name
 #ifndef TARGET_NAME
@@ -168,6 +169,7 @@ uint8 *get_common_no();
 #endif
 
 int start_params(int argc, char **argv);
+char *get_time_head();
 int mach_init();
 void event_init();
 
