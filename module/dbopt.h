@@ -24,6 +24,7 @@
 pthread_mutex_t *get_sql_add_lock();
 
 int sql_init();
+int sql_reconnect();
 void sql_release();
 int sql_isuse();
 

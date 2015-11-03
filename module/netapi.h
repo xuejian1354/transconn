@@ -50,4 +50,6 @@ void socket_udp_recvfrom();
 void delog_udp_sendto(char *data, int len);
 #endif
 
+void enable_datalog_atime();
+
 #endif  // __NETAPI_H__

@@ -106,7 +106,7 @@ int select_listen()
 		else if(FD_ISSET(get_mtmp_fd(), &current_wtfs))
 		{
 #ifdef DE_PRINT_TCP_PORT
-			DE_PRINTF("new tcp client connection record %s\n", TCP_CONN_TMP);
+			DE_PRINTF(0, "new tcp client connection record %s\n", TCP_CONN_TMP);
 #endif
 		}
 #ifdef TRANS_TCP_SERVER

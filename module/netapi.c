@@ -31,7 +31,7 @@ typedef enum
 }deudp_print_t;
 
 static void set_udp_print_flag(uint8 flag);
-static void udp_data_show(deudp_print_t deprint, uint8 flag, 
+static void udp_data_show(deudp_print_t deprint, uint8 flag,
 		struct sockaddr_in *addr, char *data, int len);
 
 static uint8 udp_print_flag = DE_PRINT_UDP_PORT;
@@ -51,6 +51,8 @@ static int tcpfd;
 static int m_tmpfd, m_tcpfd;
 static struct sockaddr_in m_server_addr;
 #endif
+
+uint8 lwflag = 0;
 
 #ifdef TRANS_TCP_SERVER
 int get_tcp_fd()
@@ -93,7 +95,7 @@ void socket_tcp_server_accept(int fd)
 	rw = accept(fd, (struct sockaddr *)&client_addr, &len);
 
 #ifdef DE_PRINT_TCP_PORT
-	DE_PRINTF("TCP:accept,ip=%s:%u\n\n", 
+	DE_PRINTF(1, "TCP:accept,ip=%s:%u\n\n", 
 		inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 #endif
 
@@ -130,14 +132,14 @@ void socket_tcp_server_release(int fd)
 	tcp_conn_t *m_list = queryfrom_tcpconn_list(fd);
 	if(m_list != NULL)
 	{
-		DE_PRINTF("TCP:release,ip=%s:%u\n\n", 
+		DE_PRINTF(1, "TCP:release,ip=%s:%u\n\n", 
 			inet_ntoa(m_list->client_addr.sin_addr), 
 			ntohs(m_list->client_addr.sin_port));
 	}
 	
 	delfrom_tcpconn_list(fd);
 #else
-	DE_PRINTF("TCP:release,fd=%d\n\n", fd);
+	DE_PRINTF(1, "TCP:release,fd=%d\n\n", fd);
 #endif
 #endif
 }
@@ -159,13 +161,13 @@ void socket_tcp_server_recv(int fd)
 		if(m_list != NULL)
 		{
 #ifdef DE_PRINT_TCP_PORT
-			DE_PRINTF("TCP:receive %d bytes, from ip=%s:%u\n", 
+			DE_PRINTF(0, "TCP:receive %d bytes, from ip=%s:%u\n", 
 				nbytes, inet_ntoa(m_list->client_addr.sin_addr), 
 				ntohs(m_list->client_addr.sin_port));
 #endif
 		}
 #endif
-		DE_PRINTF("data:%s\n", buf);
+		DE_PRINTF(0, "data:%s\n", buf);
 
 #ifdef TRANS_TCP_CONN_LIST
 		frhandler_arg_t *frarg = 
@@ -254,11 +256,11 @@ void socket_tcp_client_recv(int fd)
 	else
 	{
 #ifdef DE_PRINT_TCP_PORT
-		DE_PRINTF("TCP:receive %d bytes, from ip=%s:%u\n", 
+		DE_PRINTF(0, "TCP:receive %d bytes, from ip=%s:%u\n", 
 			nbytes, inet_ntoa(m_server_addr.sin_addr), 
 			ntohs(m_server_addr.sin_port));
 
-		DE_PRINTF("data:%s\n", buf);
+		DE_PRINTF(0, "data:%s\n", buf);
 #endif
 	}
 }
@@ -281,7 +283,7 @@ void socket_tcp_client_close(int fd)
 #endif
 
 #ifdef DE_PRINT_TCP_PORT
-	DE_PRINTF("TCP Client:release,fd=%d\n\n", fd);
+	DE_PRINTF(1, "TCP Client:release,fd=%d\n\n", fd);
 #endif
 }
 #endif
@@ -375,7 +377,7 @@ void socket_udp_sendto(char *addr, char *data, int len)
 
 	if(saddr[0]==0 || iport==0)
 	{
-		DE_PRINTF("error ip address, addr=%s\n", addr);
+		DE_PRINTF(1, "error ip address, addr=%s\n", addr);
 		return;
 	}
 	
@@ -409,7 +411,12 @@ void delog_udp_sendto(char *data, int len)
 }
 #endif
 
-void udp_data_show(deudp_print_t deprint, uint8 flag, 
+void enable_datalog_atime()
+{
+	lwflag = 1;
+}
+
+void udp_data_show(deudp_print_t deprint, uint8 flag,
 		struct sockaddr_in *addr, char *data, int len)
 {
 	int i;
@@ -485,21 +492,21 @@ void udp_data_show(deudp_print_t deprint, uint8 flag,
 			uint8 flag;
 			incode_ctoxs(&flag, data+11, 2);
 			set_udp_print_flag(flag);
-			DE_PRINTF("\n%s%X succeed\n\n", DEU_CMD_PREFIX, flag);
+			DE_PRINTF(1, "\n%s%X succeed\n\n", DEU_CMD_PREFIX, flag);
 		}
 		else
 		{
-			DE_PRINTF("\nUnrecognized cmd:%s", data);
-			DE_PRINTF("follow:\"%s%s\"\n", DEU_CMD_PREFIX, "value(hex)");
-			DE_PRINTF("value:\n");
-			DE_PRINTF("  PI:  01\n");
-			DE_PRINTF("  BI:  02\n");
-			DE_PRINTF("  GP:  04\n");
-			DE_PRINTF("  RP:  08\n");
-			DE_PRINTF("  GD:  10\n");
-			DE_PRINTF("  RD:  20\n");
-			DE_PRINTF("  DC:  40\n");
-			DE_PRINTF("  UB:  80\n\n");
+			DE_PRINTF(0, "\nUnrecognized cmd:%s", data);
+			DE_PRINTF(0, "follow:\"%s%s\"\n", DEU_CMD_PREFIX, "value(hex)");
+			DE_PRINTF(0, "value:\n");
+			DE_PRINTF(0, "  PI:  01\n");
+			DE_PRINTF(0, "  BI:  02\n");
+			DE_PRINTF(0, "  GP:  04\n");
+			DE_PRINTF(0, "  RP:  08\n");
+			DE_PRINTF(0, "  GD:  10\n");
+			DE_PRINTF(0, "  RD:  20\n");
+			DE_PRINTF(0, "  DC:  40\n");
+			DE_PRINTF(0, "  UB:  80\n\n");
 		}
 	}
 #endif
@@ -509,17 +516,18 @@ void udp_data_show(deudp_print_t deprint, uint8 flag,
 show_end:
 	if(deprint == DE_UDP_SEND)
 	{
-		DE_PRINTF("UDP:send %d bytes, to ip=%s:%u\n", 
+		DE_PRINTF(lwflag, "UDP:send %d bytes, to ip=%s:%u\n", 
 					len, inet_ntoa(addr->sin_addr), 
 					ntohs(addr->sin_port));
 	}
 	else if(deprint == DE_UDP_RECV)
 	{
-		DE_PRINTF("UDP:receive %d bytes, from ip=%s:%u\n", 
+		DE_PRINTF(lwflag, "UDP:receive %d bytes, from ip=%s:%u\n", 
 					len, inet_ntoa(addr->sin_addr), 
 					ntohs(addr->sin_port));
 	}
 				
-	DE_PRINTF("data:%s\n", data);
+	DE_PRINTF(lwflag, "data:%s\n", data);
+	lwflag = 0;
 }
 #endif
