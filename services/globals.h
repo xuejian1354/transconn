@@ -182,7 +182,7 @@ global_conf_t *get_global_conf();
 int conf_read_from_file();
 
 #ifdef REMOTE_UPDATE_APK
-void reapk_version_code(char *ipaddr, cidentify_no_t cidentify_no);
+void reapk_version_code(char *up_flags, char *ipaddr, cidentify_no_t cidentify_no);
 #endif
 #endif
 

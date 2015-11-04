@@ -1063,7 +1063,14 @@ Handle_UR_free:
 		&& dc->trans_type == TRTYPE_UDP_NORMAL
 		&& dc->tr_info == TRINFO_UPDATE)
 	{
-		reapk_version_code(ipaddr, dc->cidentify_no);
+		if(dc->data_len >= 2 && !memcmp(dc->data, "LS", 2))
+		{
+			reapk_version_code("LS", ipaddr, dc->cidentify_no);
+		}
+		else
+		{
+			reapk_version_code(NULL, ipaddr, dc->cidentify_no);
+		}
 		return;
 	}
 #endif

@@ -589,7 +589,7 @@ int get_conf_setval()
 }
 
 #ifdef REMOTE_UPDATE_APK
-void reapk_version_code(char *ipaddr, cidentify_no_t cidentify_no)
+void reapk_version_code(char *up_flags, char *ipaddr, cidentify_no_t cidentify_no)
 {
 	ub_t ub;
 	DIR *dp;
@@ -617,7 +617,8 @@ void reapk_version_code(char *ipaddr, cidentify_no_t cidentify_no)
 					int tcode = atoi(codestr);
 					version_code = version_code>tcode?version_code:tcode;
 				}
-				else if(!strncmp(ep->d_name, "loongsmart_", 11))
+				else if(up_flags != NULL && !strncmp(up_flags, "LS", 2)
+					&& !strncmp(ep->d_name, "loongsmart_", 11))
 				{
 					char codestr[16] = {0};
 					memcpy(codestr, ep->d_name+11, f_len-15);
