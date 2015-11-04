@@ -608,14 +608,22 @@ void reapk_version_code(char *ipaddr, cidentify_no_t cidentify_no)
 		{
 			int f_len = strlen(ep->d_name);
 			
-			if(f_len > 12
-				&& !strncmp(ep->d_name, "SHomely_", 8)
-				&& !strncmp(ep->d_name+f_len-4, ".apk", 4))
+			if(f_len > 12 && !strncmp(ep->d_name+f_len-4, ".apk", 4))
 			{
-				char codestr[16] = {0};
-				memcpy(codestr, ep->d_name+8, f_len-12);
-				int tcode = atoi(codestr);
-				version_code = version_code>tcode?version_code:tcode;
+				if(!strncmp(ep->d_name, "SHomely_", 8))
+				{
+					char codestr[16] = {0};
+					memcpy(codestr, ep->d_name+8, f_len-12);
+					int tcode = atoi(codestr);
+					version_code = version_code>tcode?version_code:tcode;
+				}
+				else if(!strncmp(ep->d_name, "loongsmart_", 11))
+				{
+					char codestr[16] = {0};
+					memcpy(codestr, ep->d_name+11, f_len-15);
+					int tcode = atoi(codestr);
+					version_code = version_code>tcode?version_code:tcode;
+				}
 			}
 		}
 	}
