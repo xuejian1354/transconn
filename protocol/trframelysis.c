@@ -27,6 +27,14 @@ tr_head_type_t get_trhead_from_str(char *head)
 	{
 		return TRHEAD_BI;
 	}
+	else if(!strncmp(TR_HEAD_UL, head, 3))
+	{
+		return TRHEAD_UL;
+	}
+	else if(!strncmp(TR_HEAD_SL, head, 3))
+	{
+		return TRHEAD_SL;
+	}
 	else if(!strncmp(TR_HEAD_GP, head, 3))
 	{
 		return TRHEAD_GP;
@@ -129,6 +137,9 @@ tr_frame_type_t get_trframe_from_ch(char trfra)
 	case TR_FRAME_TRANS:
 		return TRFRAME_TRANS;
 
+	case TR_FRAME_IGNORE:
+		return TRFRAME_IGNORE;
+
 	default:
 		break;
 	}
@@ -157,6 +168,9 @@ char get_trframe_to_ch(tr_frame_type_t trfra)
 
 	case TRFRAME_TRANS:
 		return TR_FRAME_TRANS;
+
+	case TRFRAME_IGNORE:
+		return TR_FRAME_IGNORE;
 
 	default:
 		break;
@@ -311,6 +325,58 @@ void *get_trframe_alloc(tr_head_type_t head_type, uint8 buffer[], int length)
 			}
 
 			return (void *)bi;
+		}
+		else { goto  tr_analysis_err;}
+
+	case TRHEAD_UL:
+		if(length>=TR_UL_DATA_FIX_LEN && !memcmp(buffer, TR_HEAD_UL, 3)
+			&& !memcmp(buffer+length-4, TR_TAIL, 4))
+		{
+			ul_t *ul = (ul_t *)calloc(1, sizeof(ul_t));
+			incode_ctoxs(ul->sn, buffer+3, 16);
+			ul->trans_type = get_trtrans_from_ch(buffer[19]);
+			ul->fr_type = get_trframe_from_ch(buffer[20]);
+			
+			if(length-TR_UL_DATA_FIX_LEN > 0)
+			{
+				ul->data_len = length-TR_UL_DATA_FIX_LEN;
+				uint8 *data_buffer = (uint8 *)calloc(ul->data_len, sizeof(uint8));
+				memcpy(data_buffer, buffer+21, ul->data_len);
+				ul->data = data_buffer;
+			}
+			else
+			{
+				ul->data_len = 0;
+				ul->data = NULL;
+			}
+
+			return (void *)ul;
+		}
+		else { goto  tr_analysis_err;}
+
+	case TRHEAD_SL:
+		if(length>=TR_SL_DATA_FIX_LEN && !memcmp(buffer, TR_HEAD_SL, 3)
+			&& !memcmp(buffer+length-4, TR_TAIL, 4))
+		{
+			sl_t *sl = (sl_t *)calloc(1, sizeof(sl_t));
+			incode_ctoxs(sl->sn, buffer+3, 16);
+			sl->trans_type = get_trtrans_from_ch(buffer[19]);
+			sl->fr_type = get_trframe_from_ch(buffer[20]);
+			
+			if(length-TR_UL_DATA_FIX_LEN > 0)
+			{
+				sl->data_len = length-TR_SL_DATA_FIX_LEN;
+				uint8 *data_buffer = (uint8 *)calloc(sl->data_len, sizeof(uint8));
+				memcpy(data_buffer, buffer+21, sl->data_len);
+				sl->data = data_buffer;
+			}
+			else
+			{
+				sl->data_len = 0;
+				sl->data = NULL;
+			}
+
+			return (void *)sl;
 		}
 		else { goto  tr_analysis_err;}
 		
@@ -490,6 +556,16 @@ void get_trframe_free(tr_head_type_t head_type, void *p)
 		free(((bi_t *)p)->data);
 		free(p);
 		break;
+
+	case TRHEAD_UL:
+		free(((ul_t *)p)->data);
+		free(p);
+		break;
+
+	case TRHEAD_SL:
+		free(((sl_t *)p)->data);
+		free(p);
+		break;
 		
 	case TRHEAD_GP:
 		free(((gp_t *)p)->data);
@@ -528,8 +604,11 @@ void get_trframe_free(tr_head_type_t head_type, void *p)
 
 tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame)
 {
-	pi_t *p_pi; bi_t *p_bi; gp_t *p_gp; rp_t *p_rp;
-	gd_t *p_gd; rd_t *p_rd; dc_t *p_dc; ub_t *p_ub;
+	pi_t *p_pi; bi_t *p_bi; 
+	ul_t *p_ul; sl_t *p_sl;
+	gp_t *p_gp; rp_t *p_rp;
+	gd_t *p_gd; rd_t *p_rd; 
+	dc_t *p_dc; ub_t *p_ub;
 	
 	tr_buffer_t *frame_buffer;
 	
@@ -574,6 +653,46 @@ tr_buffer_t *get_trbuffer_alloc(tr_head_type_t type, void *frame)
 		frame_buffer->data[19] = get_trtrans_to_ch(p_bi->trans_type);
 		frame_buffer->data[20] = get_trframe_to_ch(p_bi->fr_type);
 		memcpy(frame_buffer->data+21, p_bi->data, p_bi->data_len);
+		memcpy(frame_buffer->data+frame_buffer->size-4, TR_TAIL, 4);
+
+		return frame_buffer;
+
+	case TRHEAD_UL:
+		p_ul = (ul_t *)frame;
+		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
+		frame_buffer->size = TR_UL_DATA_FIX_LEN+p_ul->data_len;
+		if(frame_buffer->size > TR_BUFFER_SIZE)
+		{
+			free(frame_buffer);
+			goto tr_package_err;
+		}
+		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
+		
+		memcpy(frame_buffer->data, TR_HEAD_UL, 3);
+		incode_xtocs(frame_buffer->data+3, p_ul->sn, 8);
+		frame_buffer->data[19] = get_trtrans_to_ch(p_ul->trans_type);
+		frame_buffer->data[20] = get_trframe_to_ch(p_ul->fr_type);
+		memcpy(frame_buffer->data+21, p_ul->data, p_ul->data_len);
+		memcpy(frame_buffer->data+frame_buffer->size-4, TR_TAIL, 4);
+
+		return frame_buffer;
+
+	case TRHEAD_SL:
+		p_sl = (sl_t *)frame;
+		frame_buffer = (tr_buffer_t *)calloc(1, sizeof(tr_buffer_t));
+		frame_buffer->size = TR_SL_DATA_FIX_LEN+p_sl->data_len;
+		if(frame_buffer->size > TR_BUFFER_SIZE)
+		{
+			free(frame_buffer);
+			goto tr_package_err;
+		}
+		frame_buffer->data = (uint8 *)calloc(frame_buffer->size, sizeof(uint8));
+		
+		memcpy(frame_buffer->data, TR_HEAD_SL, 3);
+		incode_xtocs(frame_buffer->data+3, p_sl->sn, 8);
+		frame_buffer->data[19] = get_trtrans_to_ch(p_sl->trans_type);
+		frame_buffer->data[20] = get_trframe_to_ch(p_sl->fr_type);
+		memcpy(frame_buffer->data+21, p_sl->data, p_sl->data_len);
 		memcpy(frame_buffer->data+frame_buffer->size-4, TR_TAIL, 4);
 
 		return frame_buffer;

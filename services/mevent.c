@@ -18,7 +18,7 @@
 #include "mevent.h"
 #include <protocol/protocol.h>
 #include <protocol/trframelysis.h>
-#include <protocol/trrequest.h>
+#include <protocol/request.h>
 
 #ifdef COMM_CLIENT
 #define GATEWAY_REFRESH_EVENT	0x0001
@@ -252,7 +252,25 @@ void *gateway_watch(void *p, pthread_mutex_t *lock)
 	char gwno[18] = {0};
 	incode_xtocs(gwno, p, sizeof(zidentify_no_t));
 	DE_PRINTF(1, "del gateway from list, gw no:%s\n\n", gwno);
+
+#ifdef DB_API_SUPPORT
+	gw_info_t *p_gw = query_gateway_info(p);
+	if(p_gw != NULL)
+	{
+		int offline_nums = 0;
+		uint16 offline_addrs[ZDEVICE_MAX_NUM] = {0};
 	
+		dev_info_t *p_dev = p_gw->p_dev;
+		while(p_dev != NULL)
+		{
+			offline_addrs[offline_nums++] = p_dev->znet_addr;
+			p_dev = p_dev->next;
+		}
+
+		sql_uponline_zdev(p_gw, 0, offline_addrs, offline_nums);
+	}
+#endif
+
 	del_gateway_info(p);
 }
 

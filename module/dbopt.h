@@ -37,7 +37,9 @@ int sql_uponline_zdev(gw_info_t *p_gw,
 
 int sql_add_gateway(gw_info_t *m_gw);
 int sql_query_gateway(zidentify_no_t gw_no);
-int sql_gel_gateway(zidentify_no_t gw_no);
+int sql_del_gateway(zidentify_no_t gw_no);
+
+int set_user_info_from_sql(cli_user_t *user_info);
 
 void sql_test();
 

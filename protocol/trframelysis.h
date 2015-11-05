@@ -23,6 +23,8 @@
 //traversal frame head
 #define TR_HEAD_PI	"PI:"	//gw put info to server
 #define TR_HEAD_BI	"BI:"	//server back info to gw
+#define TR_HEAD_UL	"UL:"	//user login info to server
+#define TR_HEAD_SL	"SL:"	//server back login info to user
 #define TR_HEAD_GP	"GP:"	//capps get ip port from server
 #define TR_HEAD_RP	"RP:"	//server return ip port to capps & gw
 #define TR_HEAD_GD	"GD:"	//get traversal connection
@@ -42,6 +44,7 @@
 #define TR_FRAME_PUT_GW		'4'
 #define TR_FRAME_PUT_DEV	'5'
 #define TR_FRAME_TRANS		'6'
+#define TR_FRAME_IGNORE		'S'
 
 #define TR_INFO_NONE		'0'
 #define TR_INFO_IP			'1'
@@ -58,6 +61,8 @@
 
 #define TR_PI_DATA_FIX_LEN	25
 #define TR_BI_DATA_FIX_LEN	25
+#define TR_UL_DATA_FIX_LEN	25
+#define TR_SL_DATA_FIX_LEN	25
 #define TR_GP_DATA_FIX_LEN	41
 #define TR_RP_DATA_FIX_LEN	41
 #define TR_GD_DATA_FIX_LEN	41
@@ -72,6 +77,8 @@ typedef enum
 {
 	TRHEAD_PI,
 	TRHEAD_BI,
+	TRHEAD_UL,
+	TRHEAD_SL,
 	TRHEAD_GP,
 	TRHEAD_RP,
 	TRHEAD_GD,
@@ -99,6 +106,7 @@ typedef enum
 	TRFRAME_PUT_GW,
 	TRFRAME_PUT_DEV,
 	TRFRAME_TRANS,
+	TRFRAME_IGNORE,
 	TRFRAME_NONE,
 }tr_frame_type_t;
 
@@ -125,7 +133,7 @@ typedef struct
 	tr_frame_type_t fr_type;
 	int data_len;
 	uint8 *data;
-}pi_t, bi_t;
+}pi_t, bi_t, ul_t, sl_t;
 
 
 typedef struct
