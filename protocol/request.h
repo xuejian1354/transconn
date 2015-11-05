@@ -1,5 +1,5 @@
 /*
- * trrequest.h
+ * request.h
  *
  * Copyright (C) 2013 loongsky development.
  *
@@ -15,26 +15,29 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __TRREQUEST_H__
-#define __TRREQUEST_H__
+#ifndef __REQUEST_H__
+#define __REQUEST_H__
 
 #include <services/globals.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <protocol/trframelysis.h>
 
-void pi_handler(struct sockaddr_in *addr, pi_t *pi);
-void bi_handler(struct sockaddr_in *addr, bi_t *bi);
+void pi_handler(struct sockaddr_in *addr, pi_t *p_pi);
+void bi_handler(struct sockaddr_in *addr, bi_t *p_bi);
 
-void gp_handler(struct sockaddr_in *addr, gp_t *gp);
-void rp_handler(struct sockaddr_in *addr, rp_t *rp);
+void ul_handler(struct sockaddr_in *addr, ul_t *p_ul);
+void sl_handler(struct sockaddr_in *addr, sl_t *p_sl);
 
-void gd_handler(struct sockaddr_in *addr, gd_t *gd);
-void rd_handler(struct sockaddr_in *addr, rd_t *rd);
+void gp_handler(struct sockaddr_in *addr, gp_t *p_gp);
+void rp_handler(struct sockaddr_in *addr, rp_t *p_rp);
 
-void dc_handler(struct sockaddr_in *addr, dc_t *dc);
-void ub_handler(struct sockaddr_in *addr, ub_t *ub);
+void gd_handler(struct sockaddr_in *addr, gd_t *p_gd);
+void rd_handler(struct sockaddr_in *addr, rd_t *p_rd);
+
+void dc_handler(struct sockaddr_in *addr, dc_t *p_dc);
+void ub_handler(struct sockaddr_in *addr, ub_t *p_ub);
 
 void send_frame_udp_request(char *ipaddr, tr_head_type_t htype, void *frame);
 
-#endif  //__TRREQUEST_H__
+#endif  //__REQUEST_H__

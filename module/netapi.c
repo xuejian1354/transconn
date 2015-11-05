@@ -425,14 +425,18 @@ void udp_data_show(deudp_print_t deprint, uint8 flag,
 		switch(i)
 		{
 		case 0: 
-			if((flag&(1<<i)) && !strncmp(data, TR_HEAD_PI, 3))
+			if((flag&(1<<i)) 
+				&& (!strncmp(data, TR_HEAD_PI, 3)
+				|| !strncmp(data, TR_HEAD_UL, 3)))
 			{
 				goto show_end;	
 			}
 			break;
 			
 		case 1: 
-			if((flag&(1<<i)) && !strncmp(data, TR_HEAD_BI, 3))
+			if((flag&(1<<i)) 
+				&& (!strncmp(data, TR_HEAD_BI, 3)
+				|| !strncmp(data, TR_HEAD_SL, 3)))
 			{
 				goto show_end;	
 			}
@@ -499,14 +503,14 @@ void udp_data_show(deudp_print_t deprint, uint8 flag,
 			DE_PRINTF(0, "\nUnrecognized cmd:%s", data);
 			DE_PRINTF(0, "follow:\"%s%s\"\n", DEU_CMD_PREFIX, "value(hex)");
 			DE_PRINTF(0, "value:\n");
-			DE_PRINTF(0, "  PI:  01\n");
-			DE_PRINTF(0, "  BI:  02\n");
-			DE_PRINTF(0, "  GP:  04\n");
-			DE_PRINTF(0, "  RP:  08\n");
-			DE_PRINTF(0, "  GD:  10\n");
-			DE_PRINTF(0, "  RD:  20\n");
-			DE_PRINTF(0, "  DC:  40\n");
-			DE_PRINTF(0, "  UB:  80\n\n");
+			DE_PRINTF(0, "  PI:|UL:	01\n");
+			DE_PRINTF(0, "  BI:|SL:	02\n");
+			DE_PRINTF(0, "  GP:  	04\n");
+			DE_PRINTF(0, "  RP:  	08\n");
+			DE_PRINTF(0, "  GD:  	10\n");
+			DE_PRINTF(0, "  RD:  	20\n");
+			DE_PRINTF(0, "  DC:  	40\n");
+			DE_PRINTF(0, "  UB:  	80\n\n");
 		}
 	}
 #endif

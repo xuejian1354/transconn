@@ -544,7 +544,7 @@ int sql_query_gateway(zidentify_no_t gw_no)
 	return 1;
 }
 
-int sql_gel_gateway(zidentify_no_t gw_no)
+int sql_del_gateway(zidentify_no_t gw_no)
 {
 	char gwno_str[24] = {0};
 	incode_xtocs(gwno_str, gw_no, sizeof(zidentify_no_t));
@@ -570,6 +570,125 @@ int sql_gel_gateway(zidentify_no_t gw_no)
 	pthread_mutex_unlock(&sql_lock);
 	
 	return 0;
+}
+
+int set_user_info_from_sql(cli_user_t *user_info)
+{
+	if(user_info == NULL)
+	{
+		return -1;
+	}
+
+	SET_CMD_LINE("%s%s%s%s", 
+		"SELECT name, devices, iscollects, locates, areas, scenes ",
+		"FROM users WHERE email=\'", 
+		user_info->email, 
+		"\'");
+
+	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return -1;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		return -1;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums >= 6)
+		{
+			int name_len = strlen(mysql_row[0]);
+			memcpy(user_info->name, "name:", 5);
+			memcpy(user_info->name+5, mysql_row[0], 
+				sizeof(user_info->name)-6<name_len?sizeof(user_info->name)-6:name_len);
+
+			if(user_info->devices != NULL)
+			{
+				free(user_info->devices);
+				user_info->devices = NULL;
+			}
+			
+			if(mysql_row[1] != NULL && strlen(mysql_row[1]) > 0)
+			{
+				user_info->devices = calloc(1, strlen(mysql_row[1])+9);
+				memcpy(user_info->devices, "devices:", 8);
+				memcpy(user_info->devices+8, mysql_row[1], strlen(mysql_row[1]));
+			}
+			
+			if(user_info->iscollects != NULL)
+			{
+				free(user_info->iscollects);
+				user_info->iscollects = NULL;
+			}
+
+			if(mysql_row[2] != NULL && strlen(mysql_row[2]) > 0)
+			{
+				user_info->iscollects = calloc(1, strlen(mysql_row[2])+12);
+				memcpy(user_info->iscollects, "iscollects:", 11);
+				memcpy(user_info->iscollects+11, mysql_row[2], strlen(mysql_row[2]));
+			}
+			
+			if(user_info->locates != NULL)
+			{
+				free(user_info->locates);
+				user_info->locates = NULL;
+			}
+
+			if(mysql_row[3] != NULL && strlen(mysql_row[3]) > 0)
+			{
+				user_info->locates = calloc(1, strlen(mysql_row[3])+9);
+				memcpy(user_info->locates, "locates:", 8);
+				memcpy(user_info->locates+8, mysql_row[3], strlen(mysql_row[3]));
+			}
+			
+			if(user_info->areas != NULL)
+			{
+				free(user_info->areas);
+				user_info->areas = NULL;
+			}
+
+			if(mysql_row[4] != NULL && strlen(mysql_row[4]) > 0)
+			{
+				user_info->areas = calloc(1, strlen(mysql_row[4])+7);
+				memcpy(user_info->areas, "areas:", 6);
+				memcpy(user_info->areas+6, mysql_row[4], strlen(mysql_row[4]));
+			}
+			
+			if(user_info->scenes != NULL)
+			{
+				free(user_info->scenes);
+				user_info->scenes = NULL;
+			}
+
+			if(mysql_row[5] != NULL && strlen(mysql_row[5]) > 0)
+			{
+				user_info->scenes = calloc(1, strlen(mysql_row[5])+8);
+				memcpy(user_info->scenes, "scenes:", 7);
+				memcpy(user_info->scenes+7, mysql_row[5], strlen(mysql_row[5]));
+			}
+			
+			mysql_free_result(mysql_res);
+			return 0;
+		}
+	}
+
+    mysql_free_result(mysql_res);
+	return 1;	
 }
 
 void sql_test()
