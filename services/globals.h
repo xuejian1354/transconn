@@ -160,9 +160,7 @@ void set_tcp_port(int port);
 void set_udp_port(int port);
 #endif
 
-#ifdef COMM_CLIENT
 uint8 *get_broadcast_no();
-#endif
 
 #ifdef COMM_SERVER
 uint8 *get_common_no();

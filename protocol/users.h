@@ -24,10 +24,7 @@
 typedef struct Cli_User
 {
 	char name[64];
-	char email[64];
 	char *devices;
-	char *iscollects;
-	char *locates;
 	char *areas;
 	char *scenes;
 }cli_user_t;
@@ -42,6 +39,7 @@ typedef struct Cli_Info
 	uint8 serverip_len;
 	int check_count;
 	int check_conn;
+	char email[64];
 	cli_user_t *user_info;
 	struct Cli_Info *next;
 }cli_info_t;

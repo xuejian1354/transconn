@@ -39,7 +39,8 @@ int sql_add_gateway(gw_info_t *m_gw);
 int sql_query_gateway(zidentify_no_t gw_no);
 int sql_del_gateway(zidentify_no_t gw_no);
 
-int set_user_info_from_sql(cli_user_t *user_info);
+int set_user_info_from_sql(char *email, cli_user_t *user_info);
+int set_zdev_to_user_sql(char *email, char *dev_str);
 
 void sql_test();
 

@@ -66,6 +66,13 @@ int add_client_info(cli_info_t *m_info)
 				memcpy(t_cli->serverip_addr, m_info->serverip_addr, m_info->serverip_len);
 				t_cli->serverip_len = m_info->serverip_len;
 			}
+
+			if(strlen(m_info->email) > 0)
+			{
+				bzero(t_cli->email, sizeof(t_cli->email));
+				memcpy(t_cli->email, m_info->email, strlen(m_info->email));
+			}
+			
 			t_cli->check_count = m_info->check_count;
 			t_cli->check_conn = m_info->check_conn;
 

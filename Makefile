@@ -12,7 +12,7 @@ export SERVER_TARGET CLIENT_TARGET
 
 INCLUDE+=-I$(TOPDIR)/include -I$(TOPDIR)/lib
 
-STD_LDFLAGS:=-lpthread
+STD_LDFLAGS:=-lpthread -lm
 export INCLUDE STD_LDFLAGS
 
 SERVER_DMACRO:=-DTARGET_NAME=\"$(SERVER_TARGET)\" -DCOMM_SERVER
@@ -52,14 +52,14 @@ all:$(TARGET)
 
 include $(TOPDIR)/include/include.mk
 
-$(SERVER_TARGET):$(inc_deps) server_comshow $(SERVER_OBJS)
+$(SERVER_TARGET):$(inc_deps) server_comshow $(SERVER_OBJS) libs-s
 	$(call echocmd,TAR,$(SERVER_TARGET), \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -w -O2 -o $@ $(SERVER_OBJS) $(STD_LDFLAGS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG))
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -w -O2 -o $@ $(SERVER_OBJS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG)) $(STD_LDFLAGS)
 	@$(STARGET_STRIP) $@
 
-$(CLIENT_TARGET):$(inc_deps) client_comshow $(CLIENT_OBJS)
+$(CLIENT_TARGET):$(inc_deps) client_comshow $(CLIENT_OBJS) libs-c
 	$(call echocmd,TAR,$(CLIENT_TARGET), \
-	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) $(LDPATH) $(CLIENT_LDPATH) -O2 -o $@ $(CLIENT_OBJS) $(STD_LDFLAGS) $(patsubst %,%-c,$(LDFLAGS)) $(CLIENT_LDFLAG))
+	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) $(LDPATH) $(CLIENT_LDPATH) -O2 -o $@ $(CLIENT_OBJS) $(patsubst %,%-c,$(LDFLAGS)) $(CLIENT_LDFLAG)) $(STD_LDFLAGS)
 	@$(CTARGET_STRIP) $@
 
 %-s.o:%.c mconfig/server_config
@@ -70,8 +70,11 @@ $(CLIENT_TARGET):$(inc_deps) client_comshow $(CLIENT_OBJS)
 	$(call echocmd,CC, $@, \
 	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ -c $<)
 
-$(eval $(call dependlibs-relations,$(SERVER_TARGET),$(LDFLAGS),-s))
-$(eval $(call dependlibs-relations,$(CLIENT_TARGET),$(LDFLAGS),-c))
+libs-s:
+	@make -C $(TOPDIR)/lib $(patsubst %,%-s.a,$(patsubst %.a,%,$(LDLIBS)))
+
+libs-c:
+	@make -C $(TOPDIR)/lib $(patsubst %,%-c.a,$(patsubst %.a,%,$(LDLIBS)))
 
 server_comshow:
 	@echo ""
