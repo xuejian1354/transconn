@@ -341,10 +341,10 @@ void ul_handler(struct sockaddr_in *addr, ul_t *p_ul)
 	cli_info_t *t_info = query_client_info(p_ul->sn);
 	if(t_info != NULL && p_ul->data_len > 0)
 	{
-		t_info->user_info = calloc(1, sizeof(cli_user_t));
-		memcpy(t_info->user_info->email, p_ul->data, p_ul->data_len);
+		memcpy(t_info->email, p_ul->data, p_ul->data_len);
 #ifdef DB_API_SUPPORT
-		set_user_info_from_sql(t_info->user_info);
+		t_info->user_info = calloc(1, sizeof(cli_user_t));
+		set_user_info_from_sql(t_info->email, t_info->user_info);
 
 		sl_t sl;
 		memcpy(sl.sn, p_ul->sn, sizeof(zidentify_no_t));
@@ -369,26 +369,6 @@ void ul_handler(struct sockaddr_in *addr, ul_t *p_ul)
 			t_info->user_info->devices = NULL;
 		}
 
-		if(t_info->user_info->iscollects != NULL)
-		{
-			sl.data = t_info->user_info->iscollects;
-			sl.data_len = strlen(t_info->user_info->iscollects);
-			enable_datalog_atime();
-			send_frame_udp_request(ipaddr, TRHEAD_SL, &sl);
-			free(t_info->user_info->iscollects);
-			t_info->user_info->iscollects = NULL;
-		}
-
-		if(t_info->user_info->locates != NULL)
-		{
-			sl.data = t_info->user_info->locates;
-			sl.data_len = strlen(t_info->user_info->locates);
-			enable_datalog_atime();
-			send_frame_udp_request(ipaddr, TRHEAD_SL, &sl);
-			free(t_info->user_info->locates);
-			t_info->user_info->locates = NULL;
-		}
-
 		if(t_info->user_info->areas != NULL)
 		{
 			sl.data = t_info->user_info->areas;
@@ -408,9 +388,10 @@ void ul_handler(struct sockaddr_in *addr, ul_t *p_ul)
 			free(t_info->user_info->scenes);
 			t_info->user_info->scenes = NULL;
 		}
-#endif
+		
 		free(t_info->user_info);
 		t_info->user_info = NULL;
+#endif
 	}
 #endif
 }
@@ -447,6 +428,11 @@ void gp_handler(struct sockaddr_in *addr, gp_t *p_gp)
 		free(m_info);
 	}
 
+	if(!memcmp(p_gp->zidentify_no, get_broadcast_no(), sizeof(zidentify_no_t)))
+	{
+		return;
+	}
+
 	gw_info_t *p_gw = get_gateway_list()->p_gw;
 	while(p_gw != NULL)
 	{
@@ -481,9 +467,19 @@ void gp_handler(struct sockaddr_in *addr, gp_t *p_gp)
 	return;
 
 dev_match:	
+#ifdef DB_API_SUPPORT
+	if(1)
+	{
+		cli_info_t *t_cli = query_client_info(p_gp->cidentify_no);
+		if(t_cli != NULL && strlen(t_cli->email) > 0)
+		{
+			set_zdev_to_user_sql(t_cli->email, p_dev->zidentity_no);
+		}
+	}
+#endif
+	
 	if(p_gw->trans_type != TRTYPE_UDP_TRANS)
 	{
-		
 		gp_t mgp;
 		memcpy(mgp.zidentify_no, p_gp->zidentify_no, sizeof(zidentify_no_t));
 		memcpy(mgp.cidentify_no, p_gp->cidentify_no, sizeof(cidentify_no_t));
@@ -519,6 +515,17 @@ dev_match:
 	return;
 
 gw_match:
+#ifdef DB_API_SUPPORT
+	if(1)
+	{
+		cli_info_t *t_cli = query_client_info(p_gp->cidentify_no);
+		if(t_cli != NULL && strlen(t_cli->email) > 0)
+		{
+			set_zdev_to_user_sql(t_cli->email, p_gw->gw_no);
+		}
+	}
+#endif
+	
 	memcpy(m_uc.head, FR_HEAD_UC, 3);
 	m_uc.type = FR_DEV_ROUTER;
 	get_frapp_type_to_str(m_uc.ed_type, p_gw->zapp_type);
@@ -531,7 +538,7 @@ gw_match:
 	memcpy(m_uc.tail, FR_TAIL, 4);
 	
 	frbuffer = get_switch_buffer_alloc(HEAD_UC, p_gw->zgw_opt, &m_uc);
-
+	
 	memcpy(mrp.zidentify_no, p_gw->gw_no, sizeof(zidentify_no_t));
 	memcpy(mrp.cidentify_no, p_gp->cidentify_no, sizeof(cidentify_no_t));
 	mrp.trans_type = TRTYPE_UDP_NORMAL;
@@ -540,7 +547,7 @@ gw_match:
 	mrp.data_len = frbuffer->size;
 	enable_datalog_atime();
 	send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
-
+	
 	get_buffer_free(frbuffer);
 	return;
 #endif
@@ -558,7 +565,7 @@ gw_match:
 	m_info->check_conn = 1;
 	m_info->user_info = NULL;
 	m_info->next = NULL;
-
+	
 	if(p_gp->tr_info == TRINFO_IP)
 	{
 		
@@ -579,7 +586,7 @@ gw_match:
 	{
 		free(m_info);
 	}
-
+	
 	if(!memcmp(p_gp->zidentify_no, get_broadcast_no(), sizeof(zidentify_no_t)))
 	{
 		rp_t mrp;
@@ -607,6 +614,14 @@ gw_match:
 			mrp.data_len = frbuffer->size;
 			enable_datalog_atime();
 			send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
+
+			char serverip_addr[24] = {0};
+			GET_SERVER_IP(serverip_addr);
+			if(memcmp(serverip_addr, ipaddr, strlen(ipaddr)))
+			{
+				send_frame_udp_request(serverip_addr, TRHEAD_RP, &mrp);	
+			}
+
 			get_buffer_free(frbuffer);
 
 			usleep(1500);
@@ -688,8 +703,25 @@ void rp_handler(struct sockaddr_in *addr, rp_t *p_rp)
 		cli_info_t *p_cli = query_client_info(p_rp->cidentify_no);
 		if(p_cli != NULL)
 		{
-			enable_datalog_atime();
-			send_frame_udp_request(p_cli->ipaddr, TRHEAD_RP, p_rp);
+			//enable_datalog_atime();
+			//send_frame_udp_request(p_cli->ipaddr, TRHEAD_RP, p_rp);
+#ifdef DB_API_SUPPORT
+			if(strlen(p_cli->email) > 0)
+			{
+				uo_t *p_uo = get_frame_alloc(HEAD_UO, p_rp->data, p_rp->data_len);
+
+				if(p_uo == NULL)
+				{
+					return;
+				}
+
+				uint8 exts[18] = {0};
+				memcpy(exts, p_uo->ext_addr, 16);
+				set_zdev_to_user_sql(p_cli->email, exts);
+
+				get_frame_free(HEAD_UO, p_uo);
+			}
+#endif
 		}
 	}
 	else if(p_rp->tr_info == TRINFO_IP)

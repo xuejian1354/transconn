@@ -20,11 +20,11 @@
 #include <services/mevent.h>
 #include <protocol/protocol.h>
 
+static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #ifdef COMM_CLIENT
 static char serial_port[16] = TRANS_SERIAL_DEV;
 static int tcp_port = TRANS_TCP_PORT;
 static int udp_port = TRANS_UDP_REMOTE_PORT;
-static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #endif
 
 #ifdef COMM_SERVER
@@ -78,12 +78,10 @@ void set_udp_port(int port)
 }
 #endif
 
-#ifdef COMM_CLIENT
 uint8 *get_broadcast_no()
 {
 	return _broadcast_no;
 }
-#endif
 
 #ifdef COMM_SERVER
 uint8 *get_common_no()

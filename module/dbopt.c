@@ -15,6 +15,7 @@
  * GNU General Public License for more details.
  */
 #include "dbopt.h"
+#include <cJSON.h>
 
 #define DB_SERVER	"localhost"
 #define DB_PORT		3306
@@ -37,7 +38,7 @@ static pthread_mutex_t sql_lock;
 static pthread_mutex_t sql_add_lock;
 
 static char is_userful = 0;
-static char cmdline[1024];
+static char cmdline[4096];
 static char mix_type_name[24];
 static char current_time[64];
 
@@ -572,17 +573,17 @@ int sql_del_gateway(zidentify_no_t gw_no)
 	return 0;
 }
 
-int set_user_info_from_sql(cli_user_t *user_info)
+int set_user_info_from_sql(char *email, cli_user_t *user_info)
 {
-	if(user_info == NULL)
+	if(email == NULL || user_info == NULL)
 	{
 		return -1;
 	}
 
 	SET_CMD_LINE("%s%s%s%s", 
-		"SELECT name, devices, iscollects, locates, areas, scenes ",
+		"SELECT name, devices, areas, scenes ",
 		"FROM users WHERE email=\'", 
-		user_info->email, 
+		email, 
 		"\'");
 
 	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
@@ -610,7 +611,7 @@ int set_user_info_from_sql(cli_user_t *user_info)
     while((mysql_row = mysql_fetch_row(mysql_res)))
     {
 		int nums = mysql_num_fields(mysql_res);
-		if(nums >= 6)
+		if(nums >= 4)
 		{
 			int name_len = strlen(mysql_row[0]);
 			memcpy(user_info->name, "name:", 5);
@@ -630,43 +631,17 @@ int set_user_info_from_sql(cli_user_t *user_info)
 				memcpy(user_info->devices+8, mysql_row[1], strlen(mysql_row[1]));
 			}
 			
-			if(user_info->iscollects != NULL)
-			{
-				free(user_info->iscollects);
-				user_info->iscollects = NULL;
-			}
-
-			if(mysql_row[2] != NULL && strlen(mysql_row[2]) > 0)
-			{
-				user_info->iscollects = calloc(1, strlen(mysql_row[2])+12);
-				memcpy(user_info->iscollects, "iscollects:", 11);
-				memcpy(user_info->iscollects+11, mysql_row[2], strlen(mysql_row[2]));
-			}
-			
-			if(user_info->locates != NULL)
-			{
-				free(user_info->locates);
-				user_info->locates = NULL;
-			}
-
-			if(mysql_row[3] != NULL && strlen(mysql_row[3]) > 0)
-			{
-				user_info->locates = calloc(1, strlen(mysql_row[3])+9);
-				memcpy(user_info->locates, "locates:", 8);
-				memcpy(user_info->locates+8, mysql_row[3], strlen(mysql_row[3]));
-			}
-			
 			if(user_info->areas != NULL)
 			{
 				free(user_info->areas);
 				user_info->areas = NULL;
 			}
 
-			if(mysql_row[4] != NULL && strlen(mysql_row[4]) > 0)
+			if(mysql_row[2] != NULL && strlen(mysql_row[2]) > 0)
 			{
-				user_info->areas = calloc(1, strlen(mysql_row[4])+7);
+				user_info->areas = calloc(1, strlen(mysql_row[2])+7);
 				memcpy(user_info->areas, "areas:", 6);
-				memcpy(user_info->areas+6, mysql_row[4], strlen(mysql_row[4]));
+				memcpy(user_info->areas+6, mysql_row[2], strlen(mysql_row[2]));
 			}
 			
 			if(user_info->scenes != NULL)
@@ -675,11 +650,11 @@ int set_user_info_from_sql(cli_user_t *user_info)
 				user_info->scenes = NULL;
 			}
 
-			if(mysql_row[5] != NULL && strlen(mysql_row[5]) > 0)
+			if(mysql_row[3] != NULL && strlen(mysql_row[3]) > 0)
 			{
-				user_info->scenes = calloc(1, strlen(mysql_row[5])+8);
+				user_info->scenes = calloc(1, strlen(mysql_row[3])+8);
 				memcpy(user_info->scenes, "scenes:", 7);
-				memcpy(user_info->scenes+7, mysql_row[5], strlen(mysql_row[5]));
+				memcpy(user_info->scenes+7, mysql_row[3], strlen(mysql_row[3]));
 			}
 			
 			mysql_free_result(mysql_res);
@@ -689,6 +664,185 @@ int set_user_info_from_sql(cli_user_t *user_info)
 
     mysql_free_result(mysql_res);
 	return 1;	
+}
+
+int set_zdev_to_user_sql(char *email, char *dev_str)
+{
+	if(email == NULL)
+	{
+		return -1;
+	}
+	
+	SET_CMD_LINE("%s%s%s", 
+		"SELECT devices FROM users WHERE email=\'", 
+		email, 
+		"\'");
+
+	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return -1;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		return -1;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums > 0)
+		{
+			cJSON *pRoot = cJSON_Parse(mysql_row[0]);
+			if(pRoot == NULL)
+			{
+				continue;
+			}
+
+			cJSON* pDeviceArray = cJSON_GetObjectItem(pRoot, "devices");
+			if (pDeviceArray == NULL)
+			{
+				continue;
+			}
+			 
+			int dev_size = cJSON_GetArraySize(pDeviceArray);
+			int i = 0; 
+			while(i < dev_size)
+			{
+				cJSON *pDev = cJSON_GetArrayItem(pDeviceArray, i);
+				char *device = cJSON_GetObjectItem(pDev, "sn")->valuestring;
+				if(device != NULL && !memcmp(dev_str, device, 16))
+				{
+					cJSON_Delete(pRoot);
+					mysql_free_result(mysql_res);
+					return 1;
+				}
+				
+				i++;
+			}
+			
+			cJSON *pDev = cJSON_CreateObject();
+			cJSON_AddItemToArray(pDeviceArray, pDev);
+			
+			cJSON_AddStringToObject(pDev, "sn", dev_str);
+			cJSON_AddStringToObject(pDev, "iscollect", "0");
+			cJSON_AddStringToObject(pDev, "locate", "");
+
+			char *devices = cJSON_Print(pRoot);
+
+			SET_CMD_LINE("%s%s%s%s%s", 
+						"UPDATE users SET devices=\'",
+						devices,
+						"\' WHERE email=\'",
+						email,
+						"\'");
+
+			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return -1;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return -1;
+		    }
+			pthread_mutex_unlock(&sql_lock);
+			
+			cJSON_Delete(pRoot);
+			free(devices);
+			
+			mysql_free_result(mysql_res);
+			return 0;
+		}
+	}
+
+	cJSON *pRoot = cJSON_CreateObject();
+	
+	cJSON *pDevsArray = cJSON_CreateArray();
+	cJSON_AddItemToObject(pRoot, "devices", pDevsArray);
+	
+	cJSON *pDev = cJSON_CreateObject();
+	cJSON_AddItemToArray(pDevsArray, pDev);
+	
+	cJSON_AddStringToObject(pDev, "sn", dev_str);
+	cJSON_AddStringToObject(pDev, "iscollect", "0");
+	cJSON_AddStringToObject(pDev, "locate", "");
+
+	char *devices = cJSON_Print(pRoot);
+
+	SET_CMD_LINE("%s%s%s%s%s", 
+				"UPDATE users SET devices=\'",
+				devices,
+				"\' WHERE email=\'",
+				email,
+				"\'");
+
+	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+		
+		cJSON_Delete(pRoot);
+		free(devices);
+		
+		mysql_free_result(mysql_res);
+		
+	   	return -1;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+		
+		cJSON_Delete(pRoot);
+		free(devices);
+		
+		mysql_free_result(mysql_res);
+
+		DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+				__FUNCTION__, __LINE__);
+		
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
+	
+	cJSON_Delete(pRoot);
+	free(devices);
+
+    mysql_free_result(mysql_res);
+	return 1;
 }
 
 void sql_test()
