@@ -30,7 +30,7 @@
 #define SERVER_CLI_LIST_MAX_NUM		128
 #define GATEWAY_CLI_LIST_MAX_NUM	24
 
-#define ZDEVICE_MAX_NUM		128
+#define ZDEVICE_MAX_NUM		256
 
 //max connection size of tcp
 #define TRANS_TCP_CONN_MAX_SIZE		1024

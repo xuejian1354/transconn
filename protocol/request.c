@@ -817,7 +817,7 @@ void gd_handler(struct sockaddr_in *addr, gd_t *p_gd)
 	return;
 
 gdev_match:
-	if(p_gw->trans_type != TRTYPE_UDP_TRANS)
+	/*if(p_gw->trans_type != TRTYPE_UDP_TRANS)
 	{
 		gd_t mgd;
 		memcpy(mgd.zidentify_no, p_gd->zidentify_no, sizeof(zidentify_no_t));
@@ -834,8 +834,9 @@ gdev_match:
 		mgd.data = ipaddr;
 		mgd.data_len = strlen(ipaddr);
 		send_frame_udp_request(p_gw->ipaddr, TRHEAD_GD, &mgd);
-	}
-	else
+	}*/
+
+	if(p_gw->trans_type == TRTYPE_UDP_TRANS)
 	{
 		cli_info_t *p_cli = query_client_info(p_gd->cidentify_no);
 		cli_contain_t *m_contain = calloc(1, sizeof(cli_contain_t));
@@ -857,12 +858,12 @@ gdev_match:
 	}
 
 	dev_info_t *p_dev = p_gw->p_dev;
-	char buffer[ZDEVICE_MAX_NUM<<4] = {0};
+	char buffer[ZDEVICE_MAX_NUM<<2] = {0};
 	char bsize = 0;
-	while(p_dev != NULL && bsize < (ZDEVICE_MAX_NUM<<4))
+	while(p_dev != NULL && bsize < (ZDEVICE_MAX_NUM<<2))
 	{
-		incode_xtocs(buffer+bsize, p_dev->zidentity_no, 8);
-		bsize += 16;
+		incode_xtoc16(buffer+bsize, p_dev->znet_addr);
+		bsize += 4;
 		p_dev = p_dev->next;
 	}
 
@@ -917,12 +918,12 @@ gdev_match:
 	set_cli_check(query_client_info(p_gd->cidentify_no));
 
 	dev_info_t *p_dev = get_gateway_info()->p_dev;
-	char buffer[ZDEVICE_MAX_NUM<<4] = {0};
+	char buffer[ZDEVICE_MAX_NUM<<2] = {0};
 	char bsize = 0;
-	while(p_dev != NULL && bsize < (ZDEVICE_MAX_NUM<<4))
+	while(p_dev != NULL && bsize < (ZDEVICE_MAX_NUM<<2))
 	{
-		incode_xtocs(buffer+bsize, p_dev->zidentity_no, 8);
-		bsize += 16;
+		incode_xtoc16(buffer+bsize, p_dev->znet_addr);
+		bsize += 4;
 		p_dev = p_dev->next;
 	}
 

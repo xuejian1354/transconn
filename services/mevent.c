@@ -98,12 +98,12 @@ void *stand_event(void *p, pthread_mutex_t *lock)
  	cli_info_t *p_cli = get_client_list()->p_cli;
 
 	dev_info_t *p_dev = get_gateway_info()->p_dev;
-	char buffer[ZDEVICE_MAX_NUM<<4] = {0};
+	char buffer[ZDEVICE_MAX_NUM<<2] = {0};
 	char bsize = 0;
-	while(p_dev != NULL && bsize < (ZDEVICE_MAX_NUM<<4))
+	while(p_dev != NULL && bsize < (ZDEVICE_MAX_NUM<<2))
 	{
-		incode_xtocs(buffer+bsize, p_dev->zidentity_no, 8);
-		bsize += 16;
+		incode_xtoc16(buffer+bsize, p_dev->znet_addr);
+		bsize += 4;
 		p_dev = p_dev->next;
 	}
 
