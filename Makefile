@@ -48,7 +48,7 @@ CLIENT_OBJS:=$(patsubst %.c,%-c.o,$(CLIENT_SOURCES)) $(patsubst %,%/built-c.o,$(
 
 .PHONY:all alls tests distclean clean cclean sclean help
 
-all:$(TARGET)
+all:$(SERVER_TARGET)
 
 alls:$(TARGET) tests
 
