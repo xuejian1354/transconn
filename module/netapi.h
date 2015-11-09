@@ -33,8 +33,9 @@ void socket_tcp_server_recv(int fd);
 #ifdef TRANS_TCP_CLIENT
 int get_ctcp_fd();
 int socket_tcp_client_connect(int port);
-void socket_tcp_client_recv(int fd);
-void socket_tcp_client_close(int fd);
+void socket_tcp_client_recv();
+void socket_tcp_client_send(char *data, int len);
+void socket_tcp_client_close();
 #endif
 
 #ifdef TRANS_UDP_SERVICE

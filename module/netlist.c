@@ -74,6 +74,35 @@ tcp_conn_t *queryfrom_tcpconn_list(int fd)
 	return NULL;
 }
 
+tcp_conn_t *queryfrom_tcpconn_list_with_ipaddr(char *ipaddr)
+{
+	tcp_conn_t *t_list;
+	if(ipaddr == NULL)
+	{
+		return NULL;
+	}
+	
+	if(tcp_conn_list.p_head != NULL)
+	{
+		for(t_list=tcp_conn_list.p_head; t_list!=NULL; t_list=t_list->next)
+		{
+			char t_ipaddr[24] = {0};
+			sprintf(t_ipaddr, "%s:%u", 
+				inet_ntoa(t_list->client_addr.sin_addr), 
+				ntohs(t_list->client_addr.sin_port));
+
+			if(!memcmp(t_ipaddr, ipaddr, strlen(t_ipaddr)))
+			{
+				return t_list;
+			}
+		}
+	}
+
+	DE_PRINTF(1, "%s()%d : no found connectin in tcp conn list\n", 
+		__FUNCTION__, __LINE__);
+	return NULL;
+}
+
 int delfrom_tcpconn_list(int fd)
 {
 	tcp_conn_t *t_list, *b_list;

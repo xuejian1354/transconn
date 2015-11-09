@@ -18,20 +18,24 @@
 #include <protocol/protocol.h>
 #include <module/balancer.h>
 #include <module/dbopt.h>
+#include <module/netlist.h>
 
-void pi_handler(struct sockaddr_in *addr, pi_t *p_pi)
+void pi_handler(frhandler_arg_t *arg, pi_t *p_pi)
 {
 	gw_info_t *p_gw = NULL;
 	dev_info_t *p_dev = NULL;
 	uint8 *buffer;
 
 	char ipaddr[24] = {0};
-	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	sprintf(ipaddr, "%s:%u", 
+				inet_ntoa(arg->addr.sin_addr), 
+				ntohs(arg->addr.sin_port));
 	
 	switch(p_pi->trans_type)
 	{
 	case TRTYPE_UDP_NORMAL:
 	case TRTYPE_UDP_TRANS:
+	case TRTYPE_TCP_LONG:
 		switch(p_pi->fr_type)
 		{
 		case TRFRAME_CON:
@@ -47,8 +51,20 @@ void pi_handler(struct sockaddr_in *addr, pi_t *p_pi)
 				mpi.data = ipaddr;
 				mpi.data_len = strlen(ipaddr);
 
-				enable_datalog_atime();
-				send_frame_udp_request(ipaddr, TRHEAD_PI, &mpi);
+#ifdef TRANS_UDP_SERVICE
+				if(p_pi->trans_type <= TRTYPE_UDP_TRANS)
+				{
+					enable_datalog_atime();
+					send_frame_udp_request(ipaddr, TRHEAD_PI, &mpi);
+				}
+#endif
+#ifdef TRANS_TCP_SERVER
+				if(p_pi->trans_type == TRTYPE_TCP_LONG)
+				{
+					enable_datalog_atime();
+					send_frame_tcp_respond(arg, TRHEAD_PI, &mpi);
+				}
+#endif
 			}
 			else
 			{
@@ -117,7 +133,18 @@ next_zdev:				p_dev = p_dev->next;
 				bi.fr_type = TRFRAME_REG;
 				bi.data = ipaddr;
 				bi.data_len = strlen(ipaddr);
-				send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);				
+#ifdef TRANS_UDP_SERVICE
+				if(p_pi->trans_type <= TRTYPE_UDP_TRANS)
+				{
+					send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
+				}
+#endif
+#ifdef TRANS_TCP_SERVER
+				if(p_pi->trans_type == TRTYPE_TCP_LONG)
+				{
+					send_frame_tcp_respond(arg, TRHEAD_BI, &bi);
+				}
+#endif				
 			}
 #endif
 			break;
@@ -142,9 +169,21 @@ next_zdev:				p_dev = p_dev->next;
 			bi.fr_type = TRFRAME_PUT_GW;
 			bi.data = frbuffer->data;
 			bi.data_len = frbuffer->size;
-			enable_datalog_atime();
-			send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
-			
+#ifdef TRANS_UDP_SERVICE
+			if(p_pi->trans_type <= TRTYPE_UDP_TRANS)
+			{
+				enable_datalog_atime();
+				send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
+			}
+#endif
+#ifdef TRANS_TCP_CLIENT
+			if(p_pi->trans_type == TRTYPE_TCP_LONG)
+			{
+				bi.trans_type = TRTYPE_TCP_LONG;
+				enable_datalog_atime();
+				send_frame_tcp_request(TRHEAD_BI, &bi);
+			}
+#endif
 			get_buffer_free(frbuffer);
 
 			p_dev = p_gw->p_dev;
@@ -158,9 +197,21 @@ next_zdev:				p_dev = p_dev->next;
 				zbi.fr_type = TRFRAME_PUT_DEV;
 				zbi.data = buffer;
 				zbi.data_len = ZDEVICE_BUFFER_SIZE;
-				enable_datalog_atime();
-				send_frame_udp_request(ipaddr, TRHEAD_BI, &zbi);
-				
+#ifdef TRANS_UDP_SERVICE
+				if(p_pi->trans_type <= TRTYPE_UDP_TRANS)
+				{
+					enable_datalog_atime();
+					send_frame_udp_request(ipaddr, TRHEAD_BI, &zbi);
+				}
+#endif
+#ifdef TRANS_TCP_CLIENT
+				if(p_pi->trans_type == TRTYPE_TCP_LONG)
+				{
+					zbi.trans_type = TRTYPE_TCP_LONG;
+					enable_datalog_atime();
+					send_frame_tcp_request(TRHEAD_BI, &zbi);
+				}
+#endif
 				get_zdev_buffer_free(buffer);
 				p_dev = p_dev->next;
 			}
@@ -179,9 +230,20 @@ next_zdev:				p_dev = p_dev->next;
 				mpi.fr_type = TRFRAME_GET;
 				mpi.data = ipaddr;
 				mpi.data_len = strlen(ipaddr);
-
-				enable_datalog_atime();
-				send_frame_udp_request(ipaddr, TRHEAD_PI, &mpi);
+#ifdef TRANS_UDP_SERVICE
+				if(p_pi->trans_type <= TRTYPE_UDP_TRANS)
+				{
+					enable_datalog_atime();
+					send_frame_udp_request(ipaddr, TRHEAD_PI, &mpi);
+				}
+#endif
+#ifdef TRANS_TCP_CLIENT
+				if(p_pi->trans_type == TRTYPE_TCP_LONG)
+				{
+					enable_datalog_atime();
+					send_frame_tcp_respond(arg, TRHEAD_BI, &mpi);
+				}
+#endif
 			}
 			else
 			{
@@ -197,31 +259,44 @@ next_zdev:				p_dev = p_dev->next;
 				bi.fr_type = TRFRAME_REG;
 				bi.data = ipaddr;
 				bi.data_len = strlen(ipaddr);
-				send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);				
+#ifdef TRANS_UDP_SERVICE
+				if(p_pi->trans_type <= TRTYPE_UDP_TRANS)
+				{
+					send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
+				}
+#endif
+#ifdef TRANS_TCP_CLIENT
+				if(p_pi->trans_type == TRTYPE_TCP_LONG)
+				{
+					send_frame_tcp_respond(arg, TRHEAD_BI, &bi);
+				}
+#endif
 			}
 #endif
 			break;
 		}
 		break;
 
-	case TRTYPE_TCP_LONG:
 	case TRTYPE_TCP_SHORT:
 		break;
 	}
 }
 
-void bi_handler(struct sockaddr_in *addr, bi_t *p_bi)
+void bi_handler(frhandler_arg_t *arg, bi_t *p_bi)
 {
 	gw_info_t *p_gw = NULL;
 	dev_info_t *p_dev = NULL;
 
 	char ipaddr[24] = {0};
-	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	sprintf(ipaddr, "%s:%u", 
+				inet_ntoa(arg->addr.sin_addr), 
+				ntohs(arg->addr.sin_port));
 	
 	switch(p_bi->trans_type)
 	{
 	case TRTYPE_UDP_NORMAL:
 	case TRTYPE_UDP_TRANS:
+	case TRTYPE_TCP_LONG:
 		switch(p_bi->fr_type)
 		{
 		case TRFRAME_REG:
@@ -266,7 +341,7 @@ void bi_handler(struct sockaddr_in *addr, bi_t *p_bi)
 				memcpy(p_gw->ipaddr, ipaddr, p_gw->ip_len);
 
 				memset(p_gw->serverip_addr, 0, sizeof(p_gw->serverip_addr));
-				GET_SERVER_IPADDR(p_gw->serverip_addr);
+				GET_UDP_SERVICE_IPADDR(p_gw->serverip_addr);
 				p_gw->serverip_len = strlen(p_gw->serverip_addr);
 				set_gateway_check(p_gw->gw_no, p_gw->rand);
 #ifdef DB_API_SUPPORT
@@ -309,16 +384,17 @@ void bi_handler(struct sockaddr_in *addr, bi_t *p_bi)
 		}
 		break;
 
-	case TRTYPE_TCP_LONG:
 	case TRTYPE_TCP_SHORT:
 		break;
 	}
 }
 
-void ul_handler(struct sockaddr_in *addr, ul_t *p_ul)
+void ul_handler(frhandler_arg_t *arg, ul_t *p_ul)
 {
 	char ipaddr[24] = {0};
-	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	sprintf(ipaddr, "%s:%u", 
+				inet_ntoa(arg->addr.sin_addr), 
+				ntohs(arg->addr.sin_port));
 	
 #ifdef COMM_SERVER
 	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
@@ -326,7 +402,7 @@ void ul_handler(struct sockaddr_in *addr, ul_t *p_ul)
 	m_info->trans_type = TRTYPE_NONE;
 	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 	m_info->ip_len = strlen(ipaddr);
-	GET_SERVER_IPADDR(m_info->serverip_addr);
+	GET_UDP_SERVICE_IPADDR(m_info->serverip_addr);
 	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;
@@ -355,16 +431,20 @@ void ul_handler(struct sockaddr_in *addr, ul_t *p_ul)
 		{
 			sl.data = t_info->user_info->name;
 			sl.data_len = strlen(t_info->user_info->name);
+#ifdef TRANS_UDP_SERVICE
 			enable_datalog_atime();
 			send_frame_udp_request(ipaddr, TRHEAD_SL, &sl);
+#endif
 		}
 
 		if(t_info->user_info->devices != NULL)
 		{
 			sl.data = t_info->user_info->devices;
 			sl.data_len = strlen(t_info->user_info->devices);
+#ifdef TRANS_UDP_SERVICE
 			enable_datalog_atime();
 			send_frame_udp_request(ipaddr, TRHEAD_SL, &sl);
+#endif
 			free(t_info->user_info->devices);
 			t_info->user_info->devices = NULL;
 		}
@@ -373,8 +453,10 @@ void ul_handler(struct sockaddr_in *addr, ul_t *p_ul)
 		{
 			sl.data = t_info->user_info->areas;
 			sl.data_len = strlen(t_info->user_info->areas);
+#ifdef TRANS_UDP_SERVICE
 			enable_datalog_atime();
 			send_frame_udp_request(ipaddr, TRHEAD_SL, &sl);
+#endif
 			free(t_info->user_info->areas);
 			t_info->user_info->areas = NULL;
 		}
@@ -383,8 +465,10 @@ void ul_handler(struct sockaddr_in *addr, ul_t *p_ul)
 		{
 			sl.data = t_info->user_info->scenes;
 			sl.data_len = strlen(t_info->user_info->scenes);
+#ifdef TRANS_UDP_SERVICE
 			enable_datalog_atime();
 			send_frame_udp_request(ipaddr, TRHEAD_SL, &sl);
+#endif
 			free(t_info->user_info->scenes);
 			t_info->user_info->scenes = NULL;
 		}
@@ -396,13 +480,16 @@ void ul_handler(struct sockaddr_in *addr, ul_t *p_ul)
 #endif
 }
 
-void sl_handler(struct sockaddr_in *addr, sl_t *p_sl)
+void sl_handler(frhandler_arg_t *arg, sl_t *p_sl)
 {}
 
-void gp_handler(struct sockaddr_in *addr, gp_t *p_gp)
+void gp_handler(frhandler_arg_t *arg, gp_t *p_gp)
 {
 	char ipaddr[24] = {0};
-	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	sprintf(ipaddr, "%s:%u", 
+				inet_ntoa(arg->addr.sin_addr), 
+				ntohs(arg->addr.sin_port));
+	
 	fr_buffer_t *frbuffer = NULL;
 	dev_info_t *p_dev = NULL;
 	
@@ -416,7 +503,7 @@ void gp_handler(struct sockaddr_in *addr, gp_t *p_gp)
 	m_info->trans_type = p_gp->trans_type;
 	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 	m_info->ip_len = strlen(ipaddr);
-	GET_SERVER_IPADDR(m_info->serverip_addr);
+	GET_UDP_SERVICE_IPADDR(m_info->serverip_addr);
 	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;
@@ -461,9 +548,10 @@ void gp_handler(struct sockaddr_in *addr, gp_t *p_gp)
 	rp.tr_info = TRINFO_DATA;
 	rp.data = NULL;
 	rp.data_len = 0;
+#ifdef TRANS_UDP_SERVICE
 	enable_datalog_atime();
 	send_frame_udp_request(ipaddr, TRHEAD_RP, &rp);
-	
+#endif
 	return;
 
 dev_match:	
@@ -487,8 +575,21 @@ dev_match:
 		mgp.tr_info = TRINFO_IP;
 		mgp.data = m_info->ipaddr;
 		mgp.data_len = m_info->ip_len;
+#ifdef TRANS_UDP_SERVICE
 		enable_datalog_atime();
 		send_frame_udp_request(p_gw->ipaddr, TRHEAD_GP, &mgp);
+#endif
+#ifdef TRANS_TCP_SERVER
+		tcp_conn_t *pgw_conn = queryfrom_tcpconn_list_with_ipaddr(p_gw->ipaddr);
+		if(pgw_conn != NULL)
+		{
+			frhandler_arg_t args;
+			args.fd = pgw_conn->fd;
+			args.addr = pgw_conn->client_addr;
+			enable_datalog_atime();
+			send_frame_tcp_respond(&args, TRHEAD_GP, &mgp);
+		}
+#endif
 	}
 
 	memcpy(m_uo.head, FR_HEAD_UO, 3);
@@ -509,8 +610,9 @@ dev_match:
 	mrp.data = frbuffer->data;
 	mrp.data_len = frbuffer->size;
 	enable_datalog_atime();
+#ifdef TRANS_UDP_SERVICE
 	send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
-
+#endif
 	get_buffer_free(frbuffer);
 	return;
 
@@ -546,8 +648,9 @@ gw_match:
 	mrp.data = frbuffer->data;
 	mrp.data_len = frbuffer->size;
 	enable_datalog_atime();
+#ifdef TRANS_UDP_SERVICE
 	send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
-	
+#endif
 	get_buffer_free(frbuffer);
 	return;
 #endif
@@ -578,7 +681,7 @@ gw_match:
 	{
 		memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 		m_info->ip_len = strlen(ipaddr);
-		GET_SERVER_IPADDR(m_info->serverip_addr);
+		GET_UDP_SERVICE_IPADDR(m_info->serverip_addr);
 		m_info->serverip_len = strlen(m_info->serverip_addr);
 	}
 	
@@ -612,14 +715,21 @@ gw_match:
 			frbuffer = get_buffer_alloc(HEAD_UO, &m_uo);
 			mrp.data = frbuffer->data;
 			mrp.data_len = frbuffer->size;
+#ifdef TRANS_UDP_SERVICE
 			enable_datalog_atime();
 			send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
+#endif
 
 			char serverip_addr[24] = {0};
-			GET_SERVER_IPADDR(serverip_addr);
+			GET_UDP_SERVICE_IPADDR(serverip_addr);
 			if(memcmp(serverip_addr, ipaddr, strlen(ipaddr)))
 			{
+#ifdef TRANS_UDP_SERVICE
 				send_frame_udp_request(serverip_addr, TRHEAD_RP, &mrp);	
+#endif
+#ifdef TRANS_TCP_CLIENT
+				send_frame_tcp_request(TRHEAD_RP, &mrp);	
+#endif
 			}
 
 			get_buffer_free(frbuffer);
@@ -640,8 +750,10 @@ gw_match:
 		
 		mrp.data = NULL;
 		mrp.data_len = 0;
+#ifdef TRANS_UDP_SERVICE
 		enable_datalog_atime();
 		send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
+#endif
 		set_rp_check(query_client_info(p_gp->cidentify_no));
 		return;
 	}
@@ -667,8 +779,12 @@ gw_match:
 		mrp.data = frbuffer->data;
 		mrp.data_len = frbuffer->size;
 		enable_datalog_atime();
+#ifdef TRANS_UDP_SERVICE
 		send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
-		
+#endif
+#ifdef TRANS_TCP_CLIENT
+		send_frame_tcp_request(TRHEAD_RP, &mrp);
+#endif
 		get_buffer_free(frbuffer);
 		set_rp_check(query_client_info(p_gp->cidentify_no));
 		return;
@@ -677,10 +793,12 @@ gw_match:
 #endif
 }
 
-void rp_handler(struct sockaddr_in *addr, rp_t *p_rp)
+void rp_handler(frhandler_arg_t *arg, rp_t *p_rp)
 {
 	char ipaddr[24] = {0};
-	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	sprintf(ipaddr, "%s:%u", 
+				inet_ntoa(arg->addr.sin_addr), 
+				ntohs(arg->addr.sin_port));
 	
 #ifdef COMM_CLIENT
 	if(memcmp(get_gateway_info()->gw_no, p_rp->zidentify_no, sizeof(zidentify_no_t))
@@ -735,30 +853,21 @@ void rp_handler(struct sockaddr_in *addr, rp_t *p_rp)
 			mrp.tr_info = TRINFO_IP;
 			mrp.data = NULL;
 			mrp.data_len = 0;
+#ifdef TRANS_UDP_SERVICE
 			enable_datalog_atime();
 			send_frame_udp_request(p_rp->data, TRHEAD_RP, &mrp);
+#endif
 		}
 	}
 #endif
-
-#ifdef CLIENT_TEST
-	set_target_ip(ipaddr, strlen(ipaddr));
-
-	rp_t mrp;
-	memcpy(mrp.zidentify_no, p_rp->zidentify_no, sizeof(zidentify_no_t));
-	memcpy(mrp.cidentify_no, p_rp->cidentify_no, sizeof(cidentify_no_t));
-	mrp.trans_type = TRTYPE_UDP_NORMAL;
-	mrp.tr_info = TRINFO_CUT;
-	mrp.data = NULL;
-	mrp.data_len = 0;
-	send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
-#endif
 }
 
-void gd_handler(struct sockaddr_in *addr, gd_t *p_gd)
+void gd_handler(frhandler_arg_t *arg, gd_t *p_gd)
 {
 	char ipaddr[24] = {0};
-	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	sprintf(ipaddr, "%s:%u", 
+				inet_ntoa(arg->addr.sin_addr), 
+				ntohs(arg->addr.sin_port));
 
 #ifdef COMM_SERVER
 	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
@@ -766,7 +875,7 @@ void gd_handler(struct sockaddr_in *addr, gd_t *p_gd)
 	m_info->trans_type = p_gd->trans_type;
 	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 	m_info->ip_len = strlen(ipaddr);
-	GET_SERVER_IPADDR(m_info->serverip_addr);
+	GET_UDP_SERVICE_IPADDR(m_info->serverip_addr);
 	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;
@@ -812,8 +921,9 @@ void gd_handler(struct sockaddr_in *addr, gd_t *p_gd)
 	rd.tr_info = TRINFO_DISMATCH;
 	rd.data = NULL;
 	rd.data_len = 0;
+#ifdef TRANS_UDP_SERVICE
 	send_frame_udp_request(ipaddr, TRHEAD_RD, &rd);
-	
+#endif
 	return;
 
 gdev_match:
@@ -853,7 +963,9 @@ gdev_match:
 		crd.tr_info = TRINFO_FOUND;
 		crd.data = NULL;
 		crd.data_len = 0;
+#ifdef TRANS_UDP_SERVICE
 		send_frame_udp_request(ipaddr, TRHEAD_RD, &crd);
+#endif
 		return;
 	}
 
@@ -874,8 +986,9 @@ gdev_match:
 	mrd.tr_info = TRINFO_FOUND;
 	mrd.data = buffer;
 	mrd.data_len = bsize;
+#ifdef TRANS_UDP_SERVICE
 	send_frame_udp_request(ipaddr, TRHEAD_RD, &mrd);
-	
+#endif
 	return;
 #endif
 	
@@ -903,7 +1016,7 @@ gdev_match:
 	
 	memcpy(m_info->cidentify_no, p_gd->cidentify_no, sizeof(cidentify_no_t));	
 	m_info->trans_type = p_gd->trans_type;
-	GET_SERVER_IPADDR(m_info->serverip_addr);
+	GET_UDP_SERVICE_IPADDR(m_info->serverip_addr);
 	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;
@@ -936,30 +1049,22 @@ gdev_match:
 		mgd.tr_info = TRINFO_REG;
 		mgd.data = buffer;
 		mgd.data_len = bsize;
+#ifdef TRANS_UDP_SERVICE
 		send_frame_udp_request(
 			query_client_info(p_gd->cidentify_no)->ipaddr, TRHEAD_GD, &mgd);
+#endif
 	}
 
 	return;
 #endif
-
-
-#ifdef CLIENT_TEST
-	rd_t mrd;
-	memcpy(mrd.zidentify_no, p_gd->zidentify_no, sizeof(zidentify_no_t));
-	memcpy(mrd.cidentify_no, p_gd->cidentify_no, sizeof(cidentify_no_t));
-	mrd.trans_type = TRTYPE_UDP_NORMAL;
-	mrd.tr_info = TRINFO_NONE;
-	mrd.data = NULL;
-	mrd.data_len = 0;
-	send_frame_udp_request(ipaddr, TRHEAD_RD, &mrd);
-#endif
 }
 
-void rd_handler(struct sockaddr_in *addr, rd_t *p_rd)
+void rd_handler(frhandler_arg_t *arg, rd_t *p_rd)
 {
 	char ipaddr[24] = {0};
-	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	sprintf(ipaddr, "%s:%u", 
+				inet_ntoa(arg->addr.sin_addr), 
+				ntohs(arg->addr.sin_port));
 	
 #ifdef COMM_CLIENT
 	cli_info_t *p_cli = query_client_info(p_rd->cidentify_no);
@@ -972,10 +1077,12 @@ void rd_handler(struct sockaddr_in *addr, rd_t *p_rd)
 #endif
 }
 
-void dc_handler(struct sockaddr_in *addr, dc_t *p_dc)
+void dc_handler(frhandler_arg_t *arg, dc_t *p_dc)
 {
 	char ipaddr[24] = {0};
-	sprintf(ipaddr, "%s:%u", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+	sprintf(ipaddr, "%s:%u", 
+				inet_ntoa(arg->addr.sin_addr), 
+				ntohs(arg->addr.sin_port));
 	
 #ifdef COMM_CLIENT
 	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
@@ -991,7 +1098,7 @@ void dc_handler(struct sockaddr_in *addr, dc_t *p_dc)
 		memset(m_info->ipaddr, 0, sizeof(m_info->ipaddr));
 		m_info->ip_len = 0;
 	}
-	GET_SERVER_IPADDR(m_info->serverip_addr);
+	GET_UDP_SERVICE_IPADDR(m_info->serverip_addr);
 	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;
@@ -1088,6 +1195,7 @@ void dc_handler(struct sockaddr_in *addr, dc_t *p_dc)
 					ub.tr_info = TRINFO_REDATA;
 					ub.data = frbuffer->data;
 					ub.data_len = frbuffer->size;
+#ifdef TRANS_UDP_SERVICE
 					if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
 					{
 						enable_datalog_atime();
@@ -1098,7 +1206,14 @@ void dc_handler(struct sockaddr_in *addr, dc_t *p_dc)
 						enable_datalog_atime();
 						send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
 					}
-
+#endif
+#ifdef TRANS_TCP_CLIENT
+					if(p_cli->trans_type == TRTYPE_TCP_LONG)
+					{
+						enable_datalog_atime();
+						send_frame_tcp_request(TRHEAD_UB, &ub);
+					}
+#endif
 					p_cli = p_cli->next;
 				}
 				get_buffer_free(frbuffer);
@@ -1152,6 +1267,7 @@ void dc_handler(struct sockaddr_in *addr, dc_t *p_dc)
 					ub.tr_info = TRINFO_REDATA;
 					ub.data = frbuffer->data;
 					ub.data_len = frbuffer->size;
+#ifdef TRANS_UDP_SERVICE
 					if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
 					{
 						enable_datalog_atime();
@@ -1162,7 +1278,14 @@ void dc_handler(struct sockaddr_in *addr, dc_t *p_dc)
 						enable_datalog_atime();
 						send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
 					}
-
+#endif
+#ifdef TRANS_TCP_CLIENT
+					if(p_cli->trans_type == TRTYPE_TCP_LONG)
+					{
+						enable_datalog_atime();
+						send_frame_tcp_request(TRHEAD_UB, &ub);
+					}
+#endif
 					p_cli = p_cli->next;
 				}
 				get_buffer_free(frbuffer);
@@ -1244,9 +1367,10 @@ Handle_UR_free:
 	ub.tr_info = TRINFO_DISMATCH;
 	ub.data = NULL;
 	ub.data_len = 0;
+#ifdef TRANS_UDP_SERVICE
 	enable_datalog_atime();
 	send_frame_udp_request(ipaddr, TRHEAD_UB, &ub);
-	
+#endif
 	return;
 
 gwdev_match:
@@ -1256,13 +1380,26 @@ gwdev_match:
 	mdc.tr_info = p_dc->tr_info;
 	mdc.data = p_dc->data;
 	mdc.data_len = p_dc->data_len;
+#ifdef TRANS_UDP_SERVICE
 	enable_datalog_atime();
 	send_frame_udp_request(p_gw->ipaddr, TRHEAD_DC, &mdc);
+#endif
+#ifdef TRANS_TCP_SERVER
+	tcp_conn_t *pgw_conn = queryfrom_tcpconn_list_with_ipaddr(p_gw->ipaddr);
+	if(pgw_conn != NULL)
+	{
+		frhandler_arg_t args;
+		args.fd = pgw_conn->fd;
+		args.addr = pgw_conn->client_addr;
+		enable_datalog_atime();
+		send_frame_tcp_respond(&args,  TRHEAD_DC, &mdc);
+	}
+#endif
 	return;
 #endif
 }
 
-void ub_handler(struct sockaddr_in *addr, ub_t *p_ub)
+void ub_handler(frhandler_arg_t *arg, ub_t *p_ub)
 {
 #ifdef COMM_SERVER
 	ub_t mub;
@@ -1317,8 +1454,10 @@ client_match:
 	mub.tr_info = p_ub->tr_info;
 	mub.data = p_ub->data;
 	mub.data_len = p_ub->data_len;
+#ifdef TRANS_UDP_SERVICE
 	//enable_datalog_atime();
 	send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &mub);
+#endif
 	return;
 
 trans_cli_match:
@@ -1335,14 +1474,17 @@ trans_cli_match:
 		memset(mub.cidentify_no, 0, sizeof(cidentify_no_t));
 		memcpy(mub.cidentify_no, 
 			t_contain->p_cli->cidentify_no, sizeof(cidentify_no_t));
+#ifdef TRANS_UDP_SERVICE
 		//enable_datalog_atime();
 		send_frame_udp_request(t_contain->p_cli->ipaddr, TRHEAD_UB, &mub);
+#endif
 		t_contain = t_contain->next;
 	}
 	return;
 #endif
 }
 
+#ifdef TRANS_UDP_SERVICE
 void send_frame_udp_request(char *ipaddr, tr_head_type_t htype, void *frame)
 {
 	tr_buffer_t *buffer;
@@ -1371,3 +1513,66 @@ void send_frame_udp_request(char *ipaddr, tr_head_type_t htype, void *frame)
 	break;
 	}
 }
+#endif
+
+#ifdef TRANS_TCP_CLIENT
+void send_frame_tcp_request(tr_head_type_t htype, void *frame)
+{
+	tr_buffer_t *buffer;
+	
+	switch(htype)
+	{
+	case TRHEAD_PI: 
+	case TRHEAD_BI: 
+	case TRHEAD_UL: 
+	case TRHEAD_SL: 
+	case TRHEAD_GP:
+	case TRHEAD_RP:
+	case TRHEAD_GD:
+	case TRHEAD_RD:
+	case TRHEAD_DC:
+	case TRHEAD_UB:
+	{
+		if((buffer = get_trbuffer_alloc(htype, frame)) == NULL)
+		{
+			return;
+		}
+
+		socket_tcp_client_send(buffer->data, buffer->size);
+		get_trbuffer_free(buffer);	
+	}
+	break;
+	}
+}
+#endif
+
+#ifdef TRANS_TCP_SERVER
+void send_frame_tcp_respond(frhandler_arg_t *arg, tr_head_type_t htype, void *frame)
+{
+	tr_buffer_t *buffer;
+	
+	switch(htype)
+	{
+	case TRHEAD_PI: 
+	case TRHEAD_BI: 
+	case TRHEAD_UL: 
+	case TRHEAD_SL: 
+	case TRHEAD_GP:
+	case TRHEAD_RP:
+	case TRHEAD_GD:
+	case TRHEAD_RD:
+	case TRHEAD_DC:
+	case TRHEAD_UB:
+	{
+		if((buffer = get_trbuffer_alloc(htype, frame)) == NULL)
+		{
+			return;
+		}
+
+		socket_tcp_server_send(arg, buffer->data, buffer->size);
+		get_trbuffer_free(buffer);	
+	}
+	break;
+	}
+}
+#endif
