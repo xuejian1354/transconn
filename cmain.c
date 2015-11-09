@@ -94,10 +94,6 @@ int main(int argc, char **argv)
 
 	event_init();
 
-#ifdef DEBUG_CONSOLE_SUPPORT
-	create_console();
-#endif
-
 	while(1)
 	{
 #ifdef SELECT_SUPPORT

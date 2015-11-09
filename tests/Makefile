@@ -23,31 +23,13 @@ WHOLE_BUILD := 1
 export WHOLE_BUILD
 endif
 
-TARGET:=client
-
 INCLUDE+=-I$(TESTTOP)include -I$(TESTTOP)lib
 LDFLAGS:=-lpthread
 
 DMACRO:=-DTARGET_NAME=\"$(TARGET)\" -DCLIENT_TEST -DTHREAD_POOL_SUPPORT -DTIMER_SUPPORT -DTRANS_UDP_SERVICE -DSELECT_SUPPORT
 
-SOURCES:=tests/client.c lib/mincode.c lib/tpool.c module/etimer.c module/netapi.c module/netlist.c protocol/framelysis.c protocol/protocol.c protocol/trframelysis.c protocol/trrequest.c services/corecomm.c services/globals.c services/mevent.c
-
-OBJS:=$(patsubst %.c,%.o, $(notdir $(SOURCES)))
-$(foreach s,$(SOURCES), \
-    $(eval $(patsubst %.c,%.o,$(notdir $(s)))-s:=$(s)) \
-)
-
-
-
 .PHONY: all clean
-all:$(TARGET) perznet deulog
-
-$(TARGET):$(OBJS)
-	$(TARGET_CC) -o $@ $(OBJS) $(LDFLAGS)
-	$(TARGET_STRIP) $@
-
-$(OBJS):
-	$(TARGET_CC) -o $@ $(DMACRO) $(INCLUDE) -c $(TESTTOP)$($@-s)
+all:perznet deulog
 
 perznet:perznet.c $(TESTTOP)module/serial.c
 	$(TARGET_CC) -o $@ $^ -DSERIAL_SUPPORT $(INCLUDE) $(LDFLAGS)

@@ -23,10 +23,10 @@
 
 #ifdef COMM_CLIENT
 #define DLOG_FILE   "/var/log/connect_listen.log"
-#endif
-
-#ifdef COMM_SERVER
+#elif defined(COMM_SERVER)
 #define DLOG_FILE   "/var/log/transconn.log"
+#else
+#define DLOG_FILE   "/tmp/transconn.log"
 #endif
 
 #ifdef DE_TRANS_UDP_STREAM_LOG

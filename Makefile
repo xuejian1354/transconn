@@ -4,11 +4,11 @@ export TOPDIR
 include $(TOPDIR)/config.mk
 include $(TOPDIR)/lib/library.mk
 
-SERVER_TARGET:=$(notdir $(shell pwd))
+#SERVER_TARGET:=$(notdir $(shell pwd))
+SERVER_TARGET:=transconn
 CLIENT_TARGET:=connect_listen
 TARGET:=$(SERVER_TARGET) $(CLIENT_TARGET)
 export SERVER_TARGET CLIENT_TARGET
-#TARGET  := $(notdir $(shell pwd))
 
 INCLUDE+=-I$(TOPDIR)/include -I$(TOPDIR)/lib
 
@@ -21,7 +21,7 @@ include mconfig/server_config
 include mconfig/client_config
 export SERVER_DMACRO CLIENT_DMACRO
 
-SUB_MODULES:=debug module protocol control services
+SUB_MODULES:=debug module protocol services
 export SUB_MODULES
 
 define dependsrcs

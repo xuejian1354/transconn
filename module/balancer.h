@@ -40,8 +40,6 @@ typedef struct RelSer_info
 {
 	char name[RELSER_NAME_NUM];
 	uint8 ipaddr[IP_ADDR_MAX_SIZE];
-	int gw_num;
-	int cli_num;
 	struct RelSer_info *next;
 }relser_info_t;
 

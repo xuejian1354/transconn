@@ -70,7 +70,7 @@
 #define TR_DC_DATA_FIX_LEN	41
 #define TR_UB_DATA_FIX_LEN	41
 
-#define TR_BUFFER_SIZE 	1024
+#define TR_BUFFER_SIZE 	0x4000
 #define TR_TAIL ":O\r\n"
 
 typedef enum
@@ -150,7 +150,7 @@ typedef struct
 typedef struct
 {
 	uint8 *data;
-	uint8 size;
+	int size;
 }tr_buffer_t;
 
 tr_head_type_t get_trhead_from_str(char *head);

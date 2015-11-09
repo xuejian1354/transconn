@@ -38,7 +38,7 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 	uint16 znet_addr;
 
 	char ipaddr[24] = {0};
-	GET_SERVER_IP(ipaddr);
+	GET_SERVER_IPADDR(ipaddr);
 	
 	fr_head_type_t head_type = get_frhead_from_str(arg->buf);
 	
