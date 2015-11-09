@@ -23,21 +23,21 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#if(DE_PRINT_UDP_PORT!=0)
 typedef enum
 {
 	DE_UDP_SEND,
-	DE_UDP_RECV
-}deudp_print_t;
+	DE_UDP_RECV,
+	DE_TCP_SEND,
+	DE_TCP_RECV
+}de_print_t;
 
-static void set_udp_print_flag(uint8 flag);
-static void udp_data_show(deudp_print_t deprint, uint8 flag,
+static void set_deprint_flag(uint8 flag);
+static void trans_data_show(de_print_t deprint, uint8 flag,
 		struct sockaddr_in *addr, char *data, int len);
 
-static uint8 udp_print_flag = DE_PRINT_UDP_PORT;
+static uint8 deprint_flag = DE_PRINT_UDP_PORT;
 #ifdef DE_TRANS_UDP_STREAM_LOG
 static struct sockaddr_in ulog_addr;
-#endif
 #endif
 
 #ifdef TRANS_UDP_SERVICE
@@ -180,6 +180,20 @@ void socket_tcp_server_recv(int fd)
 #endif
 	}
 }
+
+void socket_tcp_server_send(frhandler_arg_t *arg, char *data, int len)
+{
+	if(arg == NULL)
+	{
+		return;
+	}
+	
+	send(arg->fd, data, len, 0);
+
+#ifdef DE_PRINT_TCP_PORT
+	trans_data_show(DE_TCP_SEND, deprint_flag, &arg->addr, data, len);
+#endif
+}
 #endif
 
 #ifdef TRANS_TCP_CLIENT
@@ -212,15 +226,15 @@ int socket_tcp_client_connect(int port)
 #endif
 }
 
-void socket_tcp_client_recv(int fd)
+void socket_tcp_client_recv()
 {
 	int nbytes;
 	char buf[MAXSIZE];
 	
 	memset(buf, 0, sizeof(buf));
-   	if ((nbytes = recv(fd, buf, sizeof(buf), 0)) <= 0)
+   	if ((nbytes = recv(c_tcpfd, buf, sizeof(buf), 0)) <= 0)
    	{
-      	socket_tcp_client_close(fd);
+      	socket_tcp_client_close();
 	}
 	else
 	{
@@ -231,15 +245,31 @@ void socket_tcp_client_recv(int fd)
 
 		DE_PRINTF(0, "data:%s\n", buf);
 #endif
+		frhandler_arg_t *frarg = 
+			get_frhandler_arg_alloc(c_tcpfd, &m_server_addr, buf, nbytes);
+#ifdef TIMER_SUPPORT
+		tpool_add_work(analysis_capps_frame, frarg);
+#else
+		analysis_capps_frame(frarg, NULL);
+#endif
 	}
 }
 
-void socket_tcp_client_close(int fd)
+void socket_tcp_client_send(char *data, int len)
 {
-	close(fd);
-	DE_PRINTF(1, "close tcp client connection: fd=%d\n", fd);
+	send(c_tcpfd, data, len, 0);
+
+#ifdef DE_PRINT_TCP_PORT
+	trans_data_show(DE_TCP_SEND, deprint_flag, &m_server_addr, data, len);
+#endif
+}
+
+void socket_tcp_client_close()
+{
+	close(c_tcpfd);
+	DE_PRINTF(1, "close tcp client connection: fd=%d\n", c_tcpfd);
 #ifdef SELECT_SUPPORT
-	select_wtclr(fd);
+	select_wtclr(c_tcpfd);
 #endif
 }
 #endif
@@ -294,7 +324,7 @@ void socket_udp_recvfrom()
 				(struct sockaddr *)&client_addr, &socklen);
 
 #if(DE_PRINT_UDP_PORT!=0)
-	udp_data_show(DE_UDP_RECV, udp_print_flag, &client_addr, buf, nbytes);
+	trans_data_show(DE_UDP_RECV, deprint_flag, &client_addr, buf, nbytes);
 #endif
 
 	frhandler_arg_t *frarg = get_frhandler_arg_alloc(udpfd, &client_addr, buf, nbytes);
@@ -343,16 +373,16 @@ void socket_udp_sendto(char *addr, char *data, int len)
 		(struct sockaddr *)&maddr, sizeof(struct sockaddr));
 
 #if(DE_PRINT_UDP_PORT!=0)
-	udp_data_show(DE_UDP_SEND, udp_print_flag, &maddr, data, len);
+	trans_data_show(DE_UDP_SEND, deprint_flag, &maddr, data, len);
 	//PRINT_HEX(data, len);
 #endif
 }
 #endif
 
 #if(DE_PRINT_UDP_PORT!=0)
-void set_udp_print_flag(uint8 flag)
+void set_deprint_flag(uint8 flag)
 {
-	udp_print_flag = flag;
+	deprint_flag = flag;
 }
 
 #ifdef DE_TRANS_UDP_STREAM_LOG
@@ -368,7 +398,7 @@ void enable_datalog_atime()
 	lwflag = 1;
 }
 
-void udp_data_show(deudp_print_t deprint, uint8 flag,
+void trans_data_show(de_print_t deprint, uint8 flag,
 		struct sockaddr_in *addr, char *data, int len)
 {
 	int i;
@@ -447,7 +477,7 @@ void udp_data_show(deudp_print_t deprint, uint8 flag,
 		{
 			uint8 flag;
 			incode_ctoxs(&flag, data+11, 2);
-			set_udp_print_flag(flag);
+			set_deprint_flag(flag);
 			DE_PRINTF(1, "\n%s%X succeed\n\n", DEU_CMD_PREFIX, flag);
 		}
 		else
@@ -477,6 +507,18 @@ show_end:
 					ntohs(addr->sin_port));
 	}
 	else if(deprint == DE_UDP_RECV)
+	{
+		DE_PRINTF(lwflag, "UDP:receive %d bytes, from ip=%s:%u\n", 
+					len, inet_ntoa(addr->sin_addr), 
+					ntohs(addr->sin_port));
+	}
+	else if(deprint == DE_TCP_SEND)
+	{
+		DE_PRINTF(lwflag, "TCP:send %d bytes, to ip=%s:%u\n", 
+					len, inet_ntoa(addr->sin_addr), 
+					ntohs(addr->sin_port));
+	}
+	else if(deprint == DE_TCP_RECV)
 	{
 		DE_PRINTF(lwflag, "UDP:receive %d bytes, from ip=%s:%u\n", 
 					len, inet_ntoa(addr->sin_addr), 

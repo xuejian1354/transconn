@@ -23,6 +23,7 @@
 //#define COMM_CLIENT
 
 //#define TRANS_TCP_SERVER
+//#define TRANS_TCP_CLIENT
 //#define TRANS_UDP_SERVICE
 //#define THREAD_POOL_SUPPORT
 //#define TIMER_SUPPORT
@@ -43,6 +44,10 @@
 #elif defined(REMOTE_UPDATE_APK)
 #error 'You must define READ_CONF_FILE first before defining REMOTE_UPDATE_APK'
 #endif
+#endif
+
+#if !defined(TRANS_UDP_SERVICE) && defined(REMOTE_UPDATE_APK)
+#error 'You must define TRANS_UDP_SERVICE first before defining REMOTE_UPDATE_APK'
 #endif
 
 #endif //__MCONFIG_H__

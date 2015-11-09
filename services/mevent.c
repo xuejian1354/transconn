@@ -67,10 +67,7 @@ void *gateway_refresh(void *p, pthread_mutex_t *lock)
 }
 
 void *upload_event(void *p, pthread_mutex_t *lock)
-{
-	char ipaddr[24] = {0};
-	GET_SERVER_IPADDR(ipaddr);
-	
+{	
 	dev_info_t *p_dev = get_gateway_info()->p_dev;
 	char buffer[ZDEVICE_MAX_NUM<<2] = {0};
 	char bsize = 0;
@@ -87,8 +84,17 @@ void *upload_event(void *p, pthread_mutex_t *lock)
 	pi.fr_type = TRFRAME_CON;
 	pi.data = buffer;
 	pi.data_len = bsize;
-	
-	send_frame_udp_request(ipaddr, TRHEAD_PI, &pi);
+
+#ifdef TRANS_UDP_SERVICE
+	char ipaddr[24] = {0};
+	GET_UDP_SERVICE_IPADDR(ipaddr);	
+	send_frame_udp_request(ipaddr, TRHEAD_PI, &pi);	
+#endif
+
+#ifdef TRANS_TCP_CLIENT
+	pi.trans_type = TRTYPE_TCP_LONG;
+	send_frame_tcp_request(TRHEAD_PI, &pi);	
+#endif
 	
 	return NULL;
 }
@@ -108,7 +114,7 @@ void *stand_event(void *p, pthread_mutex_t *lock)
 	}
 
 	char ipaddr[24] = {0};
-	GET_SERVER_IPADDR(ipaddr);
+	GET_UDP_SERVICE_IPADDR(ipaddr);
 
 	while(p_cli != NULL)
 	{
@@ -121,7 +127,9 @@ void *stand_event(void *p, pthread_mutex_t *lock)
 			gd.tr_info = TRINFO_REG;
 			gd.data = buffer;
 			gd.data_len = bsize;
+#ifdef TRANS_UDP_SERVICE
 			send_frame_udp_request(p_cli->ipaddr, TRHEAD_GD, &gd);
+#endif
 		}
 
 		if(p_cli->check_conn)
@@ -173,9 +181,10 @@ void *rp_watch(void *p, pthread_mutex_t *lock)
 		rp.tr_info = TRINFO_UPDATE;
 		rp.data = NULL;
 		rp.data_len = 0;
+#ifdef TRANS_UDP_SERVICE
 		enable_datalog_atime();
 		send_frame_udp_request(p_cli->ipaddr, TRHEAD_RP, &rp);
-		
+#endif
 		set_rp_check(p_cli);
 	}
 }

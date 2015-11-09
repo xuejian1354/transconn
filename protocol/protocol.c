@@ -38,7 +38,7 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 	uint16 znet_addr;
 
 	char ipaddr[24] = {0};
-	GET_SERVER_IPADDR(ipaddr);
+	GET_UDP_SERVICE_IPADDR(ipaddr);
 	
 	fr_head_type_t head_type = get_frhead_from_str(arg->buf);
 	
@@ -71,9 +71,15 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 		bi.fr_type = TRFRAME_PUT_GW;
 		bi.data = buffer->data;
 		bi.data_len = buffer->size;
+#ifdef TRANS_UDP_SERVICE
 		enable_datalog_atime();
 		send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
-		
+#endif
+#ifdef TRANS_TCP_CLIENT
+		bi.trans_type = TRTYPE_TCP_LONG;
+		enable_datalog_atime();
+		send_frame_tcp_request(TRHEAD_BI, &bi);
+#endif
 		get_buffer_free(buffer);
 		get_frame_free(HEAD_UC, uc);
 	}
@@ -120,9 +126,15 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 			bi.fr_type = TRFRAME_PUT_DEV;
 			bi.data = buffer;
 			bi.data_len = ZDEVICE_BUFFER_SIZE;
+#ifdef TRANS_UDP_SERVICE
 			enable_datalog_atime();
 			send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
-			
+#endif
+#ifdef TRANS_TCP_CLIENT
+			bi.trans_type = TRTYPE_TCP_LONG;
+			enable_datalog_atime();
+			send_frame_tcp_request(TRHEAD_BI, &bi);
+#endif
 			get_zdev_buffer_free(buffer);
 		}
 
@@ -142,7 +154,8 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 				ub.tr_info = TRINFO_REDATA;
 				ub.data = frbuffer->data;
 				ub.data_len = frbuffer->size;
-				
+
+#ifdef TRANS_UDP_SERVICE
 				if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
 				{
 					//enable_datalog_atime();
@@ -153,7 +166,12 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 					//enable_datalog_atime();
 					send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
 				}
-
+#endif
+#ifdef TRANS_TCP_CLIENT
+				ub.trans_type = TRTYPE_TCP_LONG;
+				//enable_datalog_atime();
+				send_frame_tcp_request(TRHEAD_UB, &ub);
+#endif
 				p_cli = p_cli->next;
 			}
 			get_buffer_free(frbuffer);
@@ -193,8 +211,9 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 														ur->data, ur->data_len);
 			set_devopt_data_fromopt(get_gateway_info()->zgw_opt, opt);
 			get_devopt_data_free(opt);
+#ifdef DE_PRINT_SERIAL_PORT
 			devopt_de_print(get_gateway_info()->zgw_opt);
-
+#endif
 			if((get_gateway_info()->zgw_opt->type == FRAPP_DOOR_SENSOR
 				&& !get_gateway_info()->zgw_opt->device.doorsensor.setting)
 				|| (get_gateway_info()->zgw_opt->type == FRAPP_IR_DETECTION
@@ -226,9 +245,9 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 														ur->data, ur->data_len);
 				set_devopt_data_fromopt(dev_info->zdev_opt, opt);
 				get_devopt_data_free(opt);
-
+#ifdef DE_PRINT_SERIAL_PORT
 				devopt_de_print(dev_info->zdev_opt);
-
+#endif
 				if((dev_info->zdev_opt->type == FRAPP_DOOR_SENSOR
 					&& !dev_info->zdev_opt->device.doorsensor.setting)
 					|| (dev_info->zdev_opt->type == FRAPP_IR_DETECTION
@@ -283,6 +302,7 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 				ub.tr_info = TRINFO_REDATA;
 				ub.data = frbuffer->data;
 				ub.data_len = frbuffer->size;
+#ifdef TRANS_UDP_SERVICE
 				if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
 				{
 					//enable_datalog_atime();
@@ -293,7 +313,12 @@ void analysis_zdev_frame(frhandler_arg_t *arg)
 					//enable_datalog_atime();
 					send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
 				}
-
+#endif
+#ifdef TRANS_TCP_CLIENT
+				ub.trans_type = TRTYPE_TCP_LONG;
+				//enable_datalog_atime();
+				send_frame_tcp_request(TRHEAD_UB, &ub);
+#endif
 				p_cli = p_cli->next;
 			}
 			get_buffer_free(frbuffer);
@@ -418,7 +443,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	case TRHEAD_PI:
 	{
 		pi_t *pi = (pi_t *)p;
-		pi_handler(&arg->addr, pi);
+		pi_handler(arg, pi);
 		get_trframe_free(TRHEAD_PI, p);
 	}
 	break;
@@ -426,7 +451,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	case TRHEAD_BI:
 	{
 		bi_t *bi = (bi_t *)p;
-		bi_handler(&arg->addr, bi);
+		bi_handler(arg, bi);
 		get_trframe_free(TRHEAD_BI, p);
 	}
 	break;
@@ -434,7 +459,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	case TRHEAD_UL:
 	{
 		ul_t *ul = (ul_t *)p;
-		ul_handler(&arg->addr, ul);
+		ul_handler(arg, ul);
 		get_trframe_free(TRHEAD_UL, p);
 	}
 	break;
@@ -442,7 +467,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	case TRHEAD_SL:
 	{
 		sl_t *sl = (sl_t *)p;
-		sl_handler(&arg->addr, sl);
+		sl_handler(arg, sl);
 		get_trframe_free(TRHEAD_SL, p);
 	}
 	break;
@@ -450,7 +475,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	case TRHEAD_GP:
 	{
 		gp_t *gp = (gp_t *)p;
-		gp_handler(&arg->addr, gp);
+		gp_handler(arg, gp);
 		get_trframe_free(TRHEAD_GP, p);
 	}
 	break;
@@ -458,7 +483,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	case TRHEAD_RP:
 	{
 		rp_t *rp = (rp_t *)p;
-		rp_handler(&arg->addr, rp);
+		rp_handler(arg, rp);
 		get_trframe_free(TRHEAD_RP, p);
 	}
 	break;
@@ -466,7 +491,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	case TRHEAD_GD:
 	{
 		gd_t *gd = (gd_t *)p;
-		gd_handler(&arg->addr, gd);
+		gd_handler(arg, gd);
 		get_trframe_free(TRHEAD_GD, p);
 	}
 	break;
@@ -474,7 +499,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	case TRHEAD_RD:
 	{
 		rd_t *rd = (rd_t *)p;
-		rd_handler(&arg->addr, rd);		
+		rd_handler(arg, rd);		
 		get_trframe_free(TRHEAD_RD, p);
 	}
 	break;
@@ -482,7 +507,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	case TRHEAD_DC:
 	{
 		dc_t *dc = (dc_t *)p;
-		dc_handler(&arg->addr, dc);
+		dc_handler(arg, dc);
 		get_trframe_free(TRHEAD_DC, p);
 	}
 	break;
@@ -490,7 +515,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	case TRHEAD_UB:
 	{
 		ub_t *ub = (ub_t *)p;
-		ub_handler(&arg->addr, ub);
+		ub_handler(arg, ub);
 		get_trframe_free(TRHEAD_UB, p);
 	}
 	break;
