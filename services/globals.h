@@ -51,9 +51,6 @@
 //udp protocol using port
 #define TRANS_UDP_PORT	11578
 
-//client test use udp port
-#define TRANS_CLIENT_TEST_UDP_PORT	12577
-
 #ifdef COMM_CLIENT
 //udp protocol using port
 #define TRANS_UDP_SELF_PORT	11578
@@ -100,14 +97,14 @@ This macro just support that
 #define IP_ADDR_MAX_SIZE	24
 
 #ifdef COMM_CLIENT
-#define GET_SERVER_IPADDR(ipaddr)								\
+#define GET_UDP_SERVICE_IPADDR(ipaddr)								\
 st(															\
 	sprintf(ipaddr, "%s:%d", get_server_ip(), get_udp_port());	\
 )
 #endif
 
 #ifdef COMM_SERVER
-#define GET_SERVER_IPADDR(ipaddr)								\
+#define GET_UDP_SERVICE_IPADDR(ipaddr)								\
 st(															\
 	sprintf(ipaddr, "%s:%d", "0.0.0.0", get_udp_port());	\
 )
@@ -166,10 +163,6 @@ int start_params(int argc, char **argv);
 char *get_time_head();
 int mach_init();
 void event_init();
-
-#ifdef CLIENT_TEST
-void set_target_ip(char *ipaddr, int len);
-#endif
 
 #ifdef READ_CONF_FILE
 global_conf_t *get_global_conf();

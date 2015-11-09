@@ -36,5 +36,6 @@ typedef struct TCPConnList
 
 int addto_tcpconn_list(tcp_conn_t *list);
 tcp_conn_t *queryfrom_tcpconn_list(int fd);
+tcp_conn_t *queryfrom_tcpconn_list_with_ipaddr(char *ipaddr);
 int delfrom_tcpconn_list(int fd);
 #endif  // __NETLIST_H__
