@@ -69,7 +69,7 @@ void *gateway_refresh(void *p, pthread_mutex_t *lock)
 void *upload_event(void *p, pthread_mutex_t *lock)
 {
 	char ipaddr[24] = {0};
-	GET_SERVER_IP(ipaddr);
+	GET_SERVER_IPADDR(ipaddr);
 	
 	dev_info_t *p_dev = get_gateway_info()->p_dev;
 	char buffer[ZDEVICE_MAX_NUM<<2] = {0};
@@ -108,7 +108,7 @@ void *stand_event(void *p, pthread_mutex_t *lock)
 	}
 
 	char ipaddr[24] = {0};
-	GET_SERVER_IP(ipaddr);
+	GET_SERVER_IPADDR(ipaddr);
 
 	while(p_cli != NULL)
 	{

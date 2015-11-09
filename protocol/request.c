@@ -266,7 +266,7 @@ void bi_handler(struct sockaddr_in *addr, bi_t *p_bi)
 				memcpy(p_gw->ipaddr, ipaddr, p_gw->ip_len);
 
 				memset(p_gw->serverip_addr, 0, sizeof(p_gw->serverip_addr));
-				GET_SERVER_IP(p_gw->serverip_addr);
+				GET_SERVER_IPADDR(p_gw->serverip_addr);
 				p_gw->serverip_len = strlen(p_gw->serverip_addr);
 				set_gateway_check(p_gw->gw_no, p_gw->rand);
 #ifdef DB_API_SUPPORT
@@ -326,7 +326,7 @@ void ul_handler(struct sockaddr_in *addr, ul_t *p_ul)
 	m_info->trans_type = TRTYPE_NONE;
 	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 	m_info->ip_len = strlen(ipaddr);
-	GET_SERVER_IP(m_info->serverip_addr);
+	GET_SERVER_IPADDR(m_info->serverip_addr);
 	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;
@@ -416,7 +416,7 @@ void gp_handler(struct sockaddr_in *addr, gp_t *p_gp)
 	m_info->trans_type = p_gp->trans_type;
 	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 	m_info->ip_len = strlen(ipaddr);
-	GET_SERVER_IP(m_info->serverip_addr);
+	GET_SERVER_IPADDR(m_info->serverip_addr);
 	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;
@@ -578,7 +578,7 @@ gw_match:
 	{
 		memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 		m_info->ip_len = strlen(ipaddr);
-		GET_SERVER_IP(m_info->serverip_addr);
+		GET_SERVER_IPADDR(m_info->serverip_addr);
 		m_info->serverip_len = strlen(m_info->serverip_addr);
 	}
 	
@@ -616,7 +616,7 @@ gw_match:
 			send_frame_udp_request(ipaddr, TRHEAD_RP, &mrp);
 
 			char serverip_addr[24] = {0};
-			GET_SERVER_IP(serverip_addr);
+			GET_SERVER_IPADDR(serverip_addr);
 			if(memcmp(serverip_addr, ipaddr, strlen(ipaddr)))
 			{
 				send_frame_udp_request(serverip_addr, TRHEAD_RP, &mrp);	
@@ -766,7 +766,7 @@ void gd_handler(struct sockaddr_in *addr, gd_t *p_gd)
 	m_info->trans_type = p_gd->trans_type;
 	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
 	m_info->ip_len = strlen(ipaddr);
-	GET_SERVER_IP(m_info->serverip_addr);
+	GET_SERVER_IPADDR(m_info->serverip_addr);
 	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;
@@ -903,7 +903,7 @@ gdev_match:
 	
 	memcpy(m_info->cidentify_no, p_gd->cidentify_no, sizeof(cidentify_no_t));	
 	m_info->trans_type = p_gd->trans_type;
-	GET_SERVER_IP(m_info->serverip_addr);
+	GET_SERVER_IPADDR(m_info->serverip_addr);
 	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;
@@ -991,7 +991,7 @@ void dc_handler(struct sockaddr_in *addr, dc_t *p_dc)
 		memset(m_info->ipaddr, 0, sizeof(m_info->ipaddr));
 		m_info->ip_len = 0;
 	}
-	GET_SERVER_IP(m_info->serverip_addr);
+	GET_SERVER_IPADDR(m_info->serverip_addr);
 	m_info->serverip_len = strlen(m_info->serverip_addr);
 	m_info->check_count = 0;
 	m_info->check_conn = 1;

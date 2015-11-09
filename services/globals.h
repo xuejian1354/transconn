@@ -104,14 +104,14 @@ This macro just support that
 #define IP_ADDR_MAX_SIZE	24
 
 #ifdef COMM_CLIENT
-#define GET_SERVER_IP(ipaddr)								\
+#define GET_SERVER_IPADDR(ipaddr)								\
 st(															\
 	sprintf(ipaddr, "%s:%d", get_server_ip(), get_udp_port());	\
 )
 #endif
 
 #ifdef COMM_SERVER
-#define GET_SERVER_IP(ipaddr)								\
+#define GET_SERVER_IPADDR(ipaddr)								\
 st(															\
 	sprintf(ipaddr, "%s:%d", "0.0.0.0", get_udp_port());	\
 )
