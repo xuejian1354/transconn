@@ -19,21 +19,19 @@
 
 #include <services/globals.h>
 
+#if defined(TRANS_TCP_SERVER) && defined(TRANS_TCP_CLIENT)
+#error cannot define TRANS_TCP_SERVER and TRANS_TCP_CLIENT at the same time
+#endif
+
 #ifdef TRANS_TCP_SERVER
-int get_tcp_fd();
+int get_stcp_fd();
 int socket_tcp_server_init(int port);
 void socket_tcp_server_accept(int fd);
 void socket_tcp_server_recv(int fd);
 #endif
 
-
-/*
- * Becareful!!! This function eat all CPU, Default no used.
-*/
 #ifdef TRANS_TCP_CLIENT
-int get_mtcp_fd();
-int get_mtmp_fd();
-int socket_tcp_client_init();
+int get_ctcp_fd();
 int socket_tcp_client_connect(int port);
 void socket_tcp_client_recv(int fd);
 void socket_tcp_client_close(int fd);

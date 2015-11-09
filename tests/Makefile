@@ -32,12 +32,12 @@ DMACRO:=-DTARGET_NAME=\"$(TARGET)\" -DCLIENT_TEST -DTHREAD_POOL_SUPPORT -DTIMER_
 all:perznet deulog
 
 perznet:perznet.c $(TESTTOP)module/serial.c
-	$(TARGET_CC) -o $@ $^ -DSERIAL_SUPPORT $(INCLUDE) $(LDFLAGS)
-	$(TARGET_STRIP) $@
+	$(TARGET_CC) -o $@ $^ -DSERIAL_SUPPORT $(INCLUDE) -w $(LDFLAGS)
+	@$(TARGET_STRIP) $@
 
 deulog:deulog.c
 	$(TARGET_CC) -o $@ $^ $(INCLUDE) -DDE_TRANS_UDP_STREAM_LOG $(LDFLAGS)
-	$(TARGET_STRIP) $@
+	@$(TARGET_STRIP) $@
 
 clean:
 	$(RM) *.o $(TARGET) perznet deulog

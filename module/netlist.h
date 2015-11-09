@@ -20,7 +20,6 @@
 #include <services/globals.h>
 #include <arpa/inet.h>
 
-#ifdef TRANS_TCP_CONN_LIST
 typedef struct TCPConn
 {
 	int fd;
@@ -34,28 +33,8 @@ typedef struct TCPConnList
 	int num;
 	const int max_size;
 }tcp_conn_list_t;
-#endif
 
-#ifdef TRANS_UDP_SESS_QUEUE
-typedef struct UDPSessQueue
-{
-	int head;
-	int tail;
-	int num;
-	const int max_size;
-	struct sockaddr_in client_addrs[TRANS_UDP_SESS_MAX_SIZE];
-}udp_sess_queue_t;
-#endif
-
-#ifdef TRANS_TCP_CONN_LIST
 int addto_tcpconn_list(tcp_conn_t *list);
 tcp_conn_t *queryfrom_tcpconn_list(int fd);
 int delfrom_tcpconn_list(int fd);
-#endif
-
-#ifdef TRANS_UDP_SESS_QUEUE
-int addto_udpsess_queue(struct sockaddr_in *addr);
-int queryfrom_udpsess_queue(struct sockaddr_in *addr);
-#endif
-
 #endif  // __NETLIST_H__

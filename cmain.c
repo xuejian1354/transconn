@@ -69,19 +69,8 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#ifdef TRANS_TCP_SERVER
-	if (socket_tcp_server_init(tcp_port) < 0)
-	{
-		return -1;
-	}
-#endif
-
-
-/*
- * Becareful!!! This function eat all CPU, Default no used.
-*/
 #ifdef TRANS_TCP_CLIENT
-	if (socket_tcp_client_init() < 0)
+	if (socket_tcp_client_connect(get_tcp_port()) < 0)
 	{
 		return -1;
 	}

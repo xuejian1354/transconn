@@ -75,9 +75,6 @@ int select_listen()
 #ifdef TRANS_UDP_SERVICE
 	int udpfd = get_udp_fd();
 #endif
-#ifdef TRANS_TCP_SERVER
-	int tcpfd = get_tcp_fd();
-#endif
 	
 	fd_set current_rdfs = global_rdfs;
 	fd_set current_wtfs = global_wtfs;
@@ -94,36 +91,23 @@ int select_listen()
 #endif
 #endif
 
-
-/*
- * Becareful!!! This function eat all CPU, Default no used.
-*/
 #ifdef TRANS_TCP_CLIENT
-		if(FD_ISSET(get_mtcp_fd(), &current_rdfs))
+		if(FD_ISSET(get_ctcp_fd(), &current_rdfs))
 		{
-			socket_tcp_client_recv(get_mtcp_fd());
+			socket_tcp_client_recv(get_ctcp_fd());
 		}
-		else if(FD_ISSET(get_mtmp_fd(), &current_wtfs))
-		{
-#ifdef DE_PRINT_TCP_PORT
-			DE_PRINTF(0, "new tcp client connection record %s\n", TCP_CONN_TMP);
-#endif
-		}
-#ifdef TRANS_TCP_SERVER
-		else 
-#endif
 #endif
 
 #ifdef TRANS_TCP_SERVER
-		if(FD_ISSET(tcpfd, &current_rdfs))
+		if(FD_ISSET(get_stcp_fd(), &current_rdfs))
 		{
-			socket_tcp_server_accept(tcpfd);
+			socket_tcp_server_accept(get_stcp_fd());
 		}
 		else
 		{
 			for(i=0; i<=maxfd; i++)
 			{
-				if(FD_ISSET(i, &current_rdfs) && i!= tcpfd && i!= udpfd)
+				if(FD_ISSET(i, &current_rdfs) && i!= get_stcp_fd() && i!= udpfd)
 				{
 					socket_tcp_server_recv(i);
 				}

@@ -23,19 +23,7 @@ static tcp_conn_list_t tcp_conn_list = {
 	0,
 	TRANS_TCP_CONN_MAX_SIZE,
 };
-#endif
 
-#ifdef TRANS_UDP_SESS_QUEUE
-static udp_sess_queue_t udp_sess_queue = {
-	0,
-	0,
-	0,
-	TRANS_UDP_SESS_MAX_SIZE,
-	{0},
-};
-#endif
-
-#ifdef TRANS_TCP_CONN_LIST
 int addto_tcpconn_list(tcp_conn_t *list)
 {
 	tcp_conn_t *t_list;
@@ -120,40 +108,5 @@ int delfrom_tcpconn_list(int fd)
 
 	DE_PRINTF(1, "%s:no found connectin in tcp conn list\n", __FUNCTION__);
 	return -1;
-}
-#endif
-
-#ifdef TRANS_UDP_SESS_QUEUE
-int addto_udpsess_queue(struct sockaddr_in *addr)
-{
-	udp_sess_queue.num = udp_sess_queue.max_size;
-	if(udp_sess_queue.tail < udp_sess_queue.max_size-1)
-	{
-		udp_sess_queue.tail++;
-	}
-	else
-	{
-		udp_sess_queue.tail = 0;
-	}
-
-	memcpy(udp_sess_queue.client_addrs+udp_sess_queue.tail, 
-			addr, sizeof(struct sockaddr_in));
-	
-	if(udp_sess_queue.num >= udp_sess_queue.max_size)
-	{
-		if(udp_sess_queue.head < udp_sess_queue.max_size-1)
-		{
-			udp_sess_queue.head++;
-		}
-		else
-		{
-			udp_sess_queue.head = 0;
-		}
-	}
-}
-
-int queryfrom_udpsess_queue(struct sockaddr_in *addr)
-{
-
 }
 #endif
