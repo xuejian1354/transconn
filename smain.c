@@ -28,6 +28,11 @@ int main(int argc, char **argv)
 	}
 #endif
 
+	if(start_params(argc, argv) != 0)
+	{
+		return 1;
+	}
+
 #ifdef DB_API_SUPPORT
 	if(sql_init() < 0)
 	{
@@ -36,11 +41,6 @@ int main(int argc, char **argv)
 	}
 	//sql_release();
 #endif
-
-	if(start_params(argc, argv) != 0)
-	{
-		return 1;
-	}
 
 #ifdef THREAD_POOL_SUPPORT
 	if (tpool_create(TRANS_SERVER_THREAD_MAX_NUM) < 0)

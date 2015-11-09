@@ -95,26 +95,27 @@ int start_params(int argc, char **argv)
 	if(argc > 1 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")))
 	{
 #ifdef SERIAL_SUPPORT
-  #ifdef TRANS_TCP_SERVER
-		printf("Usage: %s [Serial Port] [TCP Port]\n", TARGET_NAME);
+  #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
     #ifdef TRANS_UDP_SERVICE
-		printf("Usage: %s [Serial Port] [TCP Port] [UDP Port]\n", TARGET_NAME);
+		printf("Usage: %s [Serial Port] [TCP Port] [UDP Port]\n", argv[0]);
+	#else
+		printf("Usage: %s [Serial Port] [TCP Port]\n", argv[0]);
     #endif
   #elif defined(TRANS_UDP_SERVICE)
-		printf("Usage: %s [Serial Port] [UDP Port]\n", TARGET_NAME);
+		printf("Usage: %s [Serial Port] [UDP Port]\n", argv[0]);
   #else
-  		printf("Usage: %s [Serial Port]\n", TARGET_NAME);
+  		printf("Usage: %s [Serial Port]\n", argv[0]);
   #endif
-#elif defined(TRANS_TCP_SERVER)  
+#elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
   #ifdef TRANS_UDP_SERVICE
-  		printf("Usage: %s [TCP Port] [UDP Port]\n", TARGET_NAME);
+  		printf("Usage: %s [TCP Port] [UDP Port]\n", argv[0]);
   #else
-  		printf("Usage: %s [TCP Port]\n", TARGET_NAME);
+  		printf("Usage: %s [TCP Port]\n", argv[0]);
   #endif
 #elif defined(TRANS_UDP_SERVICE)
-		printf("Usage: %s [UDP Port]\n", TARGET_NAME);
+		printf("Usage: %s [UDP Port]\n", argv[0]);
 #else
-		printf("Usage: %s\n", TARGET_NAME);
+		printf("Usage: %s\n", argv[0]);
 #endif
 		return 1;
 	}
@@ -134,7 +135,7 @@ int start_params(int argc, char **argv)
   #endif
 	}
 	
-  #ifdef TRANS_TCP_SERVER
+  #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
   	if(argc > 2)
   	{
 		set_tcp_port(atoi(argv[2]));
@@ -179,7 +180,7 @@ int start_params(int argc, char **argv)
 	}
   #endif
 
-#elif defined(TRANS_TCP_SERVER)
+#elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	if(argc > 1)
   	{
 		set_tcp_port(atoi(argv[1]));
@@ -235,7 +236,7 @@ int start_params(int argc, char **argv)
 	printf("Serial port device:\"%s\"\n", get_serial_port());
 #endif
 
-#ifdef TRANS_TCP_SERVER
+#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	printf("TCP transmit port:%d\n", get_tcp_port());
 #endif
 
@@ -483,7 +484,7 @@ void set_conf_val(char *cmd, char *val)
 	}
 #endif
 
-#ifdef TRANS_TCP_SERVER
+#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	if(!strcmp(cmd, GLOBAL_CONF_TCP_PORT))
 	{
 		g_conf.tcp_port = atoi(val);
@@ -533,7 +534,7 @@ int get_conf_setval()
 #ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_ISSETVAL_SERIAL,
 #endif
-#ifdef TRANS_TCP_SERVER
+#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 					GLOBAL_CONF_ISSETVAL_TCP,
 #endif
 #ifdef TRANS_UDP_SERVICE
@@ -553,7 +554,7 @@ int get_conf_setval()
 #ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_SERIAL_PORT,
 #endif
-#ifdef TRANS_TCP_SERVER
+#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 					GLOBAL_CONF_TCP_PORT,
 #endif
 #ifdef TRANS_UDP_SERVICE

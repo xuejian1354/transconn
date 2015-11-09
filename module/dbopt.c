@@ -87,8 +87,7 @@ int sql_init()
 		return -1;
 	}
 
-	printf("%s()%d : sql connect \"%s\"\n", 
-		__FUNCTION__, __LINE__, m_conf->db_name);
+	printf("sql connect \"%s\"\n", m_conf->db_name);
 
 	if(mysql_set_character_set(&mysql_conn, "utf8"))
 	{

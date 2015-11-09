@@ -46,9 +46,11 @@ $(foreach d, $(SUB_DIRS), \
 SERVER_OBJS:=$(patsubst %.c,%-s.o,$(SERVER_SOURCES)) $(patsubst %,%/built-s.o,$(SUB_DIRS))
 CLIENT_OBJS:=$(patsubst %.c,%-c.o,$(CLIENT_SOURCES)) $(patsubst %,%/built-c.o,$(SUB_DIRS))
 
-.PHONY: all clean cclean sclean help
+.PHONY:all alls tests distclean clean cclean sclean help
 
 all:$(TARGET)
+
+alls:$(TARGET) tests
 
 include $(TOPDIR)/include/include.mk
 
@@ -88,14 +90,21 @@ client_comshow:
 	@echo **compile client:
 	@echo ===========================================================
 
+tests:
+	@make -C tests
+
 cclean:
-	(find -name "*-c.[oa]" | xargs $(RM)) && $(RM) $(CLIENT_TARGET)
+	(find -name "*-c.[oa]" | xargs $(RM))
 
 sclean:
-	(find -name "*-s.[oa]" | xargs $(RM)) && $(RM) $(SERVER_TARGET)
+	(find -name "*-s.[oa]" | xargs $(RM))
 
 clean:cclean sclean
 	$(RM) -r $(dir $(inc_deps)) $(inc_dirs_deps)
+
+distclean:clean
+	$(RM) $(SERVER_TARGET) $(CLIENT_TARGET)
+	@make -C tests clean
 
 help:
 	@echo "help:"

@@ -1,4 +1,8 @@
 ifneq ($(WHOLE_BUILD),1)
+ifneq ("$(origin prefix)", "command line")
+  prefix :=
+endif
+
 ifneq ("$(origin sprefix)", "command line")
   sprefix :=
 endif
@@ -15,6 +19,12 @@ export V
 
 $(shell find -name "*.[ch]" | xargs chmod -x)
 $(shell find -name "*_config" | xargs chmod -x)
+
+TARGET_CC := $(prefix)gcc
+TARGET_LD := $(prefix)ld
+TARGET_AR := $(prefix)ar
+TARGET_STRIP := $(prefix)strip
+export TARGET_CC TARGET_LD TARGET_AR TARGET_STRIP
 
 STARGET_CC := $(sprefix)gcc
 STARGET_LD := $(sprefix)ld

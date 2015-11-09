@@ -42,10 +42,6 @@
 #define TRANS_TCP_CONN_LIST
 #endif
 
-#ifdef TRANS_UDP_SERVICE
-//#define TRANS_UDP_SESS_QUEUE
-#endif
-
 //serial dev
 #define TRANS_SERIAL_DEV	"/dev/ttyS1"
 
