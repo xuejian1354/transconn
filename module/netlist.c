@@ -98,8 +98,8 @@ tcp_conn_t *queryfrom_tcpconn_list_with_ipaddr(char *ipaddr)
 		}
 	}
 
-	DE_PRINTF(1, "%s()%d : no found connectin in tcp conn list\n", 
-		__FUNCTION__, __LINE__);
+	//DE_PRINTF(1, "%s()%d : no found connectin in tcp conn list\n", 
+		//__FUNCTION__, __LINE__);
 	return NULL;
 }
 

@@ -1151,7 +1151,14 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 
 
 void devopt_de_print(dev_opt_t *opt)
-{	
+{
+#ifdef DE_TRANS_UDP_STREAM_LOG
+	if(!get_deuart_flag())
+	{
+		return;
+	}	
+#endif
+
 	switch(opt->type)
 	{
 	case FRAPP_LIGHTSWITCH_ONE: 
