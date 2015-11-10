@@ -25,12 +25,22 @@
 //#define TRANS_TCP_SERVER
 //#define TRANS_TCP_CLIENT
 //#define TRANS_UDP_SERVICE
+//#define DAEMON_PROCESS_CREATE
 //#define THREAD_POOL_SUPPORT
 //#define TIMER_SUPPORT
 //#define SERIAL_SUPPORT
 //#define SELECT_SUPPORT
+//#define DE_TRANS_UDP_STREAM_LOG
+
+#ifdef DE_TRANS_UDP_STREAM_LOG
+#define DAEMON_PROCESS_CREATE
+#endif
 
 #define BIND_SUPERBUTTON_CTRL_SUPPORT
+
+#if defined(TRANS_TCP_SERVER) && defined(TRANS_TCP_CLIENT)
+#error 'cannot define TRANS_TCP_SERVER and TRANS_TCP_CLIENT at the same time'
+#endif
 
 #ifdef LOAD_BALANCE_SUPPORT
 #define BALANCE_SERVER_FILE		"/etc/balance_serlist"

@@ -19,7 +19,6 @@
 
 #include <debug/dconfig.h>
 
-//#define DE_TRANS_UDP_STREAM_LOG
 
 #ifdef COMM_CLIENT
 #define DLOG_FILE   "/var/log/connect_listen.log"

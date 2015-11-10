@@ -191,8 +191,15 @@ int serial_init(char *dev)
 int serial_write(char *data, int datalen)
 {
 #ifdef DE_PRINT_SERIAL_PORT
-	DE_PRINTF(0, "serial write:%s\n", data);
-	//PRINT_HEX(data, datalen);
+#ifdef DE_TRANS_UDP_STREAM_LOG
+	if(get_deuart_flag())
+	{
+#endif
+		DE_PRINTF(0, "serial write:%s\n", data);
+		//PRINT_HEX(data, datalen);
+#ifdef DE_TRANS_UDP_STREAM_LOG
+	}
+#endif
 #endif
 	return write(serial_id, data, datalen);
 }
@@ -339,8 +346,15 @@ serial_update:
 				}
 			
 #ifdef DE_PRINT_SERIAL_PORT
-				DE_PRINTF(0, "serial read:%s\n", tmpFrame);
-				//PRINT_HEX(tmpFrame, dataLen);
+#ifdef DE_TRANS_UDP_STREAM_LOG
+				if(get_deuart_flag())
+				{
+#endif
+					DE_PRINTF(0, "serial read:%s\n", tmpFrame);
+					//PRINT_HEX(tmpFrame, dataLen);
+#ifdef DE_TRANS_UDP_STREAM_LOG
+				}
+#endif
 #endif
 
 #if defined(COMM_SERVER) || defined(COMM_CLIENT)

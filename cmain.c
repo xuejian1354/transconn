@@ -34,6 +34,14 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+#ifdef DAEMON_PROCESS_CREATE
+	signal(SIGCHLD, SIG_IGN);
+    if(daemon_init() != 0)
+    {
+		return 0;
+	}
+#endif
+
 #ifdef THREAD_POOL_SUPPORT
 	if (tpool_create(TRANS_CLIENT_THREAD_MAX_NUM) < 0)
 	{
@@ -62,7 +70,7 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#ifdef TRANS_UDP_SERVICE
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	if (socket_udp_service_init(get_udp_port()) < 0)
 	{
 		return -1;
@@ -90,8 +98,6 @@ int main(int argc, char **argv)
 #endif
 	}
 
-end:	
-	printf("%s()%d : end!(#>_<#)\n", __FUNCTION__, __LINE__);
 	return 0;
 }
 

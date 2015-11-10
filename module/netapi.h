@@ -19,9 +19,6 @@
 
 #include <services/globals.h>
 
-#if defined(TRANS_TCP_SERVER) && defined(TRANS_TCP_CLIENT)
-#error cannot define TRANS_TCP_SERVER and TRANS_TCP_CLIENT at the same time
-#endif
 
 #ifdef TRANS_TCP_SERVER
 int get_stcp_fd();
@@ -38,14 +35,16 @@ void socket_tcp_client_send(char *data, int len);
 void socket_tcp_client_close();
 #endif
 
-#ifdef TRANS_UDP_SERVICE
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 int get_udp_fd();
 int socket_udp_service_init(int port);
 void socket_udp_sendto(char *addr, char *data, int len);
 void socket_udp_recvfrom();
 #endif
 
-#if(DE_PRINT_UDP_PORT!=0) && defined(DE_TRANS_UDP_STREAM_LOG)
+void set_deuart_flag(uint8 flag);
+int get_deuart_flag();
+#ifdef DE_TRANS_UDP_STREAM_LOG
 void delog_udp_sendto(char *data, int len);
 #endif
 
