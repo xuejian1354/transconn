@@ -102,35 +102,6 @@ void get_gateway_buffer_free(uint8 *p)
 	free(p);
 }
 
-#ifdef LACK_EDTYPE_SUPPORT
-gw_info_t *get_old_gateway_frame_alloc(uint8 *buffer, int length)
-{
-	if(length < GATEWAY_BUFFER_FIX_SIZE || length > TR_BUFFER_SIZE)
-	{
-		return NULL;
-	}
-
-	gw_info_t *ogw_info = (gw_info_t *)calloc(1, sizeof(gw_info_t));
-	incode_ctoxs(ogw_info->gw_no, buffer, 16);
-	ogw_info->zapp_type = FRAPP_NONE;
-	incode_ctox16(&ogw_info->zpanid, buffer+16);
-	incode_ctox16(&ogw_info->zchannel, buffer+20);
-	incode_ctox32(&ogw_info->rand, buffer+24);
-	ogw_info->ip_len = length-GATEWAY_BUFFER_FIX_SIZE+2;
-	memset(ogw_info->ipaddr, 0, sizeof(ogw_info->ipaddr));
-	memcpy(ogw_info->ipaddr, buffer+32, ogw_info->ip_len);
-	if(pthread_mutex_init(&ogw_info->lock, NULL) != 0)
-    {
-		free(ogw_info);
-        return NULL;
-    }
-	ogw_info->p_dev = NULL;
-	ogw_info->next = NULL;
-
-	return ogw_info;
-}
-#endif
-
 gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
 {	
 	if(length < GATEWAY_BUFFER_FIX_SIZE || length > TR_BUFFER_SIZE)

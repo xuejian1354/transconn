@@ -315,19 +315,6 @@ void bi_handler(frhandler_arg_t *arg, bi_t *p_bi)
 			
 		case TRFRAME_PUT_GW:
 #ifdef COMM_SERVER
-#ifdef LACK_EDTYPE_SUPPORT
-			if((p_gw=get_old_gateway_frame_alloc(p_bi->data, p_bi->data_len)) == NULL)
-			{
-				break;
-			}
-
-			if(p_gw->ip_len < 8 || memcmp(p_bi->data+32, ipaddr, 8))
-			{
-				get_gateway_frame_free(p_gw);
-				p_gw = NULL;
-			}
-#endif
-			
 			if(p_gw == NULL)
 			{
 				p_gw = get_gateway_frame_alloc(p_bi->data, p_bi->data_len);
@@ -420,7 +407,7 @@ void ul_handler(frhandler_arg_t *arg, ul_t *p_ul)
 		memcpy(t_info->email, p_ul->data, p_ul->data_len);
 #ifdef DB_API_SUPPORT
 		t_info->user_info = calloc(1, sizeof(cli_user_t));
-		set_user_info_from_sql(t_info->email, t_info->user_info);
+		get_user_info_from_sql(t_info->email, t_info->user_info);
 
 		sl_t sl;
 		memcpy(sl.sn, p_ul->sn, sizeof(zidentify_no_t));
@@ -481,6 +468,55 @@ void ul_handler(frhandler_arg_t *arg, ul_t *p_ul)
 }
 
 void sl_handler(frhandler_arg_t *arg, sl_t *p_sl)
+{}
+
+void ut_handler(frhandler_arg_t *arg, ut_t *p_ut)
+{
+	char ipaddr[24] = {0};
+	sprintf(ipaddr, "%s:%u",
+				inet_ntoa(arg->addr.sin_addr),
+				ntohs(arg->addr.sin_port));
+
+#ifdef COMM_SERVER
+	cli_info_t *m_info = calloc(1, sizeof(cli_info_t));
+	memcpy(m_info->cidentify_no, p_ut->sn, sizeof(cidentify_no_t));
+	m_info->trans_type = TRTYPE_NONE;
+	memcpy(m_info->ipaddr, ipaddr, strlen(ipaddr));
+	m_info->ip_len = strlen(ipaddr);
+	GET_UDP_SERVICE_IPADDR(m_info->serverip_addr);
+	m_info->serverip_len = strlen(m_info->serverip_addr);
+	m_info->check_count = 0;
+	m_info->check_conn = 1;
+	m_info->user_info = NULL;
+	m_info->next = NULL;
+
+	if(add_client_info(m_info) != 0)
+	{
+		free(m_info);
+	}
+
+#ifdef DB_API_SUPPORT
+	if(p_ut->data_len > 0)
+	{
+		char *put_data = calloc(1, p_ut->data_len+1);
+		memcpy(put_data, p_ut->data, p_ut->data_len);
+		switch(p_ut->fr_type)
+		{
+		case TRFRAME_SYNC_CONF:
+			sync_user_info_to_sql(put_data);
+			break;
+
+		case TRFRAME_DEL_CONF:
+			del_user_info_to_sql(put_data);
+			break;
+		}
+		free(put_data);
+	}
+#endif
+#endif
+}
+
+void st_handler(frhandler_arg_t *arg, st_t *p_st)
 {}
 
 void gp_handler(frhandler_arg_t *arg, gp_t *p_gp)
@@ -561,7 +597,7 @@ dev_match:
 		cli_info_t *t_cli = query_client_info(p_gp->cidentify_no);
 		if(t_cli != NULL && strlen(t_cli->email) > 0)
 		{
-			set_zdev_to_user_sql(t_cli->email, p_dev->zidentity_no);
+			set_device_to_user_sql(t_cli->email, p_dev->zidentity_no);
 		}
 	}
 #endif
@@ -623,7 +659,7 @@ gw_match:
 		cli_info_t *t_cli = query_client_info(p_gp->cidentify_no);
 		if(t_cli != NULL && strlen(t_cli->email) > 0)
 		{
-			set_zdev_to_user_sql(t_cli->email, p_gw->gw_no);
+			set_device_to_user_sql(t_cli->email, p_gw->gw_no);
 		}
 	}
 #endif
@@ -835,7 +871,7 @@ void rp_handler(frhandler_arg_t *arg, rp_t *p_rp)
 
 				uint8 exts[18] = {0};
 				memcpy(exts, p_uo->ext_addr, 16);
-				set_zdev_to_user_sql(p_cli->email, exts);
+				set_device_to_user_sql(p_cli->email, exts);
 
 				get_frame_free(HEAD_UO, p_uo);
 			}
@@ -1495,6 +1531,8 @@ void send_frame_udp_request(char *ipaddr, tr_head_type_t htype, void *frame)
 	case TRHEAD_BI: 
 	case TRHEAD_UL: 
 	case TRHEAD_SL: 
+	case TRHEAD_UT: 
+	case TRHEAD_ST: 
 	case TRHEAD_GP:
 	case TRHEAD_RP:
 	case TRHEAD_GD:
@@ -1526,6 +1564,8 @@ void send_frame_tcp_request(tr_head_type_t htype, void *frame)
 	case TRHEAD_BI: 
 	case TRHEAD_UL: 
 	case TRHEAD_SL: 
+	case TRHEAD_UT: 
+	case TRHEAD_ST: 
 	case TRHEAD_GP:
 	case TRHEAD_RP:
 	case TRHEAD_GD:
@@ -1557,6 +1597,8 @@ void send_frame_tcp_respond(frhandler_arg_t *arg, tr_head_type_t htype, void *fr
 	case TRHEAD_BI: 
 	case TRHEAD_UL: 
 	case TRHEAD_SL: 
+	case TRHEAD_UT: 
+	case TRHEAD_ST: 
 	case TRHEAD_GP:
 	case TRHEAD_RP:
 	case TRHEAD_GD:
