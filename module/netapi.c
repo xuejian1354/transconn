@@ -426,7 +426,7 @@ void trans_data_show(de_print_t deprint,
 		struct sockaddr_in *addr, char *data, int len)
 {
 	int i;
-	for(i=0; i<10; i++)
+	for(i=0; i<12; i++)
 	{
 		if(deprint_flag&(1<<i))
 		{

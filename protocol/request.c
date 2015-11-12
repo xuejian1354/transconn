@@ -17,7 +17,9 @@
 #include "request.h"
 #include <protocol/protocol.h>
 #include <module/balancer.h>
+#ifdef DB_API_SUPPORT
 #include <module/dbopt.h>
+#endif
 #include <module/netlist.h>
 
 void pi_handler(frhandler_arg_t *arg, pi_t *p_pi)
