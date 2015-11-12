@@ -94,16 +94,15 @@ tests:
 	@make -C tests
 
 cclean:
-	(find -name "*-c.[oa]" | xargs $(RM))
+	(find -name "*-c.[oa]" | xargs $(RM)) && $(RM) $(CLIENT_TARGET)
 
 sclean:
-	(find -name "*-s.[oa]" | xargs $(RM))
+	(find -name "*-s.[oa]" | xargs $(RM)) && $(RM) $(SERVER_TARGET)
 
 clean:cclean sclean
 	$(RM) -r $(dir $(inc_deps)) $(inc_dirs_deps)
 
 distclean:clean
-	$(RM) $(SERVER_TARGET) $(CLIENT_TARGET)
 	@make -C tests clean
 
 help:

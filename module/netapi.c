@@ -40,7 +40,7 @@ static void set_detcp_flag(uint8 flag);
 static void trans_data_show(de_print_t deprint,
 				struct sockaddr_in *addr, char *data, int len);
 
-static uint16 deprint_flag = 0x3FF;
+static uint16 deprint_flag = 0xFFF;
 static uint8 deudp_flag = 1;
 static uint8 detcp_flag = 1;
 static uint8 deuart_flag = 1;
@@ -459,43 +459,57 @@ void trans_data_show(de_print_t deprint,
 					goto show_end;	
 				}
 				break;
-				
+
 			case 4: 
-				if(!strncmp(data, TR_HEAD_GP, 3))
+				if(!strncmp(data, TR_HEAD_UT, 3))
 				{
 					goto show_end;	
 				}
 				break;
 				
 			case 5: 
-				if(!strncmp(data, TR_HEAD_RP, 3))
+				if(!strncmp(data, TR_HEAD_ST, 3))
 				{
 					goto show_end;	
 				}
 				break;
 				
 			case 6: 
-				if(!strncmp(data, TR_HEAD_GD, 3))
+				if(!strncmp(data, TR_HEAD_GP, 3))
 				{
 					goto show_end;	
 				}
 				break;
 				
 			case 7: 
-				if(!strncmp(data, TR_HEAD_RD, 3))
+				if(!strncmp(data, TR_HEAD_RP, 3))
 				{
 					goto show_end;	
 				}
 				break;
 				
 			case 8: 
-				if(!strncmp(data, TR_HEAD_DC, 3))
+				if(!strncmp(data, TR_HEAD_GD, 3))
 				{
 					goto show_end;	
 				}
 				break;
 				
 			case 9: 
+				if(!strncmp(data, TR_HEAD_RD, 3))
+				{
+					goto show_end;	
+				}
+				break;
+
+			case 10: 
+				if(!strncmp(data, TR_HEAD_DC, 3))
+				{
+					goto show_end;	
+				}
+				break;
+
+			case 11: 
 				if(!strncmp(data, TR_HEAD_UB, 3))
 				{
 					goto show_end;	
@@ -585,12 +599,14 @@ void trans_data_show(de_print_t deprint,
 			DE_PRINTF(0, "    BI:	002\n");
 			DE_PRINTF(0, "    UL:	004\n");
 			DE_PRINTF(0, "    SL:	008\n");
-			DE_PRINTF(0, "    GP:	010\n");
-			DE_PRINTF(0, "    RP:	020\n");
-			DE_PRINTF(0, "    GD:	040\n");
-			DE_PRINTF(0, "    RD:	080\n");
-			DE_PRINTF(0, "    DC:	100\n");
-			DE_PRINTF(0, "    UB:	200\n\n");
+			DE_PRINTF(0, "    UT:	010\n");
+			DE_PRINTF(0, "    ST:	020\n");
+			DE_PRINTF(0, "    GP:	040\n");
+			DE_PRINTF(0, "    RP:	080\n");
+			DE_PRINTF(0, "    GD:	100\n");
+			DE_PRINTF(0, "    RD:	200\n");
+			DE_PRINTF(0, "    DC:	400\n");
+			DE_PRINTF(0, "    UB:	800\n\n");
 		}
 	}
 #endif
@@ -615,7 +631,10 @@ show_end:
 		{
 			return;
 		}
-		
+
+#ifndef TRANS_UDP_SERVICE
+		return;
+#endif
 		DE_PRINTF(lwflag, "UDP:receive %d bytes, from ip=%s:%u\n", 
 					len, inet_ntoa(addr->sin_addr), 
 					ntohs(addr->sin_port));

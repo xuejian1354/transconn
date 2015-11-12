@@ -30,6 +30,9 @@ void bi_handler(frhandler_arg_t *arg, bi_t *p_bi);
 void ul_handler(frhandler_arg_t *arg, ul_t *p_ul);
 void sl_handler(frhandler_arg_t *arg, sl_t *p_sl);
 
+void ut_handler(frhandler_arg_t *arg, ut_t *p_ut);
+void st_handler(frhandler_arg_t *arg, st_t *p_st);
+
 void gp_handler(frhandler_arg_t *arg, gp_t *p_gp);
 void rp_handler(frhandler_arg_t *arg, rp_t *p_rp);
 

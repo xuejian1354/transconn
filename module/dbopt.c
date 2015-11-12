@@ -15,6 +15,7 @@
  * GNU General Public License for more details.
  */
 #include "dbopt.h"
+#include <module/dballoc.h>
 #include <cJSON.h>
 
 #define DB_SERVER	"localhost"
@@ -41,6 +42,14 @@ static char is_userful = 0;
 static char cmdline[4096];
 static char mix_type_name[24];
 static char current_time[64];
+
+static void sync_devices_with_user_sql(char *email, devices_t *devs);
+static void sync_areas_with_user_sql(char *email, areas_t *areas);
+static void sync_scenes_with_user_sql(char *email, scenes_t *scenes);
+
+static void del_devices_from_user_sql(char *email, devices_t *devs);
+static void del_areas_from_user_sql(char *email, areas_t *areas);
+static void del_scenes_from_user_sql(char *email, scenes_t *scenes);
 
 pthread_mutex_t *get_sql_add_lock()
 {
@@ -572,7 +581,7 @@ int sql_del_gateway(zidentify_no_t gw_no)
 	return 0;
 }
 
-int set_user_info_from_sql(char *email, cli_user_t *user_info)
+int get_user_info_from_sql(char *email, cli_user_t *user_info)
 {
 	if(email == NULL || user_info == NULL)
 	{
@@ -665,7 +674,1064 @@ int set_user_info_from_sql(char *email, cli_user_t *user_info)
 	return 1;	
 }
 
-int set_zdev_to_user_sql(char *email, char *dev_str)
+void sync_user_info_to_sql(char *data)
+{
+	if(data == NULL)
+	{
+		return;
+	}
+
+	cJSON *pRoot = cJSON_Parse(data);
+	if(pRoot == NULL)
+	{
+		return;
+	}
+
+	cJSON *pEmail = cJSON_GetObjectItem(pRoot, "email");
+	if(pEmail == NULL)
+	{
+		goto sync_end;
+	}
+	
+	char *email = pEmail->valuestring;
+
+	cJSON* pDevs = cJSON_GetObjectItem(pRoot, "devices");
+	if (pDevs != NULL)
+	{
+		int dev_size = cJSON_GetArraySize(pDevs);
+		devices_t *devs = devices_alloc(dev_size);
+		int i = 0;
+		while(i < dev_size)
+		{
+			cJSON *pDev = cJSON_GetArrayItem(pDevs, i);
+
+			char *sn = cJSON_GetObjectItem(pDev, "sn")->valuestring;
+			char *iscollect = cJSON_GetObjectItem(pDevs, "iscollect")->valuestring;
+			char *locate = cJSON_GetObjectItem(pDevs, "locate")->valuestring;
+
+			devices_add(devs, sn, atoi(iscollect), locate);
+
+			i++;
+		}
+		sync_devices_with_user_sql(email, devs);
+		devices_free(devs);
+	}
+
+	cJSON* pAreas = cJSON_GetObjectItem(pRoot, "areas");
+	if (pAreas != NULL)
+	{
+		int area_size = cJSON_GetArraySize(pAreas);
+		areas_t *areas = areas_alloc(area_size);
+		int i = 0;
+		while(i < area_size)
+		{
+			areas_add(areas, cJSON_GetArrayItem(pAreas, i)->valuestring);
+			i++;
+		}
+		sync_areas_with_user_sql(email, areas);
+		strings_free(areas);
+	}
+
+	cJSON* pScenes = cJSON_GetObjectItem(pRoot, "scenes");
+	if (pScenes != NULL)
+	{
+		int scene_size = cJSON_GetArraySize(pScenes);
+		scenes_t *scenes = scenes_alloc(scene_size);
+		int i = 0;
+		while(i < scene_size)
+		{
+			cJSON *pScene = cJSON_GetArrayItem(pScenes, i);
+			
+			char *name = cJSON_GetObjectItem(pScene, "name")->valuestring;
+
+			cJSON *pSDevs = cJSON_GetObjectItem(pScene, "devices");
+			strings_t *pdevs_str = NULL;
+			char **devs = NULL;
+			int devs_size = cJSON_GetArraySize(pSDevs);
+			if(devs_size > 0)
+			{
+				int j;
+				pdevs_str = strings_alloc(devs_size);
+				for(j=0; j<devs_size; j++)
+				{
+					strings_add(pdevs_str, 
+						cJSON_GetArrayItem(pSDevs, j)->valuestring);
+				}
+				devs = pdevs_str->str;
+			}
+
+			cJSON *pSFuncs = cJSON_GetObjectItem(pScene, "func_ids");
+			int *func_ids = NULL;
+			int func_size = cJSON_GetArraySize(pSFuncs);
+			if(func_size > 0)
+			{
+				int j;
+				func_ids = calloc(func_size, sizeof(int));
+				for(j=0; j<func_size; j++)
+				{
+					*(func_ids+j) = 
+						atoi(cJSON_GetArrayItem(pSFuncs, j)->valuestring);
+				}
+			}
+
+			
+			cJSON *pSParams = cJSON_GetObjectItem(pScene, "params");
+			strings_t *params_str = NULL;
+			char **params = NULL;
+			int params_size = cJSON_GetArraySize(pSParams);
+			if(params_size > 0)
+			{
+				int j;
+				params_str = strings_alloc(params_size);
+				for(j=0; j<params_size; j++)
+				{
+					strings_add(params_str, 
+						cJSON_GetArrayItem(pSParams, j)->valuestring);
+				}
+				params = params_str->str;
+			}
+
+			scene_t *scene = scene_create(name, devs, 
+				devs_size, func_ids, func_size, params, params_size);
+
+			scenes_put(scenes, scene);
+
+			strings_free(pdevs_str);
+			free(func_ids);
+			strings_free(params_str);
+			
+			i++;
+		}
+		sync_scenes_with_user_sql(email, scenes);
+		scenes_free(scenes);
+	}
+
+sync_end:
+	cJSON_Delete(pRoot);
+}
+
+void sync_devices_with_user_sql(char *email, devices_t *devs)
+{
+	if(email == NULL || devs == NULL || devs->size == 0)
+	{
+		return;
+	}
+	
+	SET_CMD_LINE("%s%s%s", 
+		"SELECT devices FROM users WHERE email=\'", 
+		email, 
+		"\'");
+
+	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		return;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums > 0)
+		{
+			cJSON *pRoot = cJSON_Parse(mysql_row[0]);
+			if(pRoot == NULL)
+			{
+				continue;
+			}
+
+			cJSON* pDeviceArray = cJSON_GetObjectItem(pRoot, "devices");
+			if (pDeviceArray == NULL)
+			{
+				continue;
+			}
+
+			int i;
+			for(i=0; i<devs->size; i++)
+			{
+				int j = 0;
+				int dev_size = cJSON_GetArraySize(pDeviceArray);
+				while(j < dev_size)
+				{
+					cJSON *pDev = cJSON_GetArrayItem(pDeviceArray, j);
+					char *sn = cJSON_GetObjectItem(pDev, "sn")->valuestring;
+
+					if(!strcmp(*(devs->sn+i), sn))
+					{
+						cJSON_DeleteItemFromArray(pDeviceArray, j);
+						break;
+					}
+
+					j++;
+				}	
+			}
+
+			for(i=0; i<devs->size; i++)
+			{	
+				cJSON *t_dev = cJSON_CreateObject();
+				cJSON_AddItemToArray(pDeviceArray, t_dev);
+					
+				cJSON_AddStringToObject(t_dev, "sn", *(devs->sn+i));
+				if(*(devs->iscollects+i))
+				{
+					cJSON_AddStringToObject(t_dev, "iscollect", "0");
+				}
+				else
+				{
+					cJSON_AddStringToObject(t_dev, "iscollect", "1");
+				}
+				cJSON_AddStringToObject(t_dev, "locate", *(devs->locates+i));
+			}
+
+			char *devices = cJSON_Print(pRoot);
+
+			SET_CMD_LINE("%s%s%s%s%s", 
+						"UPDATE users SET devices=\'",
+						devices,
+						"\' WHERE email=\'",
+						email,
+						"\'");
+
+			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
+			
+			cJSON_Delete(pRoot);
+			free(devices);
+			
+			mysql_free_result(mysql_res);
+			return;
+		}
+	}
+}
+
+void sync_areas_with_user_sql(char *email, areas_t *areas)
+{
+	if(email == NULL || areas == NULL || areas->size == 0)
+	{
+		return;
+	}
+	
+	SET_CMD_LINE("%s%s%s", 
+		"SELECT areas FROM users WHERE email=\'", 
+		email, 
+		"\'");
+
+	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		return;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums > 0)
+		{
+			cJSON *pRoot = cJSON_Parse(mysql_row[0]);
+			if(pRoot == NULL)
+			{
+				continue;
+			}
+
+			cJSON* pAreaArray = cJSON_GetObjectItem(pRoot, "areas");
+			if (pAreaArray == NULL)
+			{
+				continue;
+			}
+
+			int i;
+			for(i=0; i<areas->size; i++)
+			{
+				int j = 0;
+				int area_size = cJSON_GetArraySize(pAreaArray);
+				while(j < area_size)
+				{
+					char *area_str = cJSON_GetArrayItem(pAreaArray, j)->valuestring;
+
+					if(!strcmp(*(areas->str+i), area_str))
+					{
+						cJSON_DeleteItemFromArray(pAreaArray, j);
+						break;
+					}
+
+					j++;
+				}	
+			}
+
+			for(i=0; i<areas->size; i++)
+			{	
+				cJSON *t_area = cJSON_CreateString(*(areas->str+i));
+				cJSON_AddItemToArray(pAreaArray, t_area);
+			}
+
+			char *areas = cJSON_Print(pRoot);
+
+			SET_CMD_LINE("%s%s%s%s%s", 
+						"UPDATE users SET areas=\'",
+						areas,
+						"\' WHERE email=\'",
+						email,
+						"\'");
+
+			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(areas);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(areas);
+				
+				mysql_free_result(mysql_res);
+
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
+			
+			cJSON_Delete(pRoot);
+			free(areas);
+			
+			mysql_free_result(mysql_res);
+			return;
+		}
+	}
+}
+
+void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
+{
+	if(email == NULL || scenes == NULL || scenes->size == 0)
+	{
+		return;
+	}
+	
+	SET_CMD_LINE("%s%s%s", 
+		"SELECT scenes FROM users WHERE email=\'", 
+		email, 
+		"\'");
+
+	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		return;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums > 0)
+		{
+			cJSON *pRoot = cJSON_Parse(mysql_row[0]);
+			if(pRoot == NULL)
+			{
+				continue;
+			}
+
+			cJSON* pSceneArray = cJSON_GetObjectItem(pRoot, "scenes");
+			if (pSceneArray == NULL)
+			{
+				continue;
+			}
+
+			int i;
+			for(i=0; i<scenes->size; i++)
+			{
+				int j = 0;
+				int scene_size = cJSON_GetArraySize(pSceneArray);
+				while(j < scene_size)
+				{
+					cJSON *pDev = cJSON_GetArrayItem(pSceneArray, j);
+					char *name = cJSON_GetObjectItem(pDev, "name")->valuestring;
+
+					if(!strcmp((*(scenes->scenes+i))->name, name))
+					{
+						cJSON_DeleteItemFromArray(pSceneArray, j);
+						break;
+					}
+
+					j++;
+				}	
+			}
+
+			for(i=0; i<scenes->size; i++)
+			{	
+				scene_t *scene = *(scenes->scenes+i);
+				cJSON *t_scene = cJSON_CreateObject();
+				cJSON_AddItemToArray(pSceneArray, t_scene);
+					
+				cJSON_AddStringToObject(t_scene, "name", scene->name);
+
+				if(scene->dev_size > 0)
+				{
+					int j;
+					cJSON *t_devices = cJSON_CreateArray();
+					cJSON_AddItemToObject(t_scene, "devices", t_devices);
+
+					for(j=0; j<scene->dev_size; j++)
+					{
+						cJSON *t_dev = cJSON_CreateString(*(scene->devices+j));
+						cJSON_AddItemToArray(t_devices, t_dev);
+					}
+				}
+
+				if(scene->func_size > 0)
+				{
+					int j;
+					cJSON *t_funcs = cJSON_CreateArray();
+					cJSON_AddItemToObject(t_scene, "func_ids", t_funcs);
+
+					for(j=0; j<scene->func_size; j++)
+					{
+						char id_str[24] = {0};
+						sprintf(id_str, "%d", *(scene->func_ids+j));
+						cJSON *t_func_id = cJSON_CreateString(id_str);
+						cJSON_AddItemToArray(t_funcs, t_func_id);
+					}
+				}
+
+				if(scene->param_size > 0)
+				{
+					int j;
+					cJSON *t_params = cJSON_CreateArray();
+					cJSON_AddItemToObject(t_scene, "params", t_params);
+
+					for(j=0; j<scene->param_size; j++)
+					{
+						cJSON *t_param = cJSON_CreateString(*(scene->params+j));
+						cJSON_AddItemToArray(t_params, t_param);
+					}
+				}
+			}
+
+			char *devices = cJSON_Print(pRoot);
+
+			SET_CMD_LINE("%s%s%s%s%s", 
+						"UPDATE users SET scenes=\'",
+						scenes,
+						"\' WHERE email=\'",
+						email,
+						"\'");
+
+			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
+			
+			cJSON_Delete(pRoot);
+			free(devices);
+			
+			mysql_free_result(mysql_res);
+			return;
+		}
+	}
+}
+
+void del_user_info_to_sql(char *data)
+{
+	if(data == NULL)
+	{
+		return;
+	}
+
+	cJSON *pRoot = cJSON_Parse(data);
+	if(pRoot == NULL)
+	{
+		return;
+	}
+
+	cJSON *pEmail = cJSON_GetObjectItem(pRoot, "email");
+	if(pEmail == NULL)
+	{
+		goto del_end;
+	}
+	
+	char *email = pEmail->valuestring;
+
+	cJSON* pDevs = cJSON_GetObjectItem(pRoot, "devices");
+	if (pDevs != NULL)
+	{
+		int dev_size = cJSON_GetArraySize(pDevs);
+		devices_t *devs = devices_alloc(dev_size);
+		int i = 0;
+		while(i < dev_size)
+		{
+			cJSON *pDev = cJSON_GetArrayItem(pDevs, i);
+
+			char *sn = cJSON_GetObjectItem(pDev, "sn")->valuestring;
+			char *iscollect = cJSON_GetObjectItem(pDevs, "iscollect")->valuestring;
+			char *locate = cJSON_GetObjectItem(pDevs, "locate")->valuestring;
+
+			devices_add(devs, sn, atoi(iscollect), locate);
+
+			i++;
+		}
+		del_devices_from_user_sql(email, devs);
+		devices_free(devs);
+	}
+
+	cJSON* pAreas = cJSON_GetObjectItem(pRoot, "areas");
+	if (pAreas != NULL)
+	{
+		int area_size = cJSON_GetArraySize(pAreas);
+		areas_t *areas = areas_alloc(area_size);
+		int i = 0;
+		while(i < area_size)
+		{
+			areas_add(areas, cJSON_GetArrayItem(pAreas, i)->valuestring);
+			i++;
+		}
+		del_areas_from_user_sql(email, areas);
+		strings_free(areas);
+	}
+
+	cJSON* pScenes = cJSON_GetObjectItem(pRoot, "scenes");
+	if (pScenes != NULL)
+	{
+		int scene_size = cJSON_GetArraySize(pScenes);
+		scenes_t *scenes = scenes_alloc(scene_size);
+		int i = 0;
+		while(i < scene_size)
+		{
+			cJSON *pScene = cJSON_GetArrayItem(pScenes, i);
+			
+			char *name = cJSON_GetObjectItem(pScene, "name")->valuestring;
+
+			cJSON *pSDevs = cJSON_GetObjectItem(pScene, "devices");
+			strings_t *pdevs_str = NULL;
+			char **devs = NULL;
+			int devs_size = cJSON_GetArraySize(pSDevs);
+			if(devs_size > 0)
+			{
+				int j;
+				pdevs_str = strings_alloc(devs_size);
+				for(j=0; j<devs_size; j++)
+				{
+					strings_add(pdevs_str, 
+						cJSON_GetArrayItem(pSDevs, j)->valuestring);
+				}
+				devs = pdevs_str->str;
+			}
+
+			cJSON *pSFuncs = cJSON_GetObjectItem(pScene, "func_ids");
+			int *func_ids = NULL;
+			int func_size = cJSON_GetArraySize(pSFuncs);
+			if(func_size > 0)
+			{
+				int j;
+				func_ids = calloc(func_size, sizeof(int));
+				for(j=0; j<func_size; j++)
+				{
+					*(func_ids+j) = 
+						atoi(cJSON_GetArrayItem(pSFuncs, j)->valuestring);
+				}
+			}
+
+			
+			cJSON *pSParams = cJSON_GetObjectItem(pScene, "params");
+			strings_t *params_str = NULL;
+			char **params = NULL;
+			int params_size = cJSON_GetArraySize(pSParams);
+			if(params_size > 0)
+			{
+				int j;
+				params_str = strings_alloc(params_size);
+				for(j=0; j<params_size; j++)
+				{
+					strings_add(params_str, 
+						cJSON_GetArrayItem(pSParams, j)->valuestring);
+				}
+				params = params_str->str;
+			}
+
+			scene_t *scene = scene_create(name, devs, 
+				devs_size, func_ids, func_size, params, params_size);
+
+			scenes_put(scenes, scene);
+
+			strings_free(pdevs_str);
+			free(func_ids);
+			strings_free(params_str);
+			
+			i++;
+		}
+		del_scenes_from_user_sql(email, scenes);
+		scenes_free(scenes);
+	}
+
+del_end:
+	cJSON_Delete(pRoot);
+}
+
+void del_devices_from_user_sql(char *email, devices_t *devs)
+{
+	if(email == NULL || devs == NULL || devs->size == 0)
+	{
+		return;
+	}
+	
+	SET_CMD_LINE("%s%s%s", 
+		"SELECT devices FROM users WHERE email=\'", 
+		email, 
+		"\'");
+
+	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		return;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums > 0)
+		{
+			cJSON *pRoot = cJSON_Parse(mysql_row[0]);
+			if(pRoot == NULL)
+			{
+				continue;
+			}
+
+			cJSON* pDeviceArray = cJSON_GetObjectItem(pRoot, "devices");
+			if (pDeviceArray == NULL)
+			{
+				continue;
+			}
+
+			int i;
+			for(i=0; i<devs->size; i++)
+			{
+				int j = 0;
+				int dev_size = cJSON_GetArraySize(pDeviceArray);
+				while(j < dev_size)
+				{
+					cJSON *pDev = cJSON_GetArrayItem(pDeviceArray, j);
+					char *sn = cJSON_GetObjectItem(pDev, "sn")->valuestring;
+
+					if(!strcmp(*(devs->sn+i), sn))
+					{
+						cJSON_DeleteItemFromArray(pDeviceArray, j);
+						break;
+					}
+
+					j++;
+				}	
+			}
+
+			char *devices = cJSON_Print(pRoot);
+
+			SET_CMD_LINE("%s%s%s%s%s", 
+						"UPDATE users SET devices=\'",
+						devices,
+						"\' WHERE email=\'",
+						email,
+						"\'");
+
+			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
+			
+			cJSON_Delete(pRoot);
+			free(devices);
+			
+			mysql_free_result(mysql_res);
+			return;
+		}
+	}
+}
+
+void del_areas_from_user_sql(char *email, areas_t *areas)
+{
+	if(email == NULL || areas == NULL || areas->size == 0)
+	{
+		return;
+	}
+	
+	SET_CMD_LINE("%s%s%s", 
+		"SELECT areas FROM users WHERE email=\'", 
+		email, 
+		"\'");
+
+	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		return;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums > 0)
+		{
+			cJSON *pRoot = cJSON_Parse(mysql_row[0]);
+			if(pRoot == NULL)
+			{
+				continue;
+			}
+
+			cJSON* pAreaArray = cJSON_GetObjectItem(pRoot, "areas");
+			if (pAreaArray == NULL)
+			{
+				continue;
+			}
+
+			int i;
+			for(i=0; i<areas->size; i++)
+			{
+				int j = 0;
+				int area_size = cJSON_GetArraySize(pAreaArray);
+				while(j < area_size)
+				{
+					char *area_str = cJSON_GetArrayItem(pAreaArray, j)->valuestring;
+
+					if(!strcmp(*(areas->str+i), area_str))
+					{
+						cJSON_DeleteItemFromArray(pAreaArray, j);
+						break;
+					}
+
+					j++;
+				}	
+			}
+
+			char *areas = cJSON_Print(pRoot);
+
+			SET_CMD_LINE("%s%s%s%s%s", 
+						"UPDATE users SET areas=\'",
+						areas,
+						"\' WHERE email=\'",
+						email,
+						"\'");
+
+			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(areas);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(areas);
+				
+				mysql_free_result(mysql_res);
+
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
+			
+			cJSON_Delete(pRoot);
+			free(areas);
+			
+			mysql_free_result(mysql_res);
+			return;
+		}
+	}
+}
+
+void del_scenes_from_user_sql(char *email, scenes_t *scenes)
+{
+	if(email == NULL || scenes == NULL || scenes->size == 0)
+	{
+		return;
+	}
+	
+	SET_CMD_LINE("%s%s%s", 
+		"SELECT scenes FROM users WHERE email=\'", 
+		email, 
+		"\'");
+
+	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		return;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums > 0)
+		{
+			cJSON *pRoot = cJSON_Parse(mysql_row[0]);
+			if(pRoot == NULL)
+			{
+				continue;
+			}
+
+			cJSON* pSceneArray = cJSON_GetObjectItem(pRoot, "scenes");
+			if (pSceneArray == NULL)
+			{
+				continue;
+			}
+
+			int i;
+			for(i=0; i<scenes->size; i++)
+			{
+				int j = 0;
+				int scene_size = cJSON_GetArraySize(pSceneArray);
+				while(j < scene_size)
+				{
+					cJSON *pDev = cJSON_GetArrayItem(pSceneArray, j);
+					char *name = cJSON_GetObjectItem(pDev, "name")->valuestring;
+
+					if(!strcmp((*(scenes->scenes+i))->name, name))
+					{
+						cJSON_DeleteItemFromArray(pSceneArray, j);
+						break;
+					}
+
+					j++;
+				}	
+			}
+
+			char *devices = cJSON_Print(pRoot);
+
+			SET_CMD_LINE("%s%s%s%s%s", 
+						"UPDATE users SET scenes=\'",
+						scenes,
+						"\' WHERE email=\'",
+						email,
+						"\'");
+
+			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
+			
+			cJSON_Delete(pRoot);
+			free(devices);
+			
+			mysql_free_result(mysql_res);
+			return;
+		}
+	}
+}
+
+int set_device_to_user_sql(char *email, char *dev_str)
 {
 	if(email == NULL)
 	{
@@ -820,7 +1886,7 @@ int set_zdev_to_user_sql(char *email, char *dev_str)
 		
 	   	return -1;
 	}
-	
+
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
