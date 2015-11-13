@@ -84,6 +84,13 @@ int main(int argc, char **argv)
 	}
 #endif
 
+#ifdef TRANS_HTTP_REQUEST
+	if (curl_http_init() < 0)
+	{
+		return -1;
+	}
+#endif
+
 	if(mach_init() < 0)
 	{
 		return -1;

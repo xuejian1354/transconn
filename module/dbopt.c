@@ -14,6 +14,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#ifdef DB_API_SUPPORT
 #include "dbopt.h"
 #include <module/dballoc.h>
 #include <cJSON.h>
@@ -1934,4 +1935,5 @@ void sql_test()
 
      mysql_close(&mysql_conn);
 }
+#endif
 

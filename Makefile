@@ -43,6 +43,8 @@ $(foreach d, $(SUB_DIRS), \
     $(eval $(call dependsrcs,$(d),$(SERVER_SRCS),$(CLIENT_SRCS))) \
 )
 
+ALL_HEARDS:=$(shell find -L $(patsubst %,$(TOPDIR)/%,$(SUB_MODULES)) -name *.h)
+
 SERVER_OBJS:=$(patsubst %.c,%-s.o,$(SERVER_SOURCES)) $(patsubst %,%/built-s.o,$(SUB_DIRS))
 CLIENT_OBJS:=$(patsubst %.c,%-c.o,$(CLIENT_SOURCES)) $(patsubst %,%/built-c.o,$(SUB_DIRS))
 
@@ -64,11 +66,11 @@ $(CLIENT_TARGET):$(inc_deps) client_comshow $(CLIENT_OBJS) libs-c
 	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) $(LDPATH) $(CLIENT_LDPATH) -O2 -o $@ $(CLIENT_OBJS) $(patsubst %,%-c,$(LDFLAGS)) $(CLIENT_LDFLAG)) $(STD_LDFLAGS)
 	@$(CTARGET_STRIP) $@
 
-%-s.o:%.c mconfig/server_config
+%-s.o:%.c $(ALL_HEARDS) mconfig/server_config
 	$(call echocmd,CC, $@, \
 	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -w -O2 -o $@ -c $<)
 
-%-c.o:%.c mconfig/client_config
+%-c.o:%.c $(ALL_HEARDS) mconfig/client_config
 	$(call echocmd,CC, $@, \
 	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ -c $<)
 
