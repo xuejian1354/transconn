@@ -27,8 +27,9 @@
 #define SB_OPT_REMOTE_CTRL		'*'
 
 #ifdef COMM_CLIENT
-void analysis_zdev_frame(frhandler_arg_t *arg)
+void analysis_zdev_frame(void *ptr)
 {
+	frhandler_arg_t *arg = (frhandler_arg_t *)ptr;
 	if(arg == NULL)
 	{
 		return;
@@ -415,17 +416,12 @@ UR_FREE:
 }
 #endif
 
-void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
+void analysis_capps_frame(void *ptr)
 {
-
-	if(lock != NULL)
-	{
-		pthread_mutex_lock(lock);
-	}
-	
+	frhandler_arg_t *arg = (frhandler_arg_t *)ptr;
 	if(arg == NULL)
 	{
-		goto capp_end;
+		return;
 	}
 	
   	cli_info_t *cli_info;
@@ -539,12 +535,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	default: break;
 	}
 
-	get_frhandler_arg_free(arg);
-
 capp_end:
-	if(lock != NULL)
-	{
-		pthread_mutex_unlock(lock);
-	}
+	get_frhandler_arg_free(arg);
 }
 

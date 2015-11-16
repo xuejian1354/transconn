@@ -15,6 +15,7 @@
  * GNU General Public License for more details.
  */
 #include <services/globals.h>
+#include <module/netapi.h>
 
 int main(int argc, char **argv)
 {
@@ -79,13 +80,6 @@ int main(int argc, char **argv)
 
 #ifdef TRANS_TCP_CLIENT
 	if (socket_tcp_client_connect(get_tcp_port()) < 0)
-	{
-		return -1;
-	}
-#endif
-
-#ifdef TRANS_HTTP_REQUEST
-	if (curl_http_init() < 0)
 	{
 		return -1;
 	}

@@ -18,7 +18,29 @@
 #define __NETAPI_H__
 
 #include <services/globals.h>
+#ifdef TRANS_HTTP_REQUEST
+#include <curl/curl.h>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
+#endif
 
+#ifdef TRANS_HTTP_REQUEST
+typedef enum
+{
+	CURL_GET,
+	CURL_POST
+}curl_method_t;
+
+typedef size_t (*data_handler)(void *, size_t, size_t, void *);
+
+typedef struct
+{
+	curl_method_t cm;
+	char *url;
+	char *req;
+	data_handler curl_callback;
+}curl_args_t;
+#endif
 
 #ifdef TRANS_TCP_SERVER
 int get_stcp_fd();
@@ -46,6 +68,12 @@ void set_deuart_flag(uint8 flag);
 int get_deuart_flag();
 #ifdef DE_TRANS_UDP_STREAM_LOG
 void delog_udp_sendto(char *data, int len);
+#endif
+
+#ifdef TRANS_HTTP_REQUEST
+size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp);
+void curl_http_request(curl_method_t cm, 
+		char *url, char *req, data_handler reback);
 #endif
 
 void enable_datalog_atime();

@@ -21,9 +21,9 @@
 #include <protocol/devices.h>
 
 #ifdef COMM_CLIENT
-void analysis_zdev_frame(frhandler_arg_t *arg);
+void analysis_zdev_frame(void *ptr);
 #endif
 
-void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock);
+void analysis_capps_frame(void *ptr);
 
 #endif  //__PROTOCOL_H__

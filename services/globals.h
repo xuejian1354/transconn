@@ -20,6 +20,7 @@
 #include <debug/dconfig.h>
 #include <debug/dlog.h>
 #include <signal.h>
+#include <tpool.h>
 #include "time.h"
 
 //default program name

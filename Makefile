@@ -12,7 +12,7 @@ export SERVER_TARGET CLIENT_TARGET
 
 INCLUDE+=-I$(TOPDIR)/include -I$(TOPDIR)/lib
 
-STD_LDFLAGS:=-lpthread -lm
+STD_LDFLAGS:=-lpthread
 export INCLUDE STD_LDFLAGS
 
 SERVER_DMACRO:=-DTARGET_NAME=\"$(SERVER_TARGET)\" -DCOMM_SERVER
@@ -56,12 +56,12 @@ alls:$(TARGET) tests
 
 include $(TOPDIR)/include/include.mk
 
-$(SERVER_TARGET):$(inc_deps) server_comshow $(SERVER_OBJS) libs-s
+$(SERVER_TARGET):$(inc_deps) $(inc_dirs_deps) server_comshow $(SERVER_OBJS) libs-s
 	$(call echocmd,TAR,$(SERVER_TARGET), \
 	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -w -O2 -o $@ $(SERVER_OBJS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG)) $(STD_LDFLAGS)
 	@$(STARGET_STRIP) $@
 
-$(CLIENT_TARGET):$(inc_deps) client_comshow $(CLIENT_OBJS) libs-c
+$(CLIENT_TARGET):$(inc_deps) $(inc_dirs_deps) client_comshow $(CLIENT_OBJS) libs-c
 	$(call echocmd,TAR,$(CLIENT_TARGET), \
 	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) $(LDPATH) $(CLIENT_LDPATH) -O2 -o $@ $(CLIENT_OBJS) $(patsubst %,%-c,$(LDFLAGS)) $(CLIENT_LDFLAG)) $(STD_LDFLAGS)
 	@$(CTARGET_STRIP) $@
@@ -102,7 +102,7 @@ sclean:
 	(find -name "*-s.[oa]" | xargs $(RM)) && $(RM) $(SERVER_TARGET)
 
 clean:cclean sclean
-	$(RM) -r $(dir $(inc_deps)) $(inc_dirs_deps)
+	$(RM) -r $(dir $(patsubst %,include/%,$(inc_files))) $(inc_dirs_deps)
 
 distclean:clean
 	@make -C tests clean
