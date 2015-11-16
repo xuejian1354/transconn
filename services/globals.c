@@ -33,6 +33,10 @@ static int udp_port = TRANS_UDP_PORT;
 static uint8 _common_no[8] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
 #endif
 
+#ifdef DE_TRANS_UDP_STREAM_LOG
+static char de_buf[0x4000];
+#endif
+
 #ifdef READ_CONF_FILE
 static global_conf_t g_conf = {0};
 
@@ -42,6 +46,14 @@ static int get_conf_setval();
 #endif
 
 static char cur_time[64];
+
+#ifdef DE_TRANS_UDP_STREAM_LOG
+char *get_de_buf()
+{
+	bzero(de_buf, sizeof(de_buf));
+	return de_buf;
+}
+#endif
 
 #ifdef COMM_CLIENT
 char *get_serial_port()
@@ -97,25 +109,25 @@ int start_params(int argc, char **argv)
 #ifdef SERIAL_SUPPORT
   #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
     #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-		printf("Usage: %s [Serial Port] [TCP Port] [UDP Port]\n", argv[0]);
+		DE_PRINTF(0, "Usage: %s [Serial Port] [TCP Port] [UDP Port]\n", argv[0]);
 	#else
-		printf("Usage: %s [Serial Port] [TCP Port]\n", argv[0]);
+		DE_PRINTF(0, "Usage: %s [Serial Port] [TCP Port]\n", argv[0]);
     #endif
   #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-		printf("Usage: %s [Serial Port] [UDP Port]\n", argv[0]);
+		DE_PRINTF(0, "Usage: %s [Serial Port] [UDP Port]\n", argv[0]);
   #else
-  		printf("Usage: %s [Serial Port]\n", argv[0]);
+  		DE_PRINTF(0, "Usage: %s [Serial Port]\n", argv[0]);
   #endif
 #elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
   #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-  		printf("Usage: %s [TCP Port] [UDP Port]\n", argv[0]);
+  		DE_PRINTF(0, "Usage: %s [TCP Port] [UDP Port]\n", argv[0]);
   #else
-  		printf("Usage: %s [TCP Port]\n", argv[0]);
+  		DE_PRINTF(0, "Usage: %s [TCP Port]\n", argv[0]);
   #endif
 #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-		printf("Usage: %s [UDP Port]\n", argv[0]);
+		DE_PRINTF(0, "Usage: %s [UDP Port]\n", argv[0]);
 #else
-		printf("Usage: %s\n", argv[0]);
+		DE_PRINTF(0, "Usage: %s\n", argv[0]);
 #endif
 		return 1;
 	}
@@ -227,21 +239,21 @@ int start_params(int argc, char **argv)
 #endif
 
 #ifdef COMM_CLIENT
-	printf("Gateway Start!\n");
+	DE_PRINTF(1, "Gateway Start!\n");
 #else
-	printf("Server Start!\n");
+	DE_PRINTF(1, "Server Start!\n");
 #endif
 
 #ifdef SERIAL_SUPPORT
-	printf("Serial port device:\"%s\"\n", get_serial_port());
+	DE_PRINTF(1, "Serial port device:\"%s\"\n", get_serial_port());
 #endif
 
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-	printf("TCP transmit port:%d\n", get_tcp_port());
+	DE_PRINTF(1, "TCP transmit port:%d\n", get_tcp_port());
 #endif
 
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-	printf("UDP transmit port:%d\n", get_udp_port());
+	DE_PRINTF(1, "UDP transmit port:%d\n", get_udp_port());
 #endif
 
 	FILE *fp = NULL;
@@ -275,7 +287,7 @@ int start_params(int argc, char **argv)
 	else
 	{
 openlog_error:
-		printf("%s()%d : disable write log to \"%s\", please set correct user or goups permissions for dir \"/var/log\"\n", 
+		DE_PRINTF(1, "%s()%d : disable write log to \"%s\", please set correct user or goups permissions for dir \"/var/log\"\n", 
 			__FUNCTION__, __LINE__, DLOG_FILE);
 	}
 
@@ -295,6 +307,8 @@ char *get_time_head()
 }
 
 #ifdef DAEMON_PROCESS_CREATE
+static int daemon_cmdline_flag = 0;
+
 int daemon_init()
 {
     int pid;
@@ -305,7 +319,7 @@ int daemon_init()
     }
 	else if(pid < 0)
 	{
-		printf("%s()%d : excute failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : excute failed\n", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -317,7 +331,7 @@ int daemon_init()
 	}
     else if(pid < 0)
 	{
-		printf("%s()%d : excute failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : excute failed\n", __FUNCTION__, __LINE__);
 		return -1;
     }
 
@@ -330,8 +344,14 @@ int daemon_init()
 	
     chdir("/tmp");
     umask(0);
-	
+
+	daemon_cmdline_flag = 1;
     return 0;
+}
+
+int get_daemon_cmdline()
+{
+	return daemon_cmdline_flag;
 }
 #endif
 
@@ -351,7 +371,7 @@ int mach_init()
 	
 	if(pthread_mutex_init(&(get_gateway_info()->lock), NULL) != 0)
     {
-        fprintf(stderr, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
+        DE_PRINTF(1, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
             __FUNCTION__, __LINE__, errno, strerror(errno));
         return -1;
     }
@@ -362,7 +382,7 @@ int mach_init()
 
 	if(pthread_mutex_init(&(get_client_list()->lock), NULL) != 0)
     {
-        fprintf(stderr, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
+        DE_PRINTF(1, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
             __FUNCTION__, __LINE__, errno, strerror(errno));
         return -1;
     }
@@ -375,7 +395,7 @@ int mach_init()
 
 	if(pthread_mutex_init(&(get_gateway_list()->lock), NULL) != 0)
     {
-        fprintf(stderr, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
+        DE_PRINTF(1, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
             __FUNCTION__, __LINE__, errno, strerror(errno));
         return -1;
     }
@@ -419,7 +439,7 @@ int conf_read_from_file()
 	}
 	else
 	{
-		printf("%s()%d :  Read \"%s\" error, please set configuration file\n", 
+		DE_PRINTF(1, "%s()%d :  Read \"%s\" error, please set configuration file\n", 
 			__FUNCTION__, __LINE__, 
 			CONF_FILE);
 		return -1;
@@ -616,7 +636,7 @@ int get_conf_setval()
 	{
 		if(!(g_conf.isset_flag & issetflags[i]))
 		{
-			printf("%s()%d : val \"%s\" is not set in \"%s\"\n",
+			DE_PRINTF(1, "%s()%d : val \"%s\" is not set in \"%s\"\n",
 							__FUNCTION__, __LINE__, 
 							issetvals[i],
 							CONF_FILE);

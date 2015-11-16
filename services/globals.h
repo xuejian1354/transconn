@@ -144,6 +144,10 @@ typedef struct
 }global_conf_t;
 #endif
 
+#ifdef DE_TRANS_UDP_STREAM_LOG
+char *get_de_buf();
+#endif
+
 #ifdef COMM_CLIENT
 char *get_serial_port();
 void set_serial_port(char *name);
@@ -166,6 +170,7 @@ int start_params(int argc, char **argv);
 char *get_time_head();
 #ifdef DAEMON_PROCESS_CREATE
 int daemon_init();
+int get_daemon_cmdline();
 #endif
 int mach_init();
 void event_init();

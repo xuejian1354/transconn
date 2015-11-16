@@ -32,7 +32,7 @@
 #define DE_PRINTF(lwflag, format, args...)  \
 st(  \
 	FILE *fp = NULL;    \
-	char buf[1024] = {0};  \
+	char *buf = get_de_buf();  \
 	sprintf(buf, format, ##args);  \
 	delog_udp_sendto(buf, strlen(buf));	  \
     if(lwflag && (fp = fopen(DLOG_FILE, "a+")) != NULL)   \
