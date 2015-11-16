@@ -415,6 +415,17 @@ int get_deuart_flag()
 #ifdef DE_TRANS_UDP_STREAM_LOG
 void delog_udp_sendto(char *data, int len)
 {
+#ifdef DAEMON_PROCESS_CREATE
+	if(!get_daemon_cmdline())
+	{
+		char *pdata = calloc(1, len+1);
+		memcpy(pdata, data, len);
+		printf("%s", pdata);
+		free(pdata);
+		return;
+	}
+#endif
+
 	sendto(udpfd, data, len, 0, 
 		(struct sockaddr *)&ulog_addr, sizeof(struct sockaddr));
 }
@@ -466,7 +477,7 @@ void curl_post_request(void *ptr)
     }
 
 	/*if ((fptr = fopen("/tmp/aaa.txt", "w")) == NULL) {   
-        fprintf(stderr, "fopen file error: %s\n", "/tmp/aaa.txt");   
+        DE_PRINTF(1, "fopen file error: %s\n", "/tmp/aaa.txt");   
         return -1;
     }*/
   
@@ -524,7 +535,7 @@ size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp)
 {
 	//FILE *fptr = (FILE*)userp;   
     //fwrite(buffer, size, nmemb, fptr);
-	//printf("%s\n", buffer);
+	//DE_PRINTF(1, "%s\n", buffer);
 
 	xmlDocPtr doc;
 	xmlNodePtr curNode;

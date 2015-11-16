@@ -81,7 +81,7 @@ int sql_init()
 
 	if (mysql_init(&mysql_conn) == NULL)
 	{
-		printf("%s()%d: sql init failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d: sql init failed\n", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -92,28 +92,28 @@ int sql_init()
 	if (mysql_real_connect(&mysql_conn, DB_SERVER, m_conf->db_user, 
 		m_conf->db_password, m_conf->db_name, 0, NULL, 0) == NULL)
 	{
-		printf("%s()%d : sql connect \"%s\" failed\n", 
+		DE_PRINTF(1, "%s()%d : sql connect \"%s\" failed\n", 
 			__FUNCTION__, __LINE__, m_conf->db_name);
 		return -1;
 	}
 
-	printf("sql connect \"%s\"\n", m_conf->db_name);
+	DE_PRINTF(1, "sql connect \"%s\"\n", m_conf->db_name);
 
 	if(mysql_set_character_set(&mysql_conn, "utf8"))
 	{
-		printf("%s()%d : sql character set failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : sql character set failed\n", __FUNCTION__, __LINE__);
 		return -1;
 	} 
 
 	if(pthread_mutex_init(&sql_lock, NULL) != 0)
 	{
-		printf("%s()%d :  pthread_mutext_init failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d :  pthread_mutext_init failed\n", __FUNCTION__, __LINE__);
         return -1;
 	}
 
 	if(pthread_mutex_init(&sql_add_lock, NULL) != 0)
 	{
-		fprintf(stderr, "%s()%d :  pthread_mutext_init failed\n",
+		DE_PRINTF(1, "%s()%d :  pthread_mutext_init failed\n",
 			__FUNCTION__, __LINE__);
 		return -1;
 	}
@@ -1921,16 +1921,16 @@ void sql_test()
          if (mysql_real_connect(&mysql_conn, DB_SERVER, m_conf->db_user, 
 		 		m_conf->db_password, m_conf->db_name, 0, NULL, 0) != NULL)
 		 {
-		 	printf("%s()%d : sql connection OK!\n", __FUNCTION__, __LINE__);
+		 	DE_PRINTF(1, "%s()%d : sql connection OK!\n", __FUNCTION__, __LINE__);
          }
 		 else 
 		 {
-		 	printf("%s()%d : sql connection failed.\n", __FUNCTION__, __LINE__);
+		 	DE_PRINTF(1, "%s()%d : sql connection failed.\n", __FUNCTION__, __LINE__);
 		 }
       }
 	 else
 	 {
-	 	printf("%s()%d : sql initialization failed.\n", __FUNCTION__, __LINE__);
+	 	DE_PRINTF(1, "%s()%d : sql initialization failed.\n", __FUNCTION__, __LINE__);
 	 }
 
      mysql_close(&mysql_conn);

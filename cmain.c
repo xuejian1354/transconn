@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 #ifdef LOAD_BALANCE_SUPPORT
 	if(serlist_read_from_confile() < 0)
 	{
-		printf("%s()%d : Read \"%s\" fail, please set correct server list file\n",
+		DE_PRINTF(1, "%s()%d : Read \"%s\" fail, please set correct server list file\n",
 			__FUNCTION__, __LINE__, 
 			BALANCE_SERVER_FILE);
 		
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef SERIAL_SUPPORT
-	if(serial_init(get_serial_port()) < 0)			//initial serial port
+	if(serial_init(get_serial_port()) < 0)			//init serial port
 	{
 		return -1;
 	}
