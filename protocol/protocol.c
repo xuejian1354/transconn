@@ -27,8 +27,9 @@
 #define SB_OPT_REMOTE_CTRL		'*'
 
 #ifdef COMM_CLIENT
-void analysis_zdev_frame(frhandler_arg_t *arg)
+void analysis_zdev_frame(void *ptr)
 {
+	frhandler_arg_t *arg = (frhandler_arg_t *)ptr;
 	if(arg == NULL)
 	{
 		return;
@@ -415,17 +416,12 @@ UR_FREE:
 }
 #endif
 
-void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
+void analysis_capps_frame(void *ptr)
 {
-
-	if(lock != NULL)
-	{
-		pthread_mutex_lock(lock);
-	}
-	
+	frhandler_arg_t *arg = (frhandler_arg_t *)ptr;
 	if(arg == NULL)
 	{
-		goto capp_end;
+		return;
 	}
 	
   	cli_info_t *cli_info;
@@ -442,80 +438,96 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	{
 	case TRHEAD_PI:
 	{
-		pi_t *pi = (pi_t *)p;
-		pi_handler(arg, pi);
+		pi_t *p_pi = (pi_t *)p;
+		pi_handler(arg, p_pi);
 		get_trframe_free(TRHEAD_PI, p);
 	}
 	break;
 		
 	case TRHEAD_BI:
 	{
-		bi_t *bi = (bi_t *)p;
-		bi_handler(arg, bi);
+		bi_t *p_bi = (bi_t *)p;
+		bi_handler(arg, p_bi);
 		get_trframe_free(TRHEAD_BI, p);
 	}
 	break;
 
 	case TRHEAD_UL:
 	{
-		ul_t *ul = (ul_t *)p;
-		ul_handler(arg, ul);
+		ul_t *p_ul = (ul_t *)p;
+		ul_handler(arg, p_ul);
 		get_trframe_free(TRHEAD_UL, p);
 	}
 	break;
 
 	case TRHEAD_SL:
 	{
-		sl_t *sl = (sl_t *)p;
-		sl_handler(arg, sl);
+		sl_t *p_sl = (sl_t *)p;
+		sl_handler(arg, p_sl);
 		get_trframe_free(TRHEAD_SL, p);
+	}
+	break;
+
+	case TRHEAD_UT:
+	{
+		ut_t *p_ut = (ut_t *)p;
+		ut_handler(arg, p_ut);
+		get_trframe_free(TRHEAD_UT, p);
+	}
+	break;
+
+	case TRHEAD_ST:
+	{
+		st_t *p_st = (st_t *)p;
+		st_handler(arg, p_st);
+		get_trframe_free(TRHEAD_ST, p);
 	}
 	break;
 		
 	case TRHEAD_GP:
 	{
-		gp_t *gp = (gp_t *)p;
-		gp_handler(arg, gp);
+		gp_t *p_gp = (gp_t *)p;
+		gp_handler(arg, p_gp);
 		get_trframe_free(TRHEAD_GP, p);
 	}
 	break;
 		
 	case TRHEAD_RP:
 	{
-		rp_t *rp = (rp_t *)p;
-		rp_handler(arg, rp);
+		rp_t *p_rp = (rp_t *)p;
+		rp_handler(arg, p_rp);
 		get_trframe_free(TRHEAD_RP, p);
 	}
 	break;
 		
 	case TRHEAD_GD:
 	{
-		gd_t *gd = (gd_t *)p;
-		gd_handler(arg, gd);
+		gd_t *p_gd = (gd_t *)p;
+		gd_handler(arg, p_gd);
 		get_trframe_free(TRHEAD_GD, p);
 	}
 	break;
 		
 	case TRHEAD_RD:
 	{
-		rd_t *rd = (rd_t *)p;
-		rd_handler(arg, rd);		
+		rd_t *p_rd = (rd_t *)p;
+		rd_handler(arg, p_rd);
 		get_trframe_free(TRHEAD_RD, p);
 	}
 	break;
 		
 	case TRHEAD_DC:
 	{
-		dc_t *dc = (dc_t *)p;
-		dc_handler(arg, dc);
+		dc_t *p_dc = (dc_t *)p;
+		dc_handler(arg, p_dc);
 		get_trframe_free(TRHEAD_DC, p);
 	}
 	break;
 		
 	case TRHEAD_UB:
 	{
-		ub_t *ub = (ub_t *)p;
-		ub_handler(arg, ub);
+		ub_t *p_ub = (ub_t *)p;
+		ub_handler(arg, p_ub);
 		get_trframe_free(TRHEAD_UB, p);
 	}
 	break;
@@ -523,12 +535,7 @@ void analysis_capps_frame(frhandler_arg_t *arg, pthread_mutex_t *lock)
 	default: break;
 	}
 
-	get_frhandler_arg_free(arg);
-
 capp_end:
-	if(lock != NULL)
-	{
-		pthread_mutex_unlock(lock);
-	}
+	get_frhandler_arg_free(arg);
 }
 

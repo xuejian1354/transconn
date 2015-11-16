@@ -19,6 +19,8 @@
 #include <mconfig.h>
 #include <debug/dconfig.h>
 #include <debug/dlog.h>
+#include <signal.h>
+#include <tpool.h>
 #include "time.h"
 
 //default program name
@@ -59,7 +61,10 @@
 
 #ifdef DE_TRANS_UDP_STREAM_LOG
 #define DEU_CMD_PREFIX	"set deflag="
-#define DE_UDP_PORT		12688
+#define DEU_UDP_CMD		"deudp"
+#define DEU_TCP_CMD		"detcp"
+#define DEU_UART_CMD	"deuart"
+#define DE_UDP_PORT		13688
 #endif
 
 #define GLOBAL_CONF_SERIAL_PORT		"serial_port"
@@ -85,8 +90,6 @@
 Old version not ed_type on gateway frame
 This macro just support that
 */
-//#define LACK_EDTYPE_SUPPORT
-
 //transport layer listening connection max number
 #define TRANS_SERVER_THREAD_MAX_NUM		12
 #define TRANS_CLIENT_THREAD_MAX_NUM		6
@@ -125,7 +128,7 @@ typedef struct
 	int tcp_port;
 #endif
 
-#ifdef TRANS_UDP_SERVICE
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	int udp_port;
 #endif
 
@@ -161,6 +164,9 @@ uint8 *get_common_no();
 
 int start_params(int argc, char **argv);
 char *get_time_head();
+#ifdef DAEMON_PROCESS_CREATE
+int daemon_init();
+#endif
 int mach_init();
 void event_init();
 

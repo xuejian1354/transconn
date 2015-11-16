@@ -37,16 +37,16 @@
 
 #ifdef TIMER_SUPPORT
 #ifdef COMM_CLIENT
-void *gateway_refresh(void *p, pthread_mutex_t *lock);
-void *upload_event(void *p, pthread_mutex_t *lock);
-void *stand_event(void *p, pthread_mutex_t *lock);
-void *zdev_watch(void *p, pthread_mutex_t *lock);
-void *cli_watch(void *p, pthread_mutex_t *lock);
-void *rp_watch(void *p, pthread_mutex_t *lock);
+void gateway_refresh(void *p);
+void upload_event(void *p);
+void stand_event(void *p);
+void zdev_watch(void *p);
+void cli_watch(void *p);
+void rp_watch(void *p);
 #endif
 
 #ifdef COMM_CLIENT
-void *gateway_refresh(void *p, pthread_mutex_t *lock)
+void gateway_refresh(void *p)
 {
 	serial_write("D:/BR/0000:O\r\n", 14);
 
@@ -62,11 +62,9 @@ void *gateway_refresh(void *p, pthread_mutex_t *lock)
 
 	timer_param.interval = 11;
 	set_mevent(CLIENT_STAND_EVENT, stand_event, &timer_param);
-	
-	return NULL;
 }
 
-void *upload_event(void *p, pthread_mutex_t *lock)
+void upload_event(void *p)
 {	
 	dev_info_t *p_dev = get_gateway_info()->p_dev;
 	char buffer[ZDEVICE_MAX_NUM<<2] = {0};
@@ -95,11 +93,9 @@ void *upload_event(void *p, pthread_mutex_t *lock)
 	pi.trans_type = TRTYPE_TCP_LONG;
 	send_frame_tcp_request(TRHEAD_PI, &pi);	
 #endif
-	
-	return NULL;
 }
 
-void *stand_event(void *p, pthread_mutex_t *lock)
+void stand_event(void *p)
 {
  	cli_info_t *p_cli = get_client_list()->p_cli;
 
@@ -140,11 +136,9 @@ void *stand_event(void *p, pthread_mutex_t *lock)
 		
 		p_cli = p_cli->next;
 	}
-	
-	return NULL;
 }
 
-void *zdev_watch(void *p, pthread_mutex_t *lock)
+void zdev_watch(void *p)
 {
 	uint16 znet_addr = (uint16)((int)p);
 	DE_PRINTF(1, "del zdevice from list, zdev no:%04X\n\n", znet_addr);
@@ -152,7 +146,7 @@ void *zdev_watch(void *p, pthread_mutex_t *lock)
 	del_zdevice_info(znet_addr);
 }
 
-void *cli_watch(void *p, pthread_mutex_t *lock)
+void cli_watch(void *p)
 {
 	cli_info_t *p_cli = (cli_info_t *)p;
 
@@ -164,7 +158,7 @@ void *cli_watch(void *p, pthread_mutex_t *lock)
 }
 
 
-void *rp_watch(void *p, pthread_mutex_t *lock)
+void rp_watch(void *p)
 {
 	cli_info_t *p_cli = (cli_info_t *)p;
 	if(p_cli == NULL)
@@ -256,7 +250,7 @@ void set_rp_check(cli_info_t *p_cli)
 #endif
 
 #ifdef COMM_SERVER
-void *gateway_watch(void *p, pthread_mutex_t *lock)
+void gateway_watch(void *p)
 {
 	char gwno[18] = {0};
 	incode_xtocs(gwno, p, sizeof(zidentify_no_t));

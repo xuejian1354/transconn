@@ -1,5 +1,5 @@
 /*
- * dconfig.h
+ * strings_t.h
  *
  * Copyright (C) 2013 loongsky development.
  *
@@ -14,23 +14,22 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#ifndef __DCONFIG_H__
-#define __DCONFIG_H__
+#ifndef __STRINGS_T_H__
+#define __STRINGS_T_H__
 
-#include <mconfig.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
 
-#ifdef COMM_SERVER
-#define DE_PRINT_UDP_PORT
-#define DE_PRINT_TCP_PORT
-#endif
+typedef struct
+{
+	char **str;
+	unsigned int size;
+}strings_t;
 
-#ifdef COMM_CLIENT
-#define DE_PRINT_UDP_PORT
-#define DE_PRINT_TCP_PORT
-#define DE_PRINT_SERIAL_PORT
+strings_t *strings_alloc(unsigned int size);
+int strings_add(strings_t *strs, char *str);
+void strings_free(strings_t *strs);
 
-//#define DE_ZDEVICE_RECORD
-#define RECORD_FILE		"/tmp/transconn_record.txt"
-#endif
-#endif //__DCONFIG_H__
-
+#endif	//__STRINGS_T_H__

@@ -16,12 +16,13 @@ all:$(SERVER_LIBS) $(CLIENT_LIBS)
 .PHONY: all clean preshow
 
 #$(foreach libsrc,$(TARGET), $(eval $(libsrc):$($(patsubst lib%.a,%_libsrc,$(libsrc)))))
+LIB_HEARDS:=$(shell ls $(patsubst %,$(TOPDIR)/%,lib/*.h))
 
 $(SERVER_LIBS):$(SLIBSRC_TARGETS)
 	$(call echocmd,AR, $@, \
 	  $(STARGET_AR) crs $@  $(patsubst %.c,%-s.o,$($(patsubst lib%-s.a,%_libsrc,$@))))
 
-$(SLIBSRC_TARGETS):$(LIBSRC_FILES)
+$(SLIBSRC_TARGETS):$(LIBSRC_FILES) $(LIB_HEARDS)
 	$(call echocmd,CC, $@, \
 	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -O2 -o $@ -c $(patsubst %-s.o,%.c,$@))
 
@@ -29,7 +30,7 @@ $(CLIENT_LIBS):$(CLIBSRC_TARGETS)
 	$(call echocmd,AR, $@, \
 	  $(CTARGET_AR) crs $@  $(patsubst %.c,%-c.o,$($(patsubst lib%-c.a,%_libsrc,$@))))
 
-$(CLIBSRC_TARGETS):$(LIBSRC_FILES)
+$(CLIBSRC_TARGETS):$(LIBSRC_FILES) $(LIB_HEARDS)
 	$(call echocmd,CC, $@, \
 	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ -c $(patsubst %-c.o,%.c,$@))
 

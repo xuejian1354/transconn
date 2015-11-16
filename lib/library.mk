@@ -1,6 +1,6 @@
 LDLIBS := libdatastruct.a libcjson.a
 
-datastruct_libsrc := mincode.c tpool.c
+datastruct_libsrc := strings_t.c mincode.c tpool.c
 cjson_libsrc := cjson.c
 
 LDPATH := -L$(TOPDIR)/lib

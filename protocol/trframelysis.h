@@ -25,6 +25,8 @@
 #define TR_HEAD_BI	"BI:"	//server back info to gw
 #define TR_HEAD_UL	"UL:"	//user login info to server
 #define TR_HEAD_SL	"SL:"	//server back login info to user
+#define TR_HEAD_UT	"UT:"	//user report info to server
+#define TR_HEAD_ST	"ST:"	//server back reposrt to user
 #define TR_HEAD_GP	"GP:"	//capps get ip port from server
 #define TR_HEAD_RP	"RP:"	//server return ip port to capps & gw
 #define TR_HEAD_GD	"GD:"	//get traversal connection
@@ -45,6 +47,8 @@
 #define TR_FRAME_PUT_DEV	'5'
 #define TR_FRAME_TRANS		'6'
 #define TR_FRAME_IGNORE		'S'
+#define TR_FRAME_SYNC_CONF	'Y'
+#define TR_FRAME_DEL_CONF	'D'
 
 #define TR_INFO_NONE		'0'
 #define TR_INFO_IP			'1'
@@ -63,6 +67,8 @@
 #define TR_BI_DATA_FIX_LEN	25
 #define TR_UL_DATA_FIX_LEN	25
 #define TR_SL_DATA_FIX_LEN	25
+#define TR_UT_DATA_FIX_LEN	25
+#define TR_ST_DATA_FIX_LEN	25
 #define TR_GP_DATA_FIX_LEN	41
 #define TR_RP_DATA_FIX_LEN	41
 #define TR_GD_DATA_FIX_LEN	41
@@ -79,6 +85,8 @@ typedef enum
 	TRHEAD_BI,
 	TRHEAD_UL,
 	TRHEAD_SL,
+	TRHEAD_UT,
+	TRHEAD_ST,
 	TRHEAD_GP,
 	TRHEAD_RP,
 	TRHEAD_GD,
@@ -107,6 +115,8 @@ typedef enum
 	TRFRAME_PUT_DEV,
 	TRFRAME_TRANS,
 	TRFRAME_IGNORE,
+	TRFRAME_SYNC_CONF,
+	TRFRAME_DEL_CONF,
 	TRFRAME_NONE,
 }tr_frame_type_t;
 
@@ -133,7 +143,7 @@ typedef struct
 	tr_frame_type_t fr_type;
 	int data_len;
 	uint8 *data;
-}pi_t, bi_t, ul_t, sl_t;
+}pi_t, bi_t, ul_t, sl_t, ut_t, st_t;
 
 
 typedef struct

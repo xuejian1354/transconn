@@ -96,23 +96,23 @@ int start_params(int argc, char **argv)
 	{
 #ifdef SERIAL_SUPPORT
   #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-    #ifdef TRANS_UDP_SERVICE
+    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 		printf("Usage: %s [Serial Port] [TCP Port] [UDP Port]\n", argv[0]);
 	#else
 		printf("Usage: %s [Serial Port] [TCP Port]\n", argv[0]);
     #endif
-  #elif defined(TRANS_UDP_SERVICE)
+  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 		printf("Usage: %s [Serial Port] [UDP Port]\n", argv[0]);
   #else
   		printf("Usage: %s [Serial Port]\n", argv[0]);
   #endif
 #elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-  #ifdef TRANS_UDP_SERVICE
+  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
   		printf("Usage: %s [TCP Port] [UDP Port]\n", argv[0]);
   #else
   		printf("Usage: %s [TCP Port]\n", argv[0]);
   #endif
-#elif defined(TRANS_UDP_SERVICE)
+#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 		printf("Usage: %s [UDP Port]\n", argv[0]);
 #else
 		printf("Usage: %s\n", argv[0]);
@@ -149,7 +149,7 @@ int start_params(int argc, char **argv)
     #endif
 	}
 	
-    #ifdef TRANS_UDP_SERVICE
+    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 
 	if(argc > 3)
 	{
@@ -165,7 +165,7 @@ int start_params(int argc, char **argv)
 	}
     #endif
 	
-  #elif defined(TRANS_UDP_SERVICE)
+  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	if(argc > 2)
   	{
 		set_udp_port(atoi(argv[2]));
@@ -194,7 +194,7 @@ int start_params(int argc, char **argv)
   #endif
 	}
 
-  #ifdef TRANS_UDP_SERVICE
+  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
   	if(argc > 2)
   	{
 		set_udp_port(atoi(argv[2]));
@@ -209,7 +209,7 @@ int start_params(int argc, char **argv)
 	}
   #endif
   
-#elif defined(TRANS_UDP_SERVICE)
+#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	if(argc > 1)
   	{
 		set_udp_port(atoi(argv[1]));
@@ -240,7 +240,7 @@ int start_params(int argc, char **argv)
 	printf("TCP transmit port:%d\n", get_tcp_port());
 #endif
 
-#ifdef TRANS_UDP_SERVICE
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	printf("UDP transmit port:%d\n", get_udp_port());
 #endif
 
@@ -293,6 +293,47 @@ char *get_time_head()
 
 	return cur_time;
 }
+
+#ifdef DAEMON_PROCESS_CREATE
+int daemon_init()
+{
+    int pid;
+	
+    if(pid = fork())
+	{
+		return 1;
+    }
+	else if(pid < 0)
+	{
+		printf("%s()%d : excute failed\n", __FUNCTION__, __LINE__);
+		return -1;
+	}
+
+    setsid();
+	
+	if(pid = fork())
+	{
+		return 1;
+	}
+    else if(pid < 0)
+	{
+		printf("%s()%d : excute failed\n", __FUNCTION__, __LINE__);
+		return -1;
+    }
+
+	int i;
+	int fdtablesize = getdtablesize();
+    for(i = 0; i < fdtablesize; i++)
+    {
+        close(i);
+    }
+	
+    chdir("/tmp");
+    umask(0);
+	
+    return 0;
+}
+#endif
 
 int mach_init()
 {
@@ -492,7 +533,7 @@ void set_conf_val(char *cmd, char *val)
 	}
 #endif
 
-#ifdef TRANS_UDP_SERVICE
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	if(!strcmp(cmd, GLOBAL_CONF_UDP_PORT))
 	{
 		g_conf.udp_port = atoi(val);
@@ -537,7 +578,7 @@ int get_conf_setval()
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 					GLOBAL_CONF_ISSETVAL_TCP,
 #endif
-#ifdef TRANS_UDP_SERVICE
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 					GLOBAL_CONF_ISSETVAL_UDP,
 #endif
 #ifdef REMOTE_UPDATE_APK
@@ -557,7 +598,7 @@ int get_conf_setval()
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 					GLOBAL_CONF_TCP_PORT,
 #endif
-#ifdef TRANS_UDP_SERVICE
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 					GLOBAL_CONF_UDP_PORT,
 #endif
 #ifdef REMOTE_UPDATE_APK

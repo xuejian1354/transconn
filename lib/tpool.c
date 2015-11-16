@@ -18,35 +18,8 @@
 
 static tpool_t *tpool = NULL;
 
-static void *thread_routine(void *arg)
-{
-    tpool_work_t *work;
-
-    while(1)
-    {
-        pthread_mutex_lock(&tpool->queue_lock);
-        while(!tpool->queue_head && !tpool->shutdown)
-        {
-            pthread_cond_wait(&tpool->queue_ready, &tpool->queue_lock);
-        }
-
-        if(tpool->shutdown)
-        {
-            pthread_mutex_unlock(&tpool->queue_lock);
-            pthread_exit(NULL);
-        }
-
-        work = tpool->queue_head;
-        tpool->queue_head = tpool->queue_head->next;
-        pthread_mutex_unlock(&tpool->queue_lock);
-
-        work->routine(work->arg, &tpool->func_lock);
-		free(work);
-        
-    }
-
-    return NULL;
-}
+static void *thread_routine(void *arg);
+static void tpool_work_func(tpool_work_t *work);
 
 int tpool_create(int max_thr_num)
 {
@@ -96,6 +69,77 @@ int tpool_create(int max_thr_num)
     return 0;
 }
 
+int tpool_add_work(routine_t routine, void *arg, tpool_opt_t options)
+{
+    tpool_work_t *work, *member;
+
+    if(!routine)
+    {
+        fprintf(stderr, "%s()%d : Invalid argument\n", __FUNCTION__, __LINE__);
+        return -1;
+    }
+
+    work = malloc(sizeof(tpool_work_t));
+    if(!work)
+    {
+        fprintf(stderr, "%s()%d : malloc failed\n", __FUNCTION__, __LINE__);
+        return -1;
+    }
+    work->routine = routine;
+    work->arg = arg;
+	work->options = options;
+    work->next = NULL;
+
+    pthread_mutex_lock(&tpool->queue_lock);
+    member = tpool->queue_head;
+    if(!member)
+    {
+        tpool->queue_head = work;
+    }
+    else
+    {
+        while(member->next)
+        {
+            member = member->next;
+        }
+        member->next = work;
+    }
+    pthread_cond_signal(&tpool->queue_ready);
+    pthread_mutex_unlock(&tpool->queue_lock);
+
+    return 0;
+}
+
+static void *thread_routine(void *arg)
+{
+    tpool_work_t *work;
+
+    while(1)
+    {
+        pthread_mutex_lock(&tpool->queue_lock);
+        while(!tpool->queue_head && !tpool->shutdown)
+        {
+            pthread_cond_wait(&tpool->queue_ready, &tpool->queue_lock);
+        }
+
+        if(tpool->shutdown)
+        {
+            pthread_mutex_unlock(&tpool->queue_lock);
+            pthread_exit(NULL);
+        }
+
+        work = tpool->queue_head;
+        tpool->queue_head = tpool->queue_head->next;
+        pthread_mutex_unlock(&tpool->queue_lock);
+
+		tpool_work_func(work);
+		free(work);
+        
+    }
+
+    return NULL;
+}
+
 void tpool_destroy()
 {
     int i;
@@ -130,43 +174,18 @@ void tpool_destroy()
     free(tpool);
 }
 
-
-int tpool_add_work(void *(*routine)(void *, pthread_mutex_t *), void *arg)
+void tpool_work_func(tpool_work_t *work)
 {
-    tpool_work_t *work, *member;
+	pthread_mutex_t *lock = &tpool->func_lock;
+	if(lock != NULL && work->options == TPOOL_LOCK)
+	{
+		pthread_mutex_lock(lock);
+	}
 
-    if(!routine)
-    {
-        fprintf(stderr, "%s()%d : Invalid argument\n", __FUNCTION__, __LINE__);
-        return -1;
-    }
+	work->routine(work->arg);
 
-    work = malloc(sizeof(tpool_work_t));
-    if(!work)
-    {
-        fprintf(stderr, "%s()%d : malloc failed\n", __FUNCTION__, __LINE__);
-        return -1;
-    }
-    work->routine = routine;
-    work->arg = arg;
-    work->next = NULL;
-
-    pthread_mutex_lock(&tpool->queue_lock);
-    member = tpool->queue_head;
-    if(!member)
-    {
-        tpool->queue_head = work;
-    }
-    else
-    {
-        while(member->next)
-        {
-            member = member->next;
-        }
-        member->next = work;
-    }
-    pthread_cond_signal(&tpool->queue_ready);
-    pthread_mutex_unlock(&tpool->queue_lock);
-
-    return 0;
+	if(lock != NULL && work->options == TPOOL_LOCK)
+	{
+		pthread_mutex_unlock(lock);
+	}
 }

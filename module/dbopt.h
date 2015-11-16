@@ -20,6 +20,7 @@
 #include <services/globals.h>
 #include <protocol/protocol.h>
 #include <mysql/mysql.h>
+#include <strings_t.h>
 
 pthread_mutex_t *get_sql_add_lock();
 
@@ -39,8 +40,10 @@ int sql_add_gateway(gw_info_t *m_gw);
 int sql_query_gateway(zidentify_no_t gw_no);
 int sql_del_gateway(zidentify_no_t gw_no);
 
-int set_user_info_from_sql(char *email, cli_user_t *user_info);
-int set_zdev_to_user_sql(char *email, char *dev_str);
+int get_user_info_from_sql(char *email, cli_user_t *user_info);
+void sync_user_info_to_sql(char *data);
+void del_user_info_to_sql(char *data);
+int set_device_to_user_sql(char *email, char *dev_str);
 
 void sql_test();
 

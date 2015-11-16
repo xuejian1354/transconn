@@ -18,9 +18,28 @@
 #define __NETAPI_H__
 
 #include <services/globals.h>
+#ifdef TRANS_HTTP_REQUEST
+#include <curl/curl.h>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
+#endif
 
-#if defined(TRANS_TCP_SERVER) && defined(TRANS_TCP_CLIENT)
-#error cannot define TRANS_TCP_SERVER and TRANS_TCP_CLIENT at the same time
+#ifdef TRANS_HTTP_REQUEST
+typedef enum
+{
+	CURL_GET,
+	CURL_POST
+}curl_method_t;
+
+typedef size_t (*data_handler)(void *, size_t, size_t, void *);
+
+typedef struct
+{
+	curl_method_t cm;
+	char *url;
+	char *req;
+	data_handler curl_callback;
+}curl_args_t;
 #endif
 
 #ifdef TRANS_TCP_SERVER
@@ -38,15 +57,23 @@ void socket_tcp_client_send(char *data, int len);
 void socket_tcp_client_close();
 #endif
 
-#ifdef TRANS_UDP_SERVICE
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 int get_udp_fd();
 int socket_udp_service_init(int port);
 void socket_udp_sendto(char *addr, char *data, int len);
 void socket_udp_recvfrom();
 #endif
 
-#if(DE_PRINT_UDP_PORT!=0) && defined(DE_TRANS_UDP_STREAM_LOG)
+void set_deuart_flag(uint8 flag);
+int get_deuart_flag();
+#ifdef DE_TRANS_UDP_STREAM_LOG
 void delog_udp_sendto(char *data, int len);
+#endif
+
+#ifdef TRANS_HTTP_REQUEST
+size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp);
+void curl_http_request(curl_method_t cm, 
+		char *url, char *req, data_handler reback);
 #endif
 
 void enable_datalog_atime();
