@@ -361,8 +361,8 @@ serial_update:
 				frhandler_arg_t *frarg = 
 					get_frhandler_arg_alloc(serial_id, NULL, tmpFrame, dataLen);
 
-#ifdef TIMER_SUPPORT
-				tpool_add_work(analysis_zdev_frame, frarg);
+#ifdef THREAD_POOL_SUPPORT
+				tpool_add_work(analysis_zdev_frame, frarg, TPOOL_LOCK);
 #else
 				analysis_zdev_frame(frarg);
 #endif

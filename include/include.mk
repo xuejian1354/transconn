@@ -14,20 +14,21 @@ inc_files := $(strip $(foreach n, $(SUB_MODULES), \
 			  ) \
 			))
 
-inc_deps := $(patsubst %, include/%, $(inc_files))
-inc_dirs_deps := $(strip $(foreach d, $(inc_dirs), \
+inc_deps :=$(patsubst %, include/%, $(inc_files))
+inc_dirs_deps :=$(strip $(foreach d, $(inc_dirs), \
 			      $(patsubst %, include/%, $(notdir $(d))) \
 			  ))
 
 ifeq ($(V),1)
 $(inc_dirs_deps):$(inc_dirs)
-	@if [ ! -d $@ ]; then echo "    [GEN]    $@" && ln -s $< $@; fi;
+	@if [ ! -d $@ ]; then echo "    [GEN]    $@" && ln -s $(filter %/$(notdir $@),$(inc_dirs)) $@; fi;
 else
 $(inc_dirs_deps):$(inc_dirs)
-	@if [ ! -d $@ ]; then echo "ln -s $< $@" && ln -s $< $@; fi;
+	@if [ ! -d $@ ]; then echo "ln -s $(filter %/$(notdir $@),$(inc_dirs)) $@" && ln -s $(filter %/$(notdir $@),$(inc_dirs)) $@; fi;
 endif
 
-$(inc_deps):$(inc_dirs_deps)
+$(foreach s,$(inc_files),$(eval include/$(s):$(TOPDIR)/$(s)))
+
+include/%:$(TOPDIR)/%
 	@mkdir -p $(dir $@)
-	$(call echocmd,GEN,$@, \
-	  ln -s $(patsubst include/%,../../%,$@) $@)
+	$(call echocmd,GEN,$@,ln -s $< $@)

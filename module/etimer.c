@@ -18,7 +18,6 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/time.h>
-#include <tpool.h>
 
 #ifdef TIMER_SUPPORT
 
@@ -37,7 +36,8 @@ void timer_func(int sig)
 		{
 			if(t_event->interval_count-- == t_event->param.interval)
 			{
-				tpool_add_work(t_event->timer_callback, t_event->param.arg);
+				tpool_add_work(t_event->timer_callback, 
+							t_event->param.arg, TPOOL_NONE);
 			}
 		}
 		else

@@ -33,6 +33,9 @@ typedef enum
 	DE_TCP_RELEASE
 }de_print_t;
 
+#ifdef TRANS_HTTP_REQUEST
+void curl_post_request(void *ptr);
+#endif
 static void set_deprint_flag(uint16 flag);
 static void set_deudp_flag(uint8 flag);
 static void set_detcp_flag(uint8 flag);
@@ -177,10 +180,10 @@ void socket_tcp_server_recv(int fd)
 #ifdef TRANS_TCP_CONN_LIST
 		frhandler_arg_t *frarg = 
 			get_frhandler_arg_alloc(fd, &m_list->client_addr, buf, nbytes);
-#ifdef TIMER_SUPPORT
-		tpool_add_work(analysis_capps_frame, frarg);
+#ifdef THREAD_POOL_SUPPORT
+		tpool_add_work(analysis_capps_frame, frarg, TPOOL_LOCK);
 #else
-		analysis_capps_frame(frarg, NULL);
+		analysis_capps_frame(frarg);
 #endif
 #endif
 	}
@@ -248,10 +251,10 @@ void socket_tcp_client_recv()
 #endif
 		frhandler_arg_t *frarg = 
 			get_frhandler_arg_alloc(c_tcpfd, &m_server_addr, buf, nbytes);
-#ifdef TIMER_SUPPORT
-		tpool_add_work(analysis_capps_frame, frarg);
+#ifdef THREAD_POOL_SUPPORT
+		tpool_add_work(analysis_capps_frame, frarg, TPOOL_LOCK);
 #else
-		analysis_capps_frame(frarg, NULL);
+		analysis_capps_frame(frarg);
 #endif
 	}
 }
@@ -330,10 +333,10 @@ void socket_udp_recvfrom()
 
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	frhandler_arg_t *frarg = get_frhandler_arg_alloc(udpfd, &client_addr, buf, nbytes);
-#ifdef TIMER_SUPPORT
-	tpool_add_work(analysis_capps_frame, frarg);
+#ifdef THREAD_POOL_SUPPORT
+	tpool_add_work(analysis_capps_frame, frarg, TPOOL_LOCK);
 #else
-	analysis_capps_frame(frarg, NULL);
+	analysis_capps_frame(frarg);
 #endif
 #endif
 }
@@ -414,6 +417,165 @@ void delog_udp_sendto(char *data, int len)
 {
 	sendto(udpfd, data, len, 0, 
 		(struct sockaddr *)&ulog_addr, sizeof(struct sockaddr));
+}
+#endif
+
+#ifdef TRANS_HTTP_REQUEST
+void curl_http_request(curl_method_t cm, 
+		char *url, char *req, data_handler reback)
+{
+	switch(cm)
+	{
+	case CURL_GET:
+		break;
+
+	case CURL_POST:
+	{
+		curl_args_t *cargs = calloc(1, sizeof(curl_args_t));
+		cargs->cm = CURL_POST;
+		cargs->url = url;
+		cargs->req = req;
+		cargs->curl_callback = reback;
+		
+#ifdef THREAD_POOL_SUPPORT
+		tpool_add_work(curl_post_request, cargs, TPOOL_LOCK);
+#else
+		curl_post_request(cargs);
+		free(cargs);
+#endif
+	}
+		break;
+	}
+}
+
+void curl_post_request(void *ptr)
+{
+	curl_args_t *arg = (curl_args_t *)ptr;
+	CURL *curl;  
+    CURLcode res;
+	FILE *fptr;
+
+	//struct curl_slist *http_header = NULL;
+  
+    curl = curl_easy_init();  
+    if (!curl)  
+    {  
+        DE_PRINTF(1, "%s()%d : curl init failed\n", 
+					__FUNCTION__, __LINE__); 
+		return;
+    }
+
+	/*if ((fptr = fopen("/tmp/aaa.txt", "w")) == NULL) {   
+        fprintf(stderr, "fopen file error: %s\n", "/tmp/aaa.txt");   
+        return -1;
+    }*/
+  
+    curl_easy_setopt(curl, CURLOPT_URL, arg->url);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, arg->req);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, arg->curl_callback);
+    //curl_easy_setopt(curl, CURLOPT_WRITEDATA, fptr);
+    curl_easy_setopt(curl, CURLOPT_POST, 1);
+    //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+    //curl_easy_setopt(curl, CURLOPT_HEADER, 1);
+    //curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+    //curl_easy_setopt(curl, CURLOPT_COOKIEFILE,"/tmp/curlpost.cookie");
+  
+    res = curl_easy_perform(curl);  
+  
+    if (res != CURLE_OK)
+    {
+        switch(res)
+        {
+            case CURLE_UNSUPPORTED_PROTOCOL:
+                DE_PRINTF(1, "%s()%d : Unsupport protocol\n",
+					__FUNCTION__, __LINE__);
+				break;
+				
+            case CURLE_COULDNT_CONNECT:
+                DE_PRINTF(1, "%s()%d : Cannot connect host\n",
+					__FUNCTION__, __LINE__);
+				break;
+				
+            case CURLE_HTTP_RETURNED_ERROR:
+                DE_PRINTF(1, "%s()%d : Return error\n",
+					__FUNCTION__, __LINE__);
+				break;
+				
+            case CURLE_READ_ERROR:
+                DE_PRINTF(1, "%s()%d : Read file error\n",
+					__FUNCTION__, __LINE__);
+				break;
+				
+            default:
+                DE_PRINTF(1, "%s()%d : Return %d\n",
+					__FUNCTION__, __LINE__, res);
+				break;
+        }
+		curl_easy_cleanup(curl);
+		return;
+    }
+  
+    curl_easy_cleanup(curl);
+
+	free(arg);
+}
+
+size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp)
+{
+	//FILE *fptr = (FILE*)userp;   
+    //fwrite(buffer, size, nmemb, fptr);
+	//printf("%s\n", buffer);
+
+	xmlDocPtr doc;
+	xmlNodePtr curNode;
+	xmlChar *szKey;
+	
+	doc = xmlReadMemory(buffer, size*nmemb, NULL, "utf8", XML_PARSE_RECOVER);
+	if(NULL == doc)
+	{
+		DE_PRINTF(1, "Document not parsed successfully\n");
+		goto curl_data_end;
+	}
+
+	curNode = xmlDocGetRootElement(doc);
+	if (NULL == curNode)
+	{ 
+		DE_PRINTF(1, "empty document\n"); 
+		goto curl_data_end;
+    }
+
+	if(xmlStrcmp(curNode->name, BAD_CAST "html")) 
+    {
+		DE_PRINTF(1, "document of the wrong type\n"); 
+		goto curl_data_end;
+	}
+	
+    curNode = curNode->xmlChildrenNode;
+    while(curNode != NULL) 
+    {
+		if((!xmlStrcmp(curNode->name, (const xmlChar *)"head"))) 
+		{
+			curNode = curNode->xmlChildrenNode;
+			while(curNode != NULL)
+			{
+				if((!xmlStrcmp(curNode->name, (const xmlChar *)"title"))) 
+				{
+					szKey = xmlNodeGetContent(curNode);
+					DE_PRINTF(1, "name:%s\ncontent:%s\n", curNode->name, szKey); 
+					xmlFree(szKey); 
+					break;
+				}
+				curNode = curNode->next; 
+			}
+			break;
+		} 
+
+		curNode = curNode->next; 
+	}
+
+curl_data_end:
+	xmlFreeDoc(doc);
+	return nmemb*size;
 }
 #endif
 

@@ -15,6 +15,7 @@
  * GNU General Public License for more details.
  */
 #include <services/globals.h>
+#include <module/netapi.h>
 
 int main(int argc, char **argv)
 {

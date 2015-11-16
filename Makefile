@@ -12,7 +12,7 @@ export SERVER_TARGET CLIENT_TARGET
 
 INCLUDE+=-I$(TOPDIR)/include -I$(TOPDIR)/lib
 
-STD_LDFLAGS:=-lpthread -lm
+STD_LDFLAGS:=-lpthread
 export INCLUDE STD_LDFLAGS
 
 SERVER_DMACRO:=-DTARGET_NAME=\"$(SERVER_TARGET)\" -DCOMM_SERVER
@@ -43,6 +43,8 @@ $(foreach d, $(SUB_DIRS), \
     $(eval $(call dependsrcs,$(d),$(SERVER_SRCS),$(CLIENT_SRCS))) \
 )
 
+ALL_HEARDS:=$(shell find -L $(patsubst %,$(TOPDIR)/%,$(SUB_MODULES)) -name *.h)
+
 SERVER_OBJS:=$(patsubst %.c,%-s.o,$(SERVER_SOURCES)) $(patsubst %,%/built-s.o,$(SUB_DIRS))
 CLIENT_OBJS:=$(patsubst %.c,%-c.o,$(CLIENT_SOURCES)) $(patsubst %,%/built-c.o,$(SUB_DIRS))
 
@@ -54,21 +56,21 @@ alls:$(TARGET) tests
 
 include $(TOPDIR)/include/include.mk
 
-$(SERVER_TARGET):$(inc_deps) server_comshow $(SERVER_OBJS) libs-s
+$(SERVER_TARGET):$(inc_deps) $(inc_dirs_deps) server_comshow $(SERVER_OBJS) libs-s
 	$(call echocmd,TAR,$(SERVER_TARGET), \
 	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -O2 -o $@ $(SERVER_OBJS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG)) $(STD_LDFLAGS)
 	@$(STARGET_STRIP) $@
 
-$(CLIENT_TARGET):$(inc_deps) client_comshow $(CLIENT_OBJS) libs-c
+$(CLIENT_TARGET):$(inc_deps) $(inc_dirs_deps) client_comshow $(CLIENT_OBJS) libs-c
 	$(call echocmd,TAR,$(CLIENT_TARGET), \
 	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) $(LDPATH) $(CLIENT_LDPATH) -O2 -o $@ $(CLIENT_OBJS) $(patsubst %,%-c,$(LDFLAGS)) $(CLIENT_LDFLAG)) $(STD_LDFLAGS)
 	@$(CTARGET_STRIP) $@
 
-%-s.o:%.c mconfig/server_config
+%-s.o:%.c $(ALL_HEARDS) mconfig/server_config
 	$(call echocmd,CC, $@, \
 	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -O2 -o $@ -c $<)
 
-%-c.o:%.c mconfig/client_config
+%-c.o:%.c $(ALL_HEARDS) mconfig/client_config
 	$(call echocmd,CC, $@, \
 	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ -c $<)
 
@@ -100,7 +102,7 @@ sclean:
 	(find -name "*-s.[oa]" | xargs $(RM)) && $(RM) $(SERVER_TARGET)
 
 clean:cclean sclean
-	$(RM) -r $(dir $(inc_deps)) $(inc_dirs_deps)
+	$(RM) -r $(dir $(patsubst %,include/%,$(inc_files))) $(inc_dirs_deps)
 
 distclean:clean
 	@make -C tests clean
