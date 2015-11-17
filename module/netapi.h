@@ -22,6 +22,7 @@
 #include <curl/curl.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+#include <sqlite3.h>
 #endif
 
 #ifdef TRANS_HTTP_REQUEST
