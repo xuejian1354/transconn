@@ -5,7 +5,8 @@ connect_listen
 
 include/*
 !include/*.mk
-!include/*.h
+!include/mconfig.h
+!include/mtypes.h
 
 tests/client
 tests/perznet

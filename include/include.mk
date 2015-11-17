@@ -21,10 +21,10 @@ inc_dirs_deps :=$(strip $(foreach d, $(inc_dirs), \
 
 ifeq ($(V),1)
 $(inc_dirs_deps):$(inc_dirs)
-	@if [ ! -d $@ ]; then echo "    [GEN]    $@" && ln -s $(filter %/$(notdir $@),$(inc_dirs)) $@; fi;
+	@if [ ! -r $@ ]; then echo "    [GEN]    $@" && ln -s $(filter %/$(notdir $@),$(inc_dirs)) $@; fi;
 else
 $(inc_dirs_deps):$(inc_dirs)
-	@if [ ! -d $@ ]; then echo "ln -s $(filter %/$(notdir $@),$(inc_dirs)) $@" && ln -s $(filter %/$(notdir $@),$(inc_dirs)) $@; fi;
+	@if [ ! -r $@ ]; then echo "ln -s $(filter %/$(notdir $@),$(inc_dirs)) $@" && ln -s $(filter %/$(notdir $@),$(inc_dirs)) $@; fi;
 endif
 
 $(foreach s,$(inc_files),$(eval include/$(s):$(TOPDIR)/$(s)))
