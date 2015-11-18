@@ -66,21 +66,6 @@ void analysis_zdev_frame(void *ptr)
 		
 		fr_buffer_t *buffer = get_gateway_buffer_alloc(get_gateway_info());
 		
-		bi_t bi;
-		memcpy(bi.sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-		bi.trans_type = TRTYPE_UDP_NORMAL;
-		bi.fr_type = TRFRAME_PUT_GW;
-		bi.data = buffer->data;
-		bi.data_len = buffer->size;
-#ifdef TRANS_UDP_SERVICE
-		enable_datalog_atime();
-		send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
-#endif
-#ifdef TRANS_TCP_CLIENT
-		bi.trans_type = TRTYPE_TCP_LONG;
-		enable_datalog_atime();
-		send_frame_tcp_request(TRHEAD_BI, &bi);
-#endif
 		get_buffer_free(buffer);
 		get_frame_free(HEAD_UC, uc);
 	}
@@ -120,22 +105,6 @@ void analysis_zdev_frame(void *ptr)
 		else
 		{
 			uint8 *buffer = get_zdev_buffer_alloc(dev_info);
-
-			bi_t bi;
-			memcpy(bi.sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-			bi.trans_type = TRTYPE_UDP_NORMAL;
-			bi.fr_type = TRFRAME_PUT_DEV;
-			bi.data = buffer;
-			bi.data_len = ZDEVICE_BUFFER_SIZE;
-#ifdef TRANS_UDP_SERVICE
-			enable_datalog_atime();
-			send_frame_udp_request(ipaddr, TRHEAD_BI, &bi);
-#endif
-#ifdef TRANS_TCP_CLIENT
-			bi.trans_type = TRTYPE_TCP_LONG;
-			enable_datalog_atime();
-			send_frame_tcp_request(TRHEAD_BI, &bi);
-#endif
 			get_zdev_buffer_free(buffer);
 		}
 
@@ -148,31 +117,6 @@ void analysis_zdev_frame(void *ptr)
 			cli_info_t *p_cli = get_client_list()->p_cli;
 			while(p_cli != NULL)
 			{
-				ub_t ub;
-				memcpy(ub.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-				memcpy(ub.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
-				ub.trans_type = p_cli->trans_type;
-				ub.tr_info = TRINFO_REDATA;
-				ub.data = frbuffer->data;
-				ub.data_len = frbuffer->size;
-
-#ifdef TRANS_UDP_SERVICE
-				if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
-				{
-					//enable_datalog_atime();
-					send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
-				}
-				else if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
-				{
-					//enable_datalog_atime();
-					send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
-				}
-#endif
-#ifdef TRANS_TCP_CLIENT
-				ub.trans_type = TRTYPE_TCP_LONG;
-				//enable_datalog_atime();
-				send_frame_tcp_request(TRHEAD_UB, &ub);
-#endif
 				p_cli = p_cli->next;
 			}
 			get_buffer_free(frbuffer);
@@ -271,55 +215,6 @@ void analysis_zdev_frame(void *ptr)
 			cli_info_t *p_cli = get_client_list()->p_cli;
 			while(p_cli != NULL)
 			{
-				ub_t ub;
-				
-				if(znet_addr == 0 )
-				{
-					if(get_gateway_info()->zgw_opt->type == FRAPP_HUELIGHT
-						&& !memcmp(get_gateway_info()->zgw_opt->device.huelight.sclient, 
-								p_cli->cidentify_no, sizeof(cidentify_no_t))
-						&& !(get_gateway_info()->zgw_opt->device.huelight.onoff & 0x10))
-					{
-						p_cli = p_cli->next;
-						continue;
-					}
-				}
-				else
-				{
-					if(dev_info != NULL 
-						&& dev_info->zdev_opt->type == FRAPP_HUELIGHT
-						&& !memcmp(dev_info->zdev_opt->device.huelight.sclient, 
-								p_cli->cidentify_no, sizeof(cidentify_no_t))
-						&& !(dev_info->zdev_opt->device.huelight.onoff & 0x10))
-					{
-						p_cli = p_cli->next;
-						continue;
-					}
-				}
-				
-				memcpy(ub.zidentify_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-				memcpy(ub.cidentify_no, p_cli->cidentify_no, sizeof(cidentify_no_t));
-				ub.trans_type = p_cli->trans_type;
-				ub.tr_info = TRINFO_REDATA;
-				ub.data = frbuffer->data;
-				ub.data_len = frbuffer->size;
-#ifdef TRANS_UDP_SERVICE
-				if(p_cli->trans_type == TRTYPE_UDP_TRAVERSAL)
-				{
-					//enable_datalog_atime();
-					send_frame_udp_request(p_cli->ipaddr, TRHEAD_UB, &ub);
-				}
-				else if(p_cli->trans_type == TRTYPE_UDP_NORMAL)
-				{
-					//enable_datalog_atime();
-					send_frame_udp_request(p_cli->serverip_addr, TRHEAD_UB, &ub);
-				}
-#endif
-#ifdef TRANS_TCP_CLIENT
-				ub.trans_type = TRTYPE_TCP_LONG;
-				//enable_datalog_atime();
-				send_frame_tcp_request(TRHEAD_UB, &ub);
-#endif
 				p_cli = p_cli->next;
 			}
 			get_buffer_free(frbuffer);
@@ -424,118 +319,6 @@ void analysis_capps_frame(void *ptr)
 		return;
 	}
 	
-  	cli_info_t *cli_info;
-	
-	tr_head_type_t head_type = get_trhead_from_str(arg->buf);
-	void *p = get_trframe_alloc(head_type, arg->buf, arg->len);
-	
-	if(p == NULL)
-	{
-		goto capp_end;
-	}
-	
-	switch(head_type)
-	{
-	case TRHEAD_PI:
-	{
-		pi_t *p_pi = (pi_t *)p;
-		pi_handler(arg, p_pi);
-		get_trframe_free(TRHEAD_PI, p);
-	}
-	break;
-		
-	case TRHEAD_BI:
-	{
-		bi_t *p_bi = (bi_t *)p;
-		bi_handler(arg, p_bi);
-		get_trframe_free(TRHEAD_BI, p);
-	}
-	break;
-
-	case TRHEAD_UL:
-	{
-		ul_t *p_ul = (ul_t *)p;
-		ul_handler(arg, p_ul);
-		get_trframe_free(TRHEAD_UL, p);
-	}
-	break;
-
-	case TRHEAD_SL:
-	{
-		sl_t *p_sl = (sl_t *)p;
-		sl_handler(arg, p_sl);
-		get_trframe_free(TRHEAD_SL, p);
-	}
-	break;
-
-	case TRHEAD_UT:
-	{
-		ut_t *p_ut = (ut_t *)p;
-		ut_handler(arg, p_ut);
-		get_trframe_free(TRHEAD_UT, p);
-	}
-	break;
-
-	case TRHEAD_ST:
-	{
-		st_t *p_st = (st_t *)p;
-		st_handler(arg, p_st);
-		get_trframe_free(TRHEAD_ST, p);
-	}
-	break;
-		
-	case TRHEAD_GP:
-	{
-		gp_t *p_gp = (gp_t *)p;
-		gp_handler(arg, p_gp);
-		get_trframe_free(TRHEAD_GP, p);
-	}
-	break;
-		
-	case TRHEAD_RP:
-	{
-		rp_t *p_rp = (rp_t *)p;
-		rp_handler(arg, p_rp);
-		get_trframe_free(TRHEAD_RP, p);
-	}
-	break;
-		
-	case TRHEAD_GD:
-	{
-		gd_t *p_gd = (gd_t *)p;
-		gd_handler(arg, p_gd);
-		get_trframe_free(TRHEAD_GD, p);
-	}
-	break;
-		
-	case TRHEAD_RD:
-	{
-		rd_t *p_rd = (rd_t *)p;
-		rd_handler(arg, p_rd);
-		get_trframe_free(TRHEAD_RD, p);
-	}
-	break;
-		
-	case TRHEAD_DC:
-	{
-		dc_t *p_dc = (dc_t *)p;
-		dc_handler(arg, p_dc);
-		get_trframe_free(TRHEAD_DC, p);
-	}
-	break;
-		
-	case TRHEAD_UB:
-	{
-		ub_t *p_ub = (ub_t *)p;
-		ub_handler(arg, p_ub);
-		get_trframe_free(TRHEAD_UB, p);
-	}
-	break;
-
-	default: break;
-	}
-
-capp_end:
 	get_frhandler_arg_free(arg);
 }
 

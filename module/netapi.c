@@ -18,7 +18,6 @@
 #include "netapi.h"
 #include <module/netlist.h>
 #include <module/balancer.h>
-#include <protocol/trframelysis.h>
 #include <protocol/protocol.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -36,14 +35,12 @@ typedef enum
 #ifdef TRANS_HTTP_REQUEST
 void curl_post_request(void *ptr);
 #endif
-static void set_deprint_flag(uint16 flag);
 static void set_deudp_flag(uint8 flag);
 static void set_detcp_flag(uint8 flag);
 
 static void trans_data_show(de_print_t deprint,
 				struct sockaddr_in *addr, char *data, int len);
 
-static uint16 deprint_flag = 0xFFF;
 static uint8 deudp_flag = 1;
 static uint8 detcp_flag = 1;
 static uint8 deuart_flag = 1;
@@ -144,7 +141,6 @@ void socket_tcp_server_release(int fd)
 	{
 		trans_data_show(DE_TCP_RELEASE, &m_list->client_addr, "", 0);
 	}
-	
 	delfrom_tcpconn_list(fd);
 #else
 	DE_PRINTF(1, "TCP:release,fd=%d\n\n", fd);
@@ -387,11 +383,6 @@ void socket_udp_sendto(char *addr, char *data, int len)
 }
 #endif
 
-void set_deprint_flag(uint16 flag)
-{
-	deprint_flag = flag;
-}
-
 void set_deudp_flag(uint8 flag)
 {
 	deudp_flag = flag;
@@ -598,117 +589,12 @@ void enable_datalog_atime()
 void trans_data_show(de_print_t deprint, 
 		struct sockaddr_in *addr, char *data, int len)
 {
-	int i;
-	for(i=0; i<12; i++)
-	{
-		if(deprint_flag&(1<<i))
-		{
-			switch(i)
-			{
-			case 0: 
-				if(!strncmp(data, TR_HEAD_PI, 3))
-				{
-					goto show_end;	
-				}
-				break;
-				
-			case 1: 
-				if(!strncmp(data, TR_HEAD_BI, 3))
-				{
-					goto show_end;	
-				}
-				break;
-
-			case 2: 
-				if(!strncmp(data, TR_HEAD_UL, 3))
-				{
-					goto show_end;	
-				}
-				break;
-				
-			case 3: 
-				if(!strncmp(data, TR_HEAD_SL, 3))
-				{
-					goto show_end;	
-				}
-				break;
-
-			case 4: 
-				if(!strncmp(data, TR_HEAD_UT, 3))
-				{
-					goto show_end;	
-				}
-				break;
-				
-			case 5: 
-				if(!strncmp(data, TR_HEAD_ST, 3))
-				{
-					goto show_end;	
-				}
-				break;
-				
-			case 6: 
-				if(!strncmp(data, TR_HEAD_GP, 3))
-				{
-					goto show_end;	
-				}
-				break;
-				
-			case 7: 
-				if(!strncmp(data, TR_HEAD_RP, 3))
-				{
-					goto show_end;	
-				}
-				break;
-				
-			case 8: 
-				if(!strncmp(data, TR_HEAD_GD, 3))
-				{
-					goto show_end;	
-				}
-				break;
-				
-			case 9: 
-				if(!strncmp(data, TR_HEAD_RD, 3))
-				{
-					goto show_end;	
-				}
-				break;
-
-			case 10: 
-				if(!strncmp(data, TR_HEAD_DC, 3))
-				{
-					goto show_end;	
-				}
-				break;
-
-			case 11: 
-				if(!strncmp(data, TR_HEAD_UB, 3))
-				{
-					goto show_end;	
-				}
-				break;
-			}
-		}
-	}
-
 #ifdef DE_TRANS_UDP_STREAM_LOG
 	if(deprint == DE_UDP_RECV
 		&& addr->sin_port == htons(DE_UDP_PORT)
 		&& addr->sin_addr.s_addr == inet_addr("127.0.0.1"))
 	{
-		if(len >= 14 && !memcmp(data, DEU_CMD_PREFIX, 11))
-		{
-			uint16 flag;
-			char flagstr[5] = {0};
-			flagstr[0] = '0';
-			memcpy(flagstr+1, data+11, 3);
-			incode_ctoxs(&flag, flagstr, 4);
-			incode_ctox16(&flag, flagstr);
-			set_deprint_flag(flag);
-			DE_PRINTF(1, "\n%s%X succeed\n\n", DEU_CMD_PREFIX, flag);
-		}
-		else if(len >= 7 && !memcmp(data, DEU_UDP_CMD, 5))
+		if(len >= 7 && !memcmp(data, DEU_UDP_CMD, 5))
 		{
 			if(!memcmp(data+5, " 0", 2))
 			{
@@ -766,27 +652,12 @@ void trans_data_show(de_print_t deprint,
 			DE_PRINTF(0, "  %s [0|1]\n", DEU_UDP_CMD);
 			DE_PRINTF(0, "  %s [0|1]\n", DEU_TCP_CMD);
 			DE_PRINTF(0, "  %s [0|1]\n", DEU_UART_CMD);
-			DE_PRINTF(0, "  %s%s\n", DEU_CMD_PREFIX, "value(hex)");
-			DE_PRINTF(0, "  value:\n");
-			DE_PRINTF(0, "    PI:	001\n");
-			DE_PRINTF(0, "    BI:	002\n");
-			DE_PRINTF(0, "    UL:	004\n");
-			DE_PRINTF(0, "    SL:	008\n");
-			DE_PRINTF(0, "    UT:	010\n");
-			DE_PRINTF(0, "    ST:	020\n");
-			DE_PRINTF(0, "    GP:	040\n");
-			DE_PRINTF(0, "    RP:	080\n");
-			DE_PRINTF(0, "    GD:	100\n");
-			DE_PRINTF(0, "    RD:	200\n");
-			DE_PRINTF(0, "    DC:	400\n");
-			DE_PRINTF(0, "    UB:	800\n\n");
 		}
+
+		return;
 	}
 #endif
-
-	return;
 	
-show_end:
 	if( deprint == DE_UDP_SEND)
 	{
 		if(!deudp_flag)
@@ -851,7 +722,7 @@ show_end:
 			return;
 		}
 		DE_PRINTF(1, "TCP:release,ip=%s:%u\n\n", 
-						addr->sin_addr, 
+						inet_ntoa(addr->sin_addr), 
 						ntohs(addr->sin_port));
 		return;
 	}

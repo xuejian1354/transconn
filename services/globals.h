@@ -60,7 +60,6 @@
 #endif
 
 #ifdef DE_TRANS_UDP_STREAM_LOG
-#define DEU_CMD_PREFIX	"set deflag="
 #define DEU_UDP_CMD		"deudp"
 #define DEU_TCP_CMD		"detcp"
 #define DEU_UART_CMD	"deuart"

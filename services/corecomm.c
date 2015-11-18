@@ -117,9 +117,14 @@ int select_listen()
 	}
 	else if (ret < 0)
 	{
-		perror("pselect");
-		return -1;
+		DE_PRINTF(0, "%s()%d : pselect error", __FUNCTION__, __LINE__);
 	}
+	else
+	{
+		DE_PRINTF(0, "%s()%d : None fd select\n", __FUNCTION__, __LINE__);
+	}
+	
+	usleep(10000);
 
 	return 0;
 }

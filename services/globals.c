@@ -410,10 +410,6 @@ void event_init()
 #ifdef COMM_CLIENT
 	set_upload_event();
 #endif
-
-#ifdef COMM_SERVER
-	set_clients_listen();
-#endif
 #endif
 }
 

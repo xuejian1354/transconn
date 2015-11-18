@@ -21,7 +21,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <protocol/framelysis.h>
-#include <protocol/trframelysis.h>
 #include <protocol/devopt.h>
 #include <protocol/users.h>
 
@@ -38,12 +37,6 @@ typedef struct Dev_Info
 	struct Dev_Info *next;
 }dev_info_t;
 
-typedef struct Cli_Contain
-{
-	cli_info_t *p_cli;
-	struct Cli_Contain *next;
-}cli_contain_t;
-
 typedef struct Gw_Info
 {
 	zidentify_no_t gw_no;
@@ -52,14 +45,12 @@ typedef struct Gw_Info
 	uint16 zchannel;
 	dev_opt_t *zgw_opt;
 	uint32 rand;
-	tr_trans_type_t trans_type;
 	uint8 ipaddr[IP_ADDR_MAX_SIZE];
 	uint8 ip_len;
 	uint8 serverip_addr[IP_ADDR_MAX_SIZE];
 	uint8 serverip_len;
 	pthread_mutex_t lock;
 	dev_info_t *p_dev;
-	cli_contain_t *p_contain;
 	struct Gw_Info *next;
 }gw_info_t;
 

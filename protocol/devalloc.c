@@ -35,7 +35,7 @@ void get_zdev_buffer_free(uint8 *p)
 
 dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length)
 {
-	if(length < ZDEVICE_BUFFER_SIZE || length > TR_BUFFER_SIZE)
+	if(length < ZDEVICE_BUFFER_SIZE)
 	{
 		return NULL;
 	}
@@ -104,7 +104,7 @@ void get_gateway_buffer_free(uint8 *p)
 
 gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
 {	
-	if(length < GATEWAY_BUFFER_FIX_SIZE || length > TR_BUFFER_SIZE)
+	if(length < GATEWAY_BUFFER_FIX_SIZE)
 	{
 		return NULL;
 	}
@@ -134,7 +134,6 @@ gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
     }
 	
 	gw_info->p_dev = NULL;
-	gw_info->p_contain = NULL;
 	gw_info->next = NULL;
 
 	return gw_info;
