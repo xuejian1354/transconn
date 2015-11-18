@@ -177,7 +177,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 	char gwno[24] = {0};
 	incode_xtocs(gwno, p_gw->gw_no, sizeof(zidentify_no_t));
 	
-	fr_buffer_t *frbuffer = get_devopt_data_to_str(m_dev->zdev_opt);
+	fr_buffer_t *frbuffer = get_devopt_data_tostr(m_dev->zdev_opt);
 	char data[24] = {0};
 	if(frbuffer != NULL)
 	{
@@ -326,7 +326,6 @@ dev_info_t *sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 
 		if(add_zdev_info(p_gw, m_dev) != 0)
 		{
-			get_devopt_data_free(m_dev->zdev_opt);
 			get_zdev_frame_free(m_dev);
 		}
 		
@@ -422,7 +421,7 @@ int sql_add_gateway(gw_info_t *m_gw)
 	char gwno_str[24] = {0};
 	incode_xtocs(gwno_str, m_gw->gw_no, sizeof(zidentify_no_t));
 	
-	fr_buffer_t *frbuffer = get_devopt_data_to_str(m_gw->zgw_opt);
+	fr_buffer_t *frbuffer = get_devopt_data_tostr(m_gw->zgw_opt);
 	char data[24] = {0};
 	if(frbuffer != NULL)
 	{

@@ -146,8 +146,7 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 			}
 			pthread_mutex_unlock(&gw_info->lock);
 
-			get_devopt_data_free(t_dev->zdev_opt);
-			free(t_dev);
+			get_zdev_frame_free(t_dev);
 			return 0;
 		}
 	}

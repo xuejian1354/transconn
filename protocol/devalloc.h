@@ -69,13 +69,8 @@ typedef struct
 	long max_num;
 }gw_list_t;
 
-uint8 *get_zdev_buffer_alloc(dev_info_t *dev_info);
-void get_zdev_buffer_free(uint8 *p);
 dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length);
 void get_zdev_frame_free(dev_info_t *p);
-
-fr_buffer_t *get_gateway_buffer_alloc(gw_info_t *gw_info);
-void get_gateway_buffer_free(uint8 *p);
 
 gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length);
 void get_gateway_frame_free(gw_info_t *p);

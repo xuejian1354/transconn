@@ -23,6 +23,11 @@
 #include <sys/socket.h>
 #include <protocol/devalloc.h>
 
+#ifdef COMM_CLIENT
+void sync_gateway_info(gw_info_t *pgw_info);
+void sync_zdev_info(dev_info_t *pdev_info);
+#endif
+
 #ifdef TRANS_UDP_SERVICE
 void send_frame_udp_request(char *ipaddr, char *data, int len);
 #endif
