@@ -22,6 +22,9 @@
 //#define COMM_SERVER
 //#define COMM_CLIENT
 
+#define THREAD_POOL_SUPPORT
+#define TIMER_SUPPORT
+#define SELECT_SUPPORT
 //#define TRANS_TCP_SERVER
 //#define TRANS_TCP_CLIENT
 //#define TRANS_UDP_SERVICE
