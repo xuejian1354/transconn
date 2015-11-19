@@ -359,7 +359,7 @@ serial_update:
 
 #if defined(COMM_SERVER) || defined(COMM_CLIENT)
 				frhandler_arg_t *frarg = 
-					get_frhandler_arg_alloc(serial_id, NULL, tmpFrame, dataLen);
+					get_frhandler_arg_alloc(serial_id, TOCOL_SERIAL, NULL, tmpFrame, dataLen);
 
 #ifdef THREAD_POOL_SUPPORT
 				tpool_add_work(analysis_zdev_frame, frarg, TPOOL_LOCK);

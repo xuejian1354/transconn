@@ -1,2 +1,2 @@
-SERVER_SRCS :=corecomm.c mevent.c globals.c
-CLIENT_SRCS :=corecomm.c mevent.c globals.c
+SERVER_SRCS :=corecomm.c etimer.c globals.c
+CLIENT_SRCS :=balancer.c corecomm.c etimer.c globals.c

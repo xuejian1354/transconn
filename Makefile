@@ -21,9 +21,6 @@ include mconfig/server_config
 include mconfig/client_config
 export SERVER_DMACRO CLIENT_DMACRO
 
-SUB_MODULES:=debug module protocol services
-export SUB_MODULES
-
 define dependsrcs
 $(1)/built-s.o:$(patsubst %.c,%-s.o,$(2))
 	$(call echocmd,LD, $$@, \
@@ -35,7 +32,11 @@ endef
 
 SERVER_SOURCES:=smain.c
 CLIENT_SOURCES:=cmain.c
-SUB_DIRS:=$(filter-out debug, $(SUB_MODULES))
+SUB_DIRS:=$(strip $(patsubst $(TOPDIR)/%/,%, \
+		$(dir $(shell find -L $(TOPDIR) -name "transconn.mk"))))
+SUB_MODULES:=debug $(SUB_DIRS)
+export SUB_MODULES
+
 $(foreach d, $(SUB_DIRS), \
     $(eval include $(d)/transconn.mk) \
     $(eval SERVER_SRCS:=$(patsubst %,$(d)/%,$(SERVER_SRCS))) \
@@ -102,7 +103,7 @@ sclean:
 	(find -name "*-s.[oa]" | xargs $(RM)) && $(RM) $(SERVER_TARGET)
 
 clean:cclean sclean
-	$(RM) -r $(dir $(patsubst %,include/%,$(inc_files))) $(inc_dirs_deps)
+	$(RM) -r $(patsubst %/,include/%,debug/ $(dir $(shell ls */transconn.mk))) $(inc_dirs_deps)
 
 distclean:clean
 	@make -C tests clean

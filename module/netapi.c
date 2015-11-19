@@ -17,10 +17,8 @@
 
 #include "netapi.h"
 #include <module/netlist.h>
-#include <module/balancer.h>
+#include <services/balancer.h>
 #include <protocol/protocol.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
 
 typedef enum
 {
@@ -61,6 +59,48 @@ static struct sockaddr_in m_server_addr;
 #endif
 
 uint8 lwflag = 0;
+
+frhandler_arg_t *get_frhandler_arg_alloc(int fd, 
+			transtocol_t transtocol, struct sockaddr_in *addr, char *buf, int len)
+{
+	if(len > MAXSIZE)
+	{
+		return NULL;
+	}
+
+	frhandler_arg_t *arg = calloc(1, sizeof(frhandler_arg_t));
+	arg->buf = calloc(1, len);
+
+	arg->fd = fd;
+
+	if(addr != NULL)
+	{
+		memcpy(&arg->addr, addr, sizeof(struct sockaddr_in));
+	}
+	
+	if(buf != NULL)
+	{
+		memcpy(arg->buf, buf, len);
+		arg->len = len;
+	}
+	else
+	{
+		free(arg->buf);
+		arg->buf = NULL;
+		arg->len = 0;
+	}
+
+	return arg;
+}
+
+void get_frhandler_arg_free(frhandler_arg_t *arg)
+{
+	if(arg != NULL)
+	{
+		free(arg->buf);
+		free(arg);
+	}
+}
 
 #ifdef TRANS_TCP_SERVER
 int get_stcp_fd()
@@ -175,7 +215,7 @@ void socket_tcp_server_recv(int fd)
 
 #ifdef TRANS_TCP_CONN_LIST
 		frhandler_arg_t *frarg = 
-			get_frhandler_arg_alloc(fd, &m_list->client_addr, buf, nbytes);
+			get_frhandler_arg_alloc(fd, TOCOL_TCP, &m_list->client_addr, buf, nbytes);
 #ifdef THREAD_POOL_SUPPORT
 		tpool_add_work(analysis_capps_frame, frarg, TPOOL_LOCK);
 #else
@@ -328,7 +368,8 @@ void socket_udp_recvfrom()
 #endif
 
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-	frhandler_arg_t *frarg = get_frhandler_arg_alloc(udpfd, &client_addr, buf, nbytes);
+	frhandler_arg_t *frarg = 
+		get_frhandler_arg_alloc(udpfd, TOCOL_UDP, &client_addr, buf, nbytes);
 #ifdef THREAD_POOL_SUPPORT
 	tpool_add_work(analysis_capps_frame, frarg, TPOOL_LOCK);
 #else
@@ -440,10 +481,9 @@ void curl_http_request(curl_method_t cm,
 		cargs->curl_callback = reback;
 		
 #ifdef THREAD_POOL_SUPPORT
-		tpool_add_work(curl_post_request, cargs, TPOOL_LOCK);
+		tpool_add_work(curl_post_request, cargs, TPOOL_NONE);
 #else
 		curl_post_request(cargs);
-		free(cargs);
 #endif
 	}
 		break;
@@ -456,6 +496,13 @@ void curl_post_request(void *ptr)
 	CURL *curl;  
     CURLcode res;
 	FILE *fptr;
+
+	if(arg == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : curl does not get data\n", 
+					__FUNCTION__, __LINE__); 
+		return;
+	}
 
 	//struct curl_slist *http_header = NULL;
   
@@ -513,12 +560,9 @@ void curl_post_request(void *ptr)
 					__FUNCTION__, __LINE__, res);
 				break;
         }
-		curl_easy_cleanup(curl);
-		return;
     }
   
     curl_easy_cleanup(curl);
-
 	free(arg);
 }
 

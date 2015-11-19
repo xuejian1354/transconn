@@ -15,6 +15,8 @@
  * GNU General Public License for more details.
  */
 #include "protocol.h"
+#include <cJSON.h>
+#include <module/netapi.h>
 
 /* Used for SuperButton Functions */
 #define SB_OPT_CFG				'!'
@@ -270,6 +272,16 @@ void analysis_capps_frame(void *ptr)
 	{
 		return;
 	}
+
+	cJSON *pRoot = cJSON_Parse(arg->buf);
+	if(pRoot == NULL)
+	{
+		return;
+	}
+
+	cJSON *pEmail = cJSON_GetObjectItem(pRoot, "email");
+
+	cJSON_Delete(pRoot);
 	
 	get_frhandler_arg_free(arg);
 }

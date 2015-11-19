@@ -20,7 +20,7 @@
 #include <protocol/request.h>
 
 #ifdef COMM_CLIENT
-#define GATEWAY_REFRESH_EVENT	0x0001
+#define GATEWAY_INIT_EVENT		0x0001
 #define TIMER_UPLOAD_EVENT		0x0002
 #define ZDEVICE_WATCH_EVENT		0x0003
 #define CLIENT_WATCH_EVENT		0x0006
@@ -35,6 +35,19 @@ void cli_watch(void *p);
 #endif
 
 #ifdef COMM_CLIENT
+void gateway_init()
+{
+	timer_event_param_t timer_param;
+
+	timer_param.resident = 0;
+	timer_param.interval = 1;
+	timer_param.count = 1;
+	timer_param.immediate = 1;
+	timer_param.arg = NULL;
+	
+	set_mevent(GATEWAY_INIT_EVENT, gateway_refresh, &timer_param);
+}
+
 void gateway_refresh(void *p)
 {
 	serial_write("D:/BR/0000:O\r\n", 14);
@@ -52,15 +65,7 @@ void gateway_refresh(void *p)
 
 void upload_event(void *p)
 {	
-	dev_info_t *p_dev = get_gateway_info()->p_dev;
-	char buffer[ZDEVICE_MAX_NUM<<2] = {0};
-	char bsize = 0;
-	while(p_dev != NULL && bsize < (ZDEVICE_MAX_NUM<<2))
-	{
-		incode_xtoc16(buffer+bsize, p_dev->znet_addr);
-		bsize += 4;
-		p_dev = p_dev->next;
-	}
+
 }
 
 void zdev_watch(void *p)
@@ -80,20 +85,6 @@ void cli_watch(void *p)
 	DE_PRINTF(1, "del client from list, cli no:%s\n\n", clino);
 	
 	del_client_info(p_cli->cidentify_no);
-}
-
-void set_upload_event()
-{
-	timer_event_param_t timer_param;
-
-	//refresh and get gateway info
-	timer_param.resident = 0;
-	timer_param.interval = 1;
-	timer_param.count = 1;
-	timer_param.immediate = 1;
-	timer_param.arg = NULL;
-	
-	set_mevent(GATEWAY_REFRESH_EVENT, gateway_refresh, &timer_param);
 }
 
 void set_zdev_check(uint16 net_addr)

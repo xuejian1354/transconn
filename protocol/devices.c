@@ -18,7 +18,7 @@
 #include <mincode.h>
 #include <module/serial.h>
 #include <protocol/request.h>
-#include <services/mevent.h>
+#include <protocol/common/mevent.h>
 
 #ifdef COMM_CLIENT
 static gw_info_t gw_info;

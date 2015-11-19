@@ -15,12 +15,65 @@
  * GNU General Public License for more details.
  */
 #include "request.h"
-#include <protocol/protocol.h>
-#include <module/balancer.h>
-#ifdef DB_API_SUPPORT
-#include <module/dbopt.h>
+#include <cJSON.h>
+
+#ifdef COMM_CLIENT
+char *trans_protocol_request_alloc(char *protocol)
+{
+	return NULL;
+}
+
+char *trans_report_alloc(zidentify_no_t sns[], int len)
+{
+	return NULL;
+}
+
+char *trans_check_alloc(zidentify_no_t sns[], int len)
+{
+	return NULL;
+}
+
+char *trans_respond_alloc(zidentify_no_t sns[], int len)
+{
+	return NULL;
+}
+
+void trans_refresh_handler(char *data)
+{}
+
+void trans_control_handler(char *data)
+{}
+
+void trans_protocol_respond_handler(char *data)
+{}
 #endif
-#include <module/netlist.h>
+
+#ifdef COMM_SERVER
+void trans_protocol_request_handler(char *data)
+{}
+
+void trans_report_handler(char *data)
+{}
+
+void trans_check_handler(char *data)
+{}
+
+void trans_respond_handler(char *data)
+{}
+
+char *trans_refresh_alloc(zidentify_no_t sns[], int len)
+{
+	return NULL;
+}
+
+char *trans_control_alloc(zidentify_no_t sns[], int len)
+{
+	return NULL;
+}
+
+char *trans_protocol_respond_alloc(char *protocol)
+{}
+#endif
 
 #ifdef COMM_CLIENT
 void sync_gateway_info(gw_info_t *pgw_info)

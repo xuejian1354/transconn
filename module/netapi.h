@@ -18,12 +18,24 @@
 #define __NETAPI_H__
 
 #include <services/globals.h>
+#include <protocol/common/session.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #ifdef TRANS_HTTP_REQUEST
 #include <curl/curl.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <sqlite3.h>
 #endif
+
+typedef struct
+{
+	int fd;
+	transtocol_t transtocol;
+	struct sockaddr_in addr; 
+	char *buf;
+	int len;
+}frhandler_arg_t;
 
 #ifdef TRANS_HTTP_REQUEST
 typedef enum
@@ -42,6 +54,10 @@ typedef struct
 	data_handler curl_callback;
 }curl_args_t;
 #endif
+
+frhandler_arg_t *get_frhandler_arg_alloc(int fd,
+			transtocol_t transtocol, struct sockaddr_in *addr, char *buf, int len);
+void get_frhandler_arg_free(frhandler_arg_t *arg);
 
 #ifdef TRANS_TCP_SERVER
 int get_stcp_fd();

@@ -28,8 +28,11 @@
 //#define TRANS_TCP_SERVER
 //#define TRANS_TCP_CLIENT
 //#define TRANS_UDP_SERVICE
+//#define TRANS_HTTP_REQUEST
 //#define DAEMON_PROCESS_CREATE
 //#define SERIAL_SUPPORT
+//#define READ_CONF_FILE
+//#define DB_API_SUPPORT
 //#define DE_TRANS_UDP_STREAM_LOG
 
 #ifdef DE_TRANS_UDP_STREAM_LOG
@@ -48,12 +51,12 @@
 
 #ifdef READ_CONF_FILE
 #define CONF_FILE	"/etc/transconn.conf"
-#else
-#ifdef DB_API_SUPPORT
-#error 'You must define READ_CONF_FILE first before defining DB_API_SUPPORT'
-#elif defined(REMOTE_UPDATE_APK)
-#error 'You must define READ_CONF_FILE first before defining REMOTE_UPDATE_APK'
-#endif
+#elif !defined(COMM_CLIENT)
+  #ifdef DB_API_SUPPORT
+    #error 'You must define READ_CONF_FILE first before defining DB_API_SUPPORT'
+  #elif defined(REMOTE_UPDATE_APK)
+    #error 'You must define READ_CONF_FILE first before defining REMOTE_UPDATE_APK'
+  #endif
 #endif
 
 #if !defined(TRANS_UDP_SERVICE) && defined(REMOTE_UPDATE_APK)

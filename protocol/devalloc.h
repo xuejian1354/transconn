@@ -56,14 +56,6 @@ typedef struct Gw_Info
 
 typedef struct
 {
-	int fd;
-	struct sockaddr_in addr; 
-	char *buf;
-	int len;
-}frhandler_arg_t;
-
-typedef struct
-{
 	gw_info_t *p_gw;
 	pthread_mutex_t lock;
 	long max_num;
@@ -74,11 +66,6 @@ void get_zdev_frame_free(dev_info_t *p);
 
 gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length);
 void get_gateway_frame_free(gw_info_t *p);
-
-frhandler_arg_t *get_frhandler_arg_alloc(int fd, struct sockaddr_in *addr, 
-														char *buf, int len);
-void get_frhandler_arg_free(frhandler_arg_t *arg);
-
 
 fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type, 
 	dev_opt_t *opt, void *frame);
