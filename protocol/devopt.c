@@ -62,7 +62,7 @@ detect_power_t get_devopt_power_ctox(char c)
 	}
 }
 
-dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
+dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 {
 	dev_opt_t *opt = NULL;
 	
@@ -294,7 +294,7 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 }
 
 
-void get_devopt_free(dev_opt_t *opt)
+void get_devopt_data_free(dev_opt_t *opt)
 {
 	free(opt);
 }
@@ -803,7 +803,7 @@ void *get_devopt_buffer_free(fr_buffer_t *p)
 	free(p);
 }
 
-int set_devopt_data_fromstr(dev_opt_t *opt, uint8 *data, int len)
+int set_devopt_data(dev_opt_t *opt, uint8 *data, int len)
 {	
 	switch(opt->type)
 	{
@@ -919,7 +919,7 @@ int set_devopt_data_fromstr(dev_opt_t *opt, uint8 *data, int len)
 }
 
 
-fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
+fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt)
 {	
 	fr_buffer_t *buffer = NULL;
 	if(opt == NULL)

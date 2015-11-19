@@ -40,6 +40,9 @@ gw_list_t *get_gateway_list();
 int add_gateway_info(gw_info_t *m_gw);
 gw_info_t *query_gateway_info(zidentify_no_t gw_no);
 int del_gateway_info(zidentify_no_t gw_no);
+int add_contain_info(cli_contain_t **contain, cli_contain_t *m_contain);
+cli_contain_t *query_contain_info(cli_contain_t *contain, cidentify_no_t cidentify_no);
+int del_contain_info(cli_contain_t **contain, cidentify_no_t cidentify_no);
 #endif
 
 #endif  //__DEVICES_H__

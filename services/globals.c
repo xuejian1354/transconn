@@ -17,8 +17,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <dirent.h>
-#include <protocol/common/session.h>
-#include <protocol/common/mevent.h>
+#include <services/mevent.h>
 #include <protocol/protocol.h>
 
 static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -358,8 +357,6 @@ int get_daemon_cmdline()
 
 int mach_init()
 {
-	set_session_status(SESS_INIT);
-	
 #ifdef COMM_CLIENT
 	gw_info_t *p_gw_info = get_gateway_info();
 
@@ -411,7 +408,11 @@ void event_init()
 {
 #ifdef TIMER_SUPPORT
 #ifdef COMM_CLIENT
-	gateway_init();
+	set_upload_event();
+#endif
+
+#ifdef COMM_SERVER
+	set_clients_listen();
 #endif
 #endif
 }

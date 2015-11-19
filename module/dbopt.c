@@ -32,21 +32,18 @@ st(  									\
 	sprintf(cmdline, format, ##args);  	\
 )
 
-#ifdef COMM_SERVER
 static MYSQL mysql_conn;
 static MYSQL_RES *mysql_res;
 static MYSQL_ROW mysql_row;
-#endif
 
 static pthread_mutex_t sql_lock;
+static pthread_mutex_t sql_add_lock;
 
 static char is_userful = 0;
-static char cmdline[0x4000];
+static char cmdline[4096];
 static char mix_type_name[24];
 static char current_time[64];
 
-static int sql_excute_cmdline(char *cmdline);
-#ifdef COMM_SERVER
 static void sync_devices_with_user_sql(char *email, devices_t *devs);
 static void sync_areas_with_user_sql(char *email, areas_t *areas);
 static void sync_scenes_with_user_sql(char *email, scenes_t *scenes);
@@ -54,7 +51,11 @@ static void sync_scenes_with_user_sql(char *email, scenes_t *scenes);
 static void del_devices_from_user_sql(char *email, devices_t *devs);
 static void del_areas_from_user_sql(char *email, areas_t *areas);
 static void del_scenes_from_user_sql(char *email, scenes_t *scenes);
-#endif
+
+pthread_mutex_t *get_sql_add_lock()
+{
+	return &sql_add_lock;
+}
 
 char *get_mix_name(fr_app_type_t type, uint8 s1, uint8 s2)
 {
@@ -76,7 +77,6 @@ char *get_current_time()
 
 int sql_init()
 {
-#ifdef COMM_SERVER
 	global_conf_t *m_conf = get_global_conf();
 
 	if (mysql_init(&mysql_conn) == NULL)
@@ -104,7 +104,6 @@ int sql_init()
 		DE_PRINTF(1, "%s()%d : sql character set failed\n", __FUNCTION__, __LINE__);
 		return -1;
 	} 
-#endif
 
 	if(pthread_mutex_init(&sql_lock, NULL) != 0)
 	{
@@ -112,12 +111,18 @@ int sql_init()
         return -1;
 	}
 
+	if(pthread_mutex_init(&sql_add_lock, NULL) != 0)
+	{
+		DE_PRINTF(1, "%s()%d :  pthread_mutext_init failed\n",
+			__FUNCTION__, __LINE__);
+		return -1;
+	}
+
 	return 0;
 }
 
 int sql_reconnect()
 {
-#ifdef COMM_SERVER
 	global_conf_t *m_conf = get_global_conf();
 	
 	if(mysql_ping(&mysql_conn))
@@ -144,41 +149,16 @@ int sql_reconnect()
 		is_userful = 1;
 		return 1;
 	}
-#endif
 
 	return 0;
 }
 
- int sql_excute_cmdline(char *cmdline)
- {
-	pthread_mutex_lock(&sql_lock);
-	if(sql_reconnect() < 0)
-	{
-		pthread_mutex_unlock(&sql_lock);
-	   	return -1;
-	}
-
-#ifdef COMM_SERVER	
-	if( mysql_query(&mysql_conn, cmdline))
-    {
-		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
-	   	return -1;
-    }
-#endif
-	
-	pthread_mutex_unlock(&sql_lock);
-	return 0;
- }
-
 void sql_release()
 {
 	is_userful = 0;
-#ifdef COMM_SERVER
 	DE_PRINTF(1, "%s()%d : sql close \"%s\"\n", 
-	 			__FUNCTION__, __LINE__, get_global_conf()->db_name);
+	 			__FUNCTION__, __LINE__, get_global_conf()->db_name);	
 	mysql_close(&mysql_conn);
-#endif
 }
 
 int sql_isuse()
@@ -197,7 +177,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 	char gwno[24] = {0};
 	incode_xtocs(gwno, p_gw->gw_no, sizeof(zidentify_no_t));
 	
-	fr_buffer_t *frbuffer = get_devopt_data_tostr(m_dev->zdev_opt);
+	fr_buffer_t *frbuffer = get_devopt_data_to_str(m_dev->zdev_opt);
 	char data[24] = {0};
 	if(frbuffer != NULL)
 	{
@@ -205,7 +185,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 		get_buffer_free(frbuffer);
 	}
 
-	if(sql_query_zdev(p_gw, m_dev->zidentity_no) == 0)
+	if(sql_query_zdev(p_gw, m_dev->zidentity_no) != NULL)
 	{
 		SET_CMD_LINE("%s%04X%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
 				"UPDATE devices SET shortaddr=\'",
@@ -227,8 +207,22 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 				"\'");
 
 		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+		pthread_mutex_lock(&sql_lock);
+		if(sql_reconnect() < 0)
+		{
+			pthread_mutex_unlock(&sql_lock);
+		   	return -1;
+		}
+		
+		if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+	    {
+			pthread_mutex_unlock(&sql_lock);
+	       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+		   	return -1;
+	    }
+		pthread_mutex_unlock(&sql_lock);
 
-		return sql_excute_cmdline(GET_CMD_LINE());
+		return add_zdev_info(p_gw, m_dev);
 	}
 
 	SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
@@ -261,11 +255,25 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 		"\')");
 
 	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return -1;
+	}
 	
-	return sql_excute_cmdline(GET_CMD_LINE());
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
+	
+	return add_zdev_info(p_gw, m_dev);
 }
 
-int sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
+dev_info_t *sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 {
 	char serstr[24] = {0};
 	incode_xtocs(serstr, zidentity_no, sizeof(zidentify_no_t));
@@ -275,31 +283,59 @@ int sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
 	{
-		return -1;
+		pthread_mutex_unlock(&sql_lock);
+	   	return NULL;
 	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return NULL;
+    }
+	pthread_mutex_unlock(&sql_lock);
 
-#ifdef COMM_SERVER
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
 		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
-		return -1;
+		return NULL;
 	}
 
     while((mysql_row = mysql_fetch_row(mysql_res)))
     {
 		int nums = mysql_num_fields(mysql_res);
-		if(nums > 0)
-		{
-			mysql_free_result(mysql_res);
-			return 0;
-		}
-	}
-	mysql_free_result(mysql_res);
-#endif
+		uint16 znet_addr;
+		incode_ctox16(&znet_addr, mysql_row[3]);
+		dev_info_t *m_dev = calloc(1, sizeof(dev_info_t));
 
-	return 1;
+		memcpy(m_dev->zidentity_no, zidentity_no, sizeof(zidentify_no_t));
+		m_dev->znet_addr = znet_addr;
+		m_dev->zapp_type = get_frapp_type_from_str(mysql_row[2]);
+		m_dev->znet_type = FRNET_ENDDEV;
+
+		m_dev->zdev_opt = calloc(1, sizeof(dev_opt_t));
+		m_dev->zdev_opt->type = m_dev->zapp_type;
+		if(set_devopt_fromstr(m_dev->zdev_opt, mysql_row[14], strlen(mysql_row[14])) < 0)
+		{
+			free(m_dev->zdev_opt);
+			m_dev->zdev_opt = NULL;
+		}
+
+		if(add_zdev_info(p_gw, m_dev) != 0)
+		{
+			get_devopt_data_free(m_dev->zdev_opt);
+			get_zdev_frame_free(m_dev);
+		}
+		
+		mysql_free_result(mysql_res);
+		return query_zdev_info(p_gw, znet_addr);
+	}
+
+    mysql_free_result(mysql_res);
+	return NULL;
 }
 
 int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
@@ -312,7 +348,22 @@ int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	return sql_excute_cmdline(GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return -1;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
+	
+	return 0;
 }
 
 int sql_uponline_zdev(gw_info_t *p_gw, 
@@ -345,7 +396,22 @@ int sql_uponline_zdev(gw_info_t *p_gw,
 				"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	return sql_excute_cmdline(GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return -1;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
+	
+	return 0;
 }
 
 int sql_add_gateway(gw_info_t *m_gw)
@@ -356,7 +422,7 @@ int sql_add_gateway(gw_info_t *m_gw)
 	char gwno_str[24] = {0};
 	incode_xtocs(gwno_str, m_gw->gw_no, sizeof(zidentify_no_t));
 	
-	fr_buffer_t *frbuffer = get_devopt_data_tostr(m_gw->zgw_opt);
+	fr_buffer_t *frbuffer = get_devopt_data_to_str(m_gw->zgw_opt);
 	char data[24] = {0};
 	if(frbuffer != NULL)
 	{
@@ -388,7 +454,22 @@ int sql_add_gateway(gw_info_t *m_gw)
 			"\')");
 
 		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-		return sql_excute_cmdline(GET_CMD_LINE());
+		pthread_mutex_lock(&sql_lock);
+		if(sql_reconnect() < 0)
+		{
+			pthread_mutex_unlock(&sql_lock);
+		   	return -1;
+		}
+		
+		if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+	    {
+			pthread_mutex_unlock(&sql_lock);
+	       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+		   	return -1;
+	    }
+		pthread_mutex_unlock(&sql_lock);
+		
+		return add_gateway_info(m_gw);
 
 	}
 	else if(ret == 0)
@@ -407,7 +488,22 @@ int sql_add_gateway(gw_info_t *m_gw)
 				"\'");
 
 		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-		return sql_excute_cmdline(GET_CMD_LINE());
+		pthread_mutex_lock(&sql_lock);
+		if(sql_reconnect() < 0)
+		{
+			pthread_mutex_unlock(&sql_lock);
+		   	return -1;
+		}
+		
+		if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+	    {
+			pthread_mutex_unlock(&sql_lock);
+	       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+		   	return -1;
+	    }
+		pthread_mutex_unlock(&sql_lock);
+
+		return add_gateway_info(m_gw);
 	}
 
 	return -1;
@@ -423,12 +519,21 @@ int sql_query_gateway(zidentify_no_t gw_no)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
 	{
-		return -1;
+		pthread_mutex_unlock(&sql_lock);
+	   	return -1;
 	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
 
-#ifdef COMM_SERVER
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
 		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
@@ -446,8 +551,6 @@ int sql_query_gateway(zidentify_no_t gw_no)
 	}
 
     mysql_free_result(mysql_res);
-#endif
-
 	return 1;
 }
 
@@ -461,10 +564,24 @@ int sql_del_gateway(zidentify_no_t gw_no)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	return sql_excute_cmdline(GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+	   	return -1;
+	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
+	
+	return 0;
 }
 
-#ifdef COMM_SERVER
 int get_user_info_from_sql(char *email, cli_user_t *user_info)
 {
 	if(email == NULL || user_info == NULL)
@@ -479,10 +596,20 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 		"\'");
 
 	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
 	{
-		return -1;
+		pthread_mutex_unlock(&sql_lock);
+	   	return -1;
 	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
@@ -545,7 +672,6 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 	}
 
     mysql_free_result(mysql_res);
-
 	return 1;	
 }
 
@@ -698,10 +824,20 @@ void sync_devices_with_user_sql(char *email, devices_t *devs)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
 	{
-		return;
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
 	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
@@ -773,7 +909,34 @@ void sync_devices_with_user_sql(char *email, devices_t *devs)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
 			
 			cJSON_Delete(pRoot);
 			free(devices);
@@ -797,10 +960,20 @@ void sync_areas_with_user_sql(char *email, areas_t *areas)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
 	{
-		return;
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
 	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
@@ -860,8 +1033,35 @@ void sync_areas_with_user_sql(char *email, areas_t *areas)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(areas);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(areas);
+				
+				mysql_free_result(mysql_res);
 
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
+			
 			cJSON_Delete(pRoot);
 			free(areas);
 			
@@ -884,10 +1084,20 @@ void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
 	{
-		return;
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
 	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
@@ -992,8 +1202,35 @@ void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
 
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
+			
 			cJSON_Delete(pRoot);
 			free(devices);
 			
@@ -1152,10 +1389,20 @@ void del_devices_from_user_sql(char *email, devices_t *devs)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
 	{
-		return;
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
 	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
@@ -1210,8 +1457,35 @@ void del_devices_from_user_sql(char *email, devices_t *devs)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
 
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
+			
 			cJSON_Delete(pRoot);
 			free(devices);
 			
@@ -1234,10 +1508,20 @@ void del_areas_from_user_sql(char *email, areas_t *areas)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
 	{
-		return;
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
 	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
@@ -1291,7 +1575,34 @@ void del_areas_from_user_sql(char *email, areas_t *areas)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(areas);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(areas);
+				
+				mysql_free_result(mysql_res);
+
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
 			
 			cJSON_Delete(pRoot);
 			free(areas);
@@ -1315,10 +1626,20 @@ void del_scenes_from_user_sql(char *email, scenes_t *scenes)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
 	{
-		return;
+		pthread_mutex_unlock(&sql_lock);
+	   	return;
 	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return;
+    }
+	pthread_mutex_unlock(&sql_lock);
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
@@ -1373,7 +1694,34 @@ void del_scenes_from_user_sql(char *email, scenes_t *scenes)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return;
+		    }
+			pthread_mutex_unlock(&sql_lock);
 			
 			cJSON_Delete(pRoot);
 			free(devices);
@@ -1397,10 +1745,20 @@ int set_device_to_user_sql(char *email, char *dev_str)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
 	{
-		return -1;
+		pthread_mutex_unlock(&sql_lock);
+	   	return -1;
 	}
+	
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
@@ -1458,7 +1816,34 @@ int set_device_to_user_sql(char *email, char *dev_str)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			pthread_mutex_lock(&sql_lock);
+			if(sql_reconnect() < 0)
+			{
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+				
+			   	return -1;
+			}
+			
+			if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+		    {
+				pthread_mutex_unlock(&sql_lock);
+				
+				cJSON_Delete(pRoot);
+				free(devices);
+				
+				mysql_free_result(mysql_res);
+
+				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+						__FUNCTION__, __LINE__);
+				
+			   	return -1;
+		    }
+			pthread_mutex_unlock(&sql_lock);
 			
 			cJSON_Delete(pRoot);
 			free(devices);
@@ -1490,7 +1875,34 @@ int set_device_to_user_sql(char *email, char *dev_str)
 				"\'");
 
 	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	sql_excute_cmdline(GET_CMD_LINE());
+	pthread_mutex_lock(&sql_lock);
+	if(sql_reconnect() < 0)
+	{
+		pthread_mutex_unlock(&sql_lock);
+		
+		cJSON_Delete(pRoot);
+		free(devices);
+		
+		mysql_free_result(mysql_res);
+		
+	   	return -1;
+	}
+
+	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
+    {
+		pthread_mutex_unlock(&sql_lock);
+		
+		cJSON_Delete(pRoot);
+		free(devices);
+		
+		mysql_free_result(mysql_res);
+
+		DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+				__FUNCTION__, __LINE__);
+		
+	   	return -1;
+    }
+	pthread_mutex_unlock(&sql_lock);
 	
 	cJSON_Delete(pRoot);
 	free(devices);
@@ -1498,11 +1910,9 @@ int set_device_to_user_sql(char *email, char *dev_str)
     mysql_free_result(mysql_res);
 	return 1;
 }
-#endif
 
 void sql_test()
 {
-#ifdef COMM_SERVER
      MYSQL mysql_conn;
 	 global_conf_t *m_conf = get_global_conf();
 
@@ -1524,7 +1934,6 @@ void sql_test()
 	 }
 
      mysql_close(&mysql_conn);
-#endif
 }
 #endif
 

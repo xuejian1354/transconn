@@ -190,13 +190,13 @@ typedef struct Dev_Opt
 fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen);
 void *get_devopt_buffer_free(fr_buffer_t *p);
 
-dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len);
-void get_devopt_free(dev_opt_t *opt);
+dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len);
+void get_devopt_data_free(dev_opt_t *opt);
 
 int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len);
-fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt);
+fr_buffer_t * get_devopt_data_to_str(dev_opt_t *opt);
 
-int set_devopt_data_fromstr(dev_opt_t *opt, uint8 *data, int len);
+int set_devopt_data(dev_opt_t *opt, uint8 *data, int len);
 int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src);
 
 void devopt_de_print(dev_opt_t *opt);

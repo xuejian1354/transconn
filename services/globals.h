@@ -60,6 +60,7 @@
 #endif
 
 #ifdef DE_TRANS_UDP_STREAM_LOG
+#define DEU_CMD_PREFIX	"set deflag="
 #define DEU_UDP_CMD		"deudp"
 #define DEU_TCP_CMD		"detcp"
 #define DEU_UART_CMD	"deuart"
@@ -70,7 +71,7 @@
 #define GLOBAL_CONF_TCP_PORT		"tcp_port"
 #define GLOBAL_CONF_UDP_PORT		"udp_port"
 
-#define GLOBAL_CONF_UPAPK_DIR		"apk_update_dir"
+#define GLOBAL_CONF_UPAPK_DIR		"shomely_update_dir"
 
 #define GLOBAL_CONF_DATABASE		"db_database"
 #define GLOBAL_CONF_DBUSER			"db_username"
@@ -94,7 +95,7 @@ This macro just support that
 #define TRANS_CLIENT_THREAD_MAX_NUM		6
 
 //single frame max size
-#define MAXSIZE	0x4000
+#define MAXSIZE	1024
 
 #define IP_ADDR_MAX_SIZE	24
 

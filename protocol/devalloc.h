@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <protocol/framelysis.h>
+#include <protocol/trframelysis.h>
 #include <protocol/devopt.h>
 #include <protocol/users.h>
 
@@ -37,6 +38,12 @@ typedef struct Dev_Info
 	struct Dev_Info *next;
 }dev_info_t;
 
+typedef struct Cli_Contain
+{
+	cli_info_t *p_cli;
+	struct Cli_Contain *next;
+}cli_contain_t;
+
 typedef struct Gw_Info
 {
 	zidentify_no_t gw_no;
@@ -45,14 +52,24 @@ typedef struct Gw_Info
 	uint16 zchannel;
 	dev_opt_t *zgw_opt;
 	uint32 rand;
+	tr_trans_type_t trans_type;
 	uint8 ipaddr[IP_ADDR_MAX_SIZE];
 	uint8 ip_len;
 	uint8 serverip_addr[IP_ADDR_MAX_SIZE];
 	uint8 serverip_len;
 	pthread_mutex_t lock;
 	dev_info_t *p_dev;
+	cli_contain_t *p_contain;
 	struct Gw_Info *next;
 }gw_info_t;
+
+typedef struct
+{
+	int fd;
+	struct sockaddr_in addr; 
+	char *buf;
+	int len;
+}frhandler_arg_t;
 
 typedef struct
 {
@@ -61,11 +78,21 @@ typedef struct
 	long max_num;
 }gw_list_t;
 
+uint8 *get_zdev_buffer_alloc(dev_info_t *dev_info);
+void get_zdev_buffer_free(uint8 *p);
 dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length);
 void get_zdev_frame_free(dev_info_t *p);
 
+fr_buffer_t *get_gateway_buffer_alloc(gw_info_t *gw_info);
+void get_gateway_buffer_free(uint8 *p);
+
 gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length);
 void get_gateway_frame_free(gw_info_t *p);
+
+frhandler_arg_t *get_frhandler_arg_alloc(int fd, struct sockaddr_in *addr, 
+														char *buf, int len);
+void get_frhandler_arg_free(frhandler_arg_t *arg);
+
 
 fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type, 
 	dev_opt_t *opt, void *frame);

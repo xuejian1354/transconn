@@ -21,6 +21,9 @@ include mconfig/server_config
 include mconfig/client_config
 export SERVER_DMACRO CLIENT_DMACRO
 
+SUB_MODULES:=debug module protocol services
+export SUB_MODULES
+
 define dependsrcs
 $(1)/built-s.o:$(patsubst %.c,%-s.o,$(2))
 	$(call echocmd,LD, $$@, \
@@ -32,11 +35,7 @@ endef
 
 SERVER_SOURCES:=smain.c
 CLIENT_SOURCES:=cmain.c
-SUB_DIRS:=$(strip $(patsubst $(TOPDIR)/%/,%, \
-		$(dir $(shell find -L $(TOPDIR) -name "transconn.mk"))))
-SUB_MODULES:=debug $(SUB_DIRS)
-export SUB_MODULES
-
+SUB_DIRS:=$(filter-out debug, $(SUB_MODULES))
 $(foreach d, $(SUB_DIRS), \
     $(eval include $(d)/transconn.mk) \
     $(eval SERVER_SRCS:=$(patsubst %,$(d)/%,$(SERVER_SRCS))) \
@@ -51,7 +50,7 @@ CLIENT_OBJS:=$(patsubst %.c,%-c.o,$(CLIENT_SOURCES)) $(patsubst %,%/built-c.o,$(
 
 .PHONY:all alls tests distclean clean cclean sclean help
 
-all:$(TARGET)
+all:$(SERVER_TARGET)
 
 alls:$(TARGET) tests
 
@@ -59,7 +58,7 @@ include $(TOPDIR)/include/include.mk
 
 $(SERVER_TARGET):$(inc_deps) $(inc_dirs_deps) server_comshow $(SERVER_OBJS) libs-s
 	$(call echocmd,TAR,$(SERVER_TARGET), \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -w -O2 -o $@ $(SERVER_OBJS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG)) $(STD_LDFLAGS)
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -O2 -o $@ $(SERVER_OBJS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG)) $(STD_LDFLAGS)
 	@$(STARGET_STRIP) $@
 
 $(CLIENT_TARGET):$(inc_deps) $(inc_dirs_deps) client_comshow $(CLIENT_OBJS) libs-c
@@ -69,7 +68,7 @@ $(CLIENT_TARGET):$(inc_deps) $(inc_dirs_deps) client_comshow $(CLIENT_OBJS) libs
 
 %-s.o:%.c $(ALL_HEARDS) mconfig/server_config
 	$(call echocmd,CC, $@, \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -w -O2 -o $@ -c $<)
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -O2 -o $@ -c $<)
 
 %-c.o:%.c $(ALL_HEARDS) mconfig/client_config
 	$(call echocmd,CC, $@, \
@@ -103,7 +102,7 @@ sclean:
 	(find -name "*-s.[oa]" | xargs $(RM)) && $(RM) $(SERVER_TARGET)
 
 clean:cclean sclean
-	$(RM) -r $(patsubst %/,include/%,debug/ $(dir $(shell ls */transconn.mk))) $(inc_dirs_deps)
+	$(RM) -r $(dir $(patsubst %,include/%,$(inc_files))) $(inc_dirs_deps)
 
 distclean:clean
 	@make -C tests clean

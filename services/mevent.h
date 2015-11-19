@@ -18,17 +18,19 @@
  #define __MEVENT_H__
 
  #include <services/globals.h>
- #include <services/etimer.h>
+ #include <module/etimer.h>
  #include <protocol/protocol.h>
 
 #ifdef TIMER_SUPPORT
 #ifdef COMM_CLIENT
-void gateway_init();
+void set_upload_event();
 void set_zdev_check(uint16 net_addr);
 void set_cli_check(cli_info_t *p_cli);
+void set_rp_check(cli_info_t *p_cli);
 #endif
 
 #ifdef COMM_SERVER
+void set_clients_listen();
 void set_gateway_check(zidentify_no_t gw_no, int rand);
 #endif
 

@@ -15,7 +15,7 @@
  * GNU General Public License for more details.
  */
 #include <services/globals.h>
-#include <services/balancer.h>
+#include <module/balancer.h>
 #include <module/netapi.h>
 #ifdef DB_API_SUPPORT
 #include <module/dbopt.h>

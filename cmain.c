@@ -96,8 +96,6 @@ int main(int argc, char **argv)
 	{
 #ifdef SELECT_SUPPORT
 		select_listen();
-#else
-		usleep(10000);
 #endif
 	}
 
