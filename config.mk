@@ -11,14 +11,21 @@ ifneq ("$(origin cprefix)", "command line")
   cprefix :=mipsel-openwrt-linux-
 endif
 
+ifneq ("$(origin dir)", "command line")
+  dir :=
+endif
+
+ifneq ("$(dir)", "")
+  DIR :=$(dir)/
+else
+  DIR :=
+endif
+
 ifneq ("$(origin V)", "command line")
   V := 1
 endif
 
-export V
-
-$(shell find -name "*.[ch]" | xargs chmod -x)
-$(shell find -name "*_config" | xargs chmod -x)
+export DIR V
 
 TARGET_CC := $(prefix)gcc
 TARGET_LD := $(prefix)ld
