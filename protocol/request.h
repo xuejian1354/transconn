@@ -19,37 +19,51 @@
 #define __REQUEST_H__
 
 #include <services/globals.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <protocol/trframelysis.h>
 #include <protocol/devalloc.h>
+#include <module/netapi.h>
 
-void pi_handler(frhandler_arg_t *arg, pi_t *p_pi);
-void bi_handler(frhandler_arg_t *arg, bi_t *p_bi);
+typedef enum
+{
+	ACTION_REPORT = 1,
+	ACTION_CHECK,
+	ACTION_REFRESH,
+	ACTION_CONTROL,
+	ACTION_RESPOND
+}trans_action_t;
 
-void ul_handler(frhandler_arg_t *arg, ul_t *p_ul);
-void sl_handler(frhandler_arg_t *arg, sl_t *p_sl);
+#ifdef COMM_CLIENT
+char *trans_protocol_request_alloc(char *protocol);
+char *trans_report_alloc(zidentify_no_t sns[], int len);
+char *trans_check_alloc(zidentify_no_t sns[], int len);
+char *trans_respond_alloc(zidentify_no_t sns[], int len);
+void trans_refresh_handler(char *data);
+void trans_control_handler(char *data);
+void trans_protocol_respond_handler(char *data);
+#endif
 
-void ut_handler(frhandler_arg_t *arg, ut_t *p_ut);
-void st_handler(frhandler_arg_t *arg, st_t *p_st);
+#ifdef COMM_SERVER
+void trans_protocol_request_handler(char *data);
+void trans_report_handler(char *data);
+void trans_check_handler(char *data);
+void trans_respond_handler(char *data);
+char *trans_refresh_alloc(zidentify_no_t sns[], int len);
+char *trans_control_alloc(zidentify_no_t sns[], int len);
+char *trans_protocol_respond_alloc(char *protocol);
+#endif
 
-void gp_handler(frhandler_arg_t *arg, gp_t *p_gp);
-void rp_handler(frhandler_arg_t *arg, rp_t *p_rp);
-
-void gd_handler(frhandler_arg_t *arg, gd_t *p_gd);
-void rd_handler(frhandler_arg_t *arg, rd_t *p_rd);
-
-void dc_handler(frhandler_arg_t *arg, dc_t *p_dc);
-void ub_handler(frhandler_arg_t *arg, ub_t *p_ub);
+#ifdef COMM_CLIENT
+void sync_gateway_info(gw_info_t *pgw_info);
+void sync_zdev_info(dev_info_t *pdev_info);
+#endif
 
 #ifdef TRANS_UDP_SERVICE
-void send_frame_udp_request(char *ipaddr, tr_head_type_t htype, void *frame);
+void send_frame_udp_request(char *ipaddr, char *data, int len);
 #endif
 #ifdef TRANS_TCP_CLIENT
-void send_frame_tcp_request(tr_head_type_t htype, void *frame);
+void send_frame_tcp_request(char *data, int len);
 #endif
 #ifdef TRANS_TCP_SERVER
-void send_frame_tcp_respond(frhandler_arg_t *arg, tr_head_type_t htype, void *frame);
+void send_frame_tcp_respond(frhandler_arg_t *arg, char *data, int len);
 #endif
 
 #endif  //__REQUEST_H__

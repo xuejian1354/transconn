@@ -18,7 +18,7 @@
 
 static relser_list_t *p_serlist;
 static const char *none_name = "none";
-static const char *none_server_ip = "0.0.0.0";
+static char *none_server_ip = "0.0.0.0";
 
 int add_relser_info(relser_info_t *m_ser);
 relser_info_t *query_relser_info(char *name);
@@ -242,7 +242,7 @@ line_data_t *serlist_linehandle(char *buf, int len)
 	return NULL;
 }
 
-const char *get_server_ip(void)
+char *get_server_ip(void)
 {
 	if(p_serlist != NULL)
 	{

@@ -19,7 +19,6 @@
 #define __USERS_H__
 
 #include <services/globals.h>
-#include <protocol/trframelysis.h>
 
 typedef struct Cli_User
 {
@@ -32,7 +31,6 @@ typedef struct Cli_User
 typedef struct Cli_Info
 {
 	cidentify_no_t cidentify_no;
-	tr_trans_type_t trans_type;
 	uint8 ipaddr[IP_ADDR_MAX_SIZE];
 	uint8 ip_len;
 	uint8 serverip_addr[IP_ADDR_MAX_SIZE];

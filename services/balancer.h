@@ -50,7 +50,7 @@ typedef struct RelSer_List
 }relser_list_t;
 
 int serlist_read_from_confile(void);
-const char *get_server_ip(void);
+char *get_server_ip(void);
 const char *get_server_ip_from_name(char *name);
 const char *get_server_name_from_ip(char *ip);
 
