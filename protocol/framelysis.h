@@ -53,6 +53,13 @@
 #define FR_APP_HUMITURE_DETECTION	"A1"
 #define FR_APP_SOLENOID_VALVE		"A2"
 
+//type for smartlab device
+#define FR_APP_LAMPSWITCH		"31"
+#define FR_APP_PROJECTOR		"32"
+#define FR_APP_AIRCONDITION		"33"
+#define FR_APP_CURTAIN			"34"
+#define FR_APP_DOORLOCK			"35"
+
 #define FR_TAIL ":O\r\n"
 
 typedef enum
@@ -82,6 +89,14 @@ typedef enum
 	FRAPP_RELAYSOCKET = 0xF1,
 	FRAPP_HUMITURE_DETECTION = 0xA1,
 	FRAPP_SOLENOID_VALVE = 0xA2,
+
+	//type for smartlab device
+	FRAPP_LAMPSWITCH = 31,
+	FRAPP_PROJECTOR = 32,
+	FRAPP_AIRCONDITION = 33,
+	FRAPP_CURTAIN = 34,
+	FRAPP_DOORLOCK = 35,
+	
 	FRAPP_NONE = 0xFF,
 }fr_app_type_t;
 
@@ -102,6 +117,11 @@ typedef enum
     TN_RELAY,
     TN_HT,
     TN_VALVE,
+    TN_LAMPSW,
+	TN_PJECTOR,
+	TN_AIRCONDITION,
+	TN_CURTAIN,
+	TN_DOORLOCK,
     TN_NUMS
 }type_name_t;
 
@@ -192,6 +212,7 @@ typedef struct
 
 char *get_name(type_name_t tn);
 char *get_name_from_type(fr_app_type_t type);
+char *get_mix_name(fr_app_type_t type, uint8 s1, uint8 s2);
 
 fr_head_type_t get_frhead_from_str(char *head);
 int get_frhead_to_str(char *dst, fr_head_type_t head_type);

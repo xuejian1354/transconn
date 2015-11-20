@@ -22,6 +22,13 @@
 #include <errno.h>
 #include <string.h>
 
+#define STRS_MEMCPY(dst, src, dstlen, srclen)    \
+do{                                              \
+  if(dst == NULL || src == NULL) break;          \
+  int len = dstlen>srclen?srclen:(dstlen-1);     \
+  memcpy(dst, src, len);                         \
+}while(0)
+
 typedef struct
 {
 	char **str;

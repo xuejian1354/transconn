@@ -54,6 +54,11 @@ static zh_el_t zh_tables[TN_NUMS+1] =
     { FRAPP_RELAYSOCKET, "中继开关" },
     { FRAPP_HUMITURE_DETECTION, "温湿度" },
     { FRAPP_SOLENOID_VALVE, "电磁阀" },
+    { FRAPP_LAMPSWITCH, "灯开关" },
+    { FRAPP_PROJECTOR, "投影仪" },
+    { FRAPP_AIRCONDITION, "空调" },
+    { FRAPP_CURTAIN, "窗帘" },
+    { FRAPP_DOORLOCK, "门禁" },
     { FRAPP_NONE, "" }
 };
 
@@ -75,10 +80,16 @@ static zh_el_t zh_tables[TN_NUMS+1] =
     { FRAPP_RELAYSOCKET, "NetRelay" },
     { FRAPP_HUMITURE_DETECTION, "Humiture" },
     { FRAPP_SOLENOID_VALVE, "Valve" },
+    { FRAPP_LAMPSWITCH, "LampSwitch" },
+    { FRAPP_PROJECTOR, "Projector" },
+    { FRAPP_AIRCONDITION, "AirCondition" },
+    { FRAPP_CURTAIN, "Curtain" },
+    { FRAPP_DOORLOCK, "Doorlock" },
     { FRAPP_NONE, "" }
 };
 #endif
 
+static char mix_type_name[24];
 
 char *get_name(type_name_t tn)
 {
@@ -97,6 +108,13 @@ char *get_name_from_type(fr_app_type_t type)
 	}
 
 	return zh_tables[TN_NUMS].val;
+}
+
+char *get_mix_name(fr_app_type_t type, uint8 s1, uint8 s2)
+{
+	bzero(mix_type_name, sizeof(mix_type_name));
+	sprintf(mix_type_name, "%s%02X%02X", get_name_from_type(type), s1, s2);
+	return mix_type_name;
 }
 
 fr_head_type_t get_frhead_from_str(char *head)
@@ -156,6 +174,11 @@ int get_frhead_to_str(char *dst, fr_head_type_t head_type)
 }
 fr_app_type_t get_frapp_type_from_str(char *app_type)
 {
+	if(app_type == NULL)
+	{
+		return FRAPP_NONE;
+	}
+	
 	if(!strncmp(FR_APP_CONNECTOR, app_type, 2))
 	{
 		return FRAPP_CONNECTOR;
@@ -215,6 +238,26 @@ fr_app_type_t get_frapp_type_from_str(char *app_type)
 	else if(!strncmp(FR_APP_SOLENOID_VALVE, app_type, 2))
 	{
 		return FRAPP_SOLENOID_VALVE;
+	}
+	else if(!strncmp(FR_APP_LAMPSWITCH, app_type, 2))
+	{
+		return FRAPP_LAMPSWITCH;
+	}
+	else if(!strncmp(FR_APP_PROJECTOR, app_type, 2))
+	{
+		return FRAPP_PROJECTOR;
+	}
+	else if(!strncmp(FR_APP_AIRCONDITION, app_type, 2))
+	{
+		return FRAPP_AIRCONDITION;
+	}
+	else if(!strncmp(FR_APP_CURTAIN, app_type, 2))
+	{
+		return FRAPP_CURTAIN;
+	}
+	else if(!strncmp(FR_APP_DOORLOCK, app_type, 2))
+	{
+		return FRAPP_DOORLOCK;
 	}
 
 	return FRAPP_NONE;
@@ -282,6 +325,26 @@ int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 
 	case FRAPP_SOLENOID_VALVE:
 		strcpy(dst, FR_APP_SOLENOID_VALVE);
+		break;
+
+	case FRAPP_LAMPSWITCH:
+		strcpy(dst, FR_APP_LAMPSWITCH);
+		break;
+
+	case FRAPP_PROJECTOR:
+		strcpy(dst, FR_APP_PROJECTOR);
+		break;
+
+	case FRAPP_AIRCONDITION:
+		strcpy(dst, FR_APP_AIRCONDITION);
+		break;
+
+	case FRAPP_CURTAIN:
+		strcpy(dst, FR_APP_CURTAIN);
+		break;
+
+	case FRAPP_DOORLOCK:
+		strcpy(dst, FR_APP_DOORLOCK);
 		break;
 
 	default:

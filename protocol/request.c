@@ -18,60 +18,56 @@
 #include <cJSON.h>
 
 #ifdef COMM_CLIENT
-char *trans_protocol_request_alloc(char *protocol)
-{
-	return NULL;
-}
-
-char *trans_report_alloc(zidentify_no_t sns[], int len)
-{
-	return NULL;
-}
-
-char *trans_check_alloc(zidentify_no_t sns[], int len)
-{
-	return NULL;
-}
-
-char *trans_respond_alloc(zidentify_no_t sns[], int len)
-{
-	return NULL;
-}
-
-void trans_refresh_handler(char *data)
+void trans_refresh_handler(trfr_refresh_t *refresh)
 {}
 
-void trans_control_handler(char *data)
+void trans_control_handler(trfr_control_t *control)
 {}
 
-void trans_protocol_respond_handler(char *data)
+void trans_protocol_respond_handler(trfr_tocolres_t *tocolres)
 {}
 #endif
 
+void trans_protocol_request_handler(trfr_tocolreq_t *tocolreq)
+{
+	if(tocolreq == NULL)
+	{
+		return;
+	}
+
 #ifdef COMM_SERVER
-void trans_protocol_request_handler(char *data)
-{}
+	if(tocolreq->action == ACTION_TOCOLREQ)
+	{
+		if(!strncmp(tocolreq->protocol, FIELD_TOCOL_UDP, 3))
+		{
+			
+		}
+		else if(!strncmp(tocolreq->protocol, FIELD_TOCOL_TCP, 3))
+		{
+			
+		}
+		else if(!strncmp(tocolreq->protocol, FIELD_TOCOL_HTTP, 4))
+		{
+			
+		}
+	}
+#endif
+#ifdef COMM_CLIENT
+	if(tocolreq->action == ACTION_TOCOLRES)
+	{
 
-void trans_report_handler(char *data)
-{}
-
-void trans_check_handler(char *data)
-{}
-
-void trans_respond_handler(char *data)
-{}
-
-char *trans_refresh_alloc(zidentify_no_t sns[], int len)
-{
-	return NULL;
+	}
+#endif
 }
 
-char *trans_control_alloc(zidentify_no_t sns[], int len)
-{
-	return NULL;
-}
+#ifdef COMM_SERVER
+void trans_report_handler(trfr_report_t *report)
+{}
 
-char *trans_protocol_respond_alloc(char *protocol)
+void trans_check_handler(trfr_check_t *check)
+{}
+
+void trans_respond_handler(trfr_respond_t *respond)
 {}
 #endif
 
