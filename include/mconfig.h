@@ -35,6 +35,18 @@
 //#define DB_API_SUPPORT
 //#define DE_TRANS_UDP_STREAM_LOG
 
+#ifdef COMM_SERVER
+#define DB_API_WITH_MYSQL
+#endif
+
+#ifdef COMM_CLIENT
+#define DB_API_WITH_SQLITE
+#endif
+
+#if defined(DB_API_WITH_MYSQL) && defined(DB_API_WITH_SQLITE)
+#error "cannot define DB_API_WITH_MYSQL with DB_API_WITH_SQLITE at same time"
+#endif
+
 #ifdef DE_TRANS_UDP_STREAM_LOG
 #define DAEMON_PROCESS_CREATE
 #endif

@@ -21,6 +21,12 @@
 
 #define ZH_TYPE_NAME
 
+#ifdef ZH_TYPE_NAME
+#define NO_AREA		"未设置"
+#else
+#define NO_AREA		"NotSetting"
+#endif
+
 //frame head
 #define FR_HEAD_UC	"UC:"	//coord up data
 #define FR_HEAD_UO	"UO:"	//device up data
