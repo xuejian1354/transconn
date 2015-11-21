@@ -116,7 +116,6 @@ st(															\
 typedef byte zidentify_no_t[8];
 typedef byte cidentify_no_t[8];
 
-#ifdef READ_CONF_FILE
 typedef struct
 {
 	uint32 isset_flag;
@@ -142,7 +141,6 @@ typedef struct
 	char db_password[64];
 #endif
 }global_conf_t;
-#endif
 
 #ifdef DE_TRANS_UDP_STREAM_LOG
 char *get_de_buf();

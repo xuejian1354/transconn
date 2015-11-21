@@ -104,39 +104,96 @@ uint8 *get_common_no()
 
 int start_params(int argc, char **argv)
 {
-	if(argc > 1 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")))
-	{
+
+	int ch;  
+    opterr = 0;  
+	global_conf_t t_conf = {0};
+
+
 #ifdef SERIAL_SUPPORT
   #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
     #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-		DE_PRINTF(0, "Usage: %s [Serial Port] [TCP Port] [UDP Port]\n", argv[0]);
+	char *optstrs = "s:t:u:h";
 	#else
-		DE_PRINTF(0, "Usage: %s [Serial Port] [TCP Port]\n", argv[0]);
+	char *optstrs = "s:t:h";
     #endif
   #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-		DE_PRINTF(0, "Usage: %s [Serial Port] [UDP Port]\n", argv[0]);
+	char *optstrs = "s:u:h";
   #else
-  		DE_PRINTF(0, "Usage: %s [Serial Port]\n", argv[0]);
+  	char *optstrs = "s:h";
   #endif
 #elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
   #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-  		DE_PRINTF(0, "Usage: %s [TCP Port] [UDP Port]\n", argv[0]);
+  	char *optstrs = "t:u:h";
   #else
-  		DE_PRINTF(0, "Usage: %s [TCP Port]\n", argv[0]);
+  	char *optstrs = "t:h";
   #endif
 #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-		DE_PRINTF(0, "Usage: %s [UDP Port]\n", argv[0]);
+	char *optstrs = "u:h";
 #else
-		DE_PRINTF(0, "Usage: %s\n", argv[0]);
+	char *optstrs = "h";
 #endif
-		return 1;
-	}
+	
+    while((ch = getopt(argc, argv, optstrs)) != -1)
+    {
+		switch(ch)
+		{
+		case 'h':
+#ifdef SERIAL_SUPPORT
+  #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
+    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-t<TCP Port>] [-u<UDP Port>]\n", argv[0]);
+	#else
+			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-t<TCP Port>]\n", argv[0]);
+    #endif
+  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-u<UDP Port>]\n", argv[0]);
+  #else
+  			DE_PRINTF(0, "Usage: %s [-s<Serial Device>]\n", argv[0]);
+  #endif
+#elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
+  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+  			DE_PRINTF(0, "Usage: %s [-t<TCP Port>] [-u<UDP Port>]\n", argv[0]);
+  #else
+  			DE_PRINTF(0, "Usage: %s [-t<TCP Port>]\n", argv[0]);
+  #endif
+#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+			DE_PRINTF(0, "Usage: %s [-u<UDP Port>]\n", argv[0]);
+#else
+			DE_PRINTF(0, "Usage: %s\n", argv[0]);
+#endif
+			return 1;
 
+		case '?':
+			DE_PRINTF(0, "Unrecognize arguments.\n");
+			DE_PRINTF(0, "\'%s -h\' get more help infomations.\n", argv[0]);
+			return 1;
 
 #ifdef SERIAL_SUPPORT
-	if(argc > 1)
+		case 's':
+			sprintf(t_conf.serial_port, "%s", optarg);
+			t_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_SERIAL;
+			break;
+#endif
+#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
+		case 't':
+			t_conf.tcp_port = atoi(optarg);
+			t_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_TCP;
+			break;
+#endif
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+		case 'u':
+			t_conf.udp_port = atoi(optarg);
+			t_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UDP;
+			break;
+#endif
+		}
+	}
+	
+#ifdef SERIAL_SUPPORT
+	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_SERIAL)
 	{
-		set_serial_port(argv[1]);
+		set_serial_port(t_conf.serial_port);
 	}
 	else
 	{
@@ -148,9 +205,9 @@ int start_params(int argc, char **argv)
 	}
 	
   #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-  	if(argc > 2)
+  	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_TCP)
   	{
-		set_tcp_port(atoi(argv[2]));
+		set_tcp_port(t_conf.tcp_port);
   	}
 	else
 	{
@@ -163,9 +220,9 @@ int start_params(int argc, char **argv)
 	
     #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 
-	if(argc > 3)
+	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
 	{
-		set_udp_port(atoi(argv[3]));
+		set_udp_port(t_conf.udp_port);
 	}
 	else
 	{
@@ -178,9 +235,9 @@ int start_params(int argc, char **argv)
     #endif
 	
   #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-	if(argc > 2)
+	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
   	{
-		set_udp_port(atoi(argv[2]));
+		set_udp_port(t_conf.udp_port);
   	}
 	else
 	{
@@ -193,9 +250,9 @@ int start_params(int argc, char **argv)
   #endif
 
 #elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-	if(argc > 1)
+	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_TCP)
   	{
-		set_tcp_port(atoi(argv[1]));
+		set_tcp_port(t_conf.tcp_port);
   	}
 	else
 	{
@@ -207,9 +264,9 @@ int start_params(int argc, char **argv)
 	}
 
   #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-  	if(argc > 2)
+  	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
   	{
-		set_udp_port(atoi(argv[2]));
+		set_udp_port(t_conf.udp_port);
   	}
 	else
 	{
@@ -222,9 +279,9 @@ int start_params(int argc, char **argv)
   #endif
   
 #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-	if(argc > 1)
+	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
   	{
-		set_udp_port(atoi(argv[1]));
+		set_udp_port(t_conf.udp_port);
   	}
 	else
 	{
