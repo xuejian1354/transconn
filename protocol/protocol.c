@@ -17,6 +17,7 @@
 #include "protocol.h"
 #include <cJSON.h>
 #include <module/netapi.h>
+#include <protocol/common/fieldlysis.h>
 
 /* Used for SuperButton Functions */
 #define SB_OPT_CFG				'!'
@@ -276,13 +277,271 @@ void analysis_capps_frame(void *ptr)
 	cJSON *pRoot = cJSON_Parse(arg->buf);
 	if(pRoot == NULL)
 	{
-		return;
+		goto capps_arg_end;
 	}
 
-	cJSON *pEmail = cJSON_GetObjectItem(pRoot, "email");
+	cJSON *pAction = cJSON_GetObjectItem(pRoot, FIELD_ACTION);
+	if(pAction == NULL)
+	{
+		goto capps_cjson_end;
+	}
 
+	switch(pAction->valueint)
+	{
+	case ACTION_TOCOLREQ:
+	case ACTION_TOCOLRES:
+	{
+		cJSON *pProtocol = cJSON_GetObjectItem(pRoot, FIELD_PROTOCOL);
+		if(pProtocol == NULL)
+		{
+			goto capps_cjson_end;
+		}
+		
+		trfr_tocolreq_t * tocolreq = 
+			get_trfr_tocolreq_alloc(pAction->valueint, pProtocol->valuestring);
+
+		trans_protocol_request_handler(tocolreq);
+		get_trfr_tocolreq_free(tocolreq);
+	}
+		break;
+
+#ifdef COMM_SERVER
+	case ACTION_REPORT:
+	{
+		cJSON *pGateway = cJSON_GetObjectItem(pRoot, FIELD_GWSN);
+		if(pGateway == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pDevs = cJSON_GetObjectItem(pRoot, FIELD_DEVICES);
+		if(pDevs == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		int i = 0;
+		int dev_size = cJSON_GetArraySize(pDevs);
+		trfield_device_t **devices = calloc(dev_size, sizeof(trfield_device_t *));
+			
+		while(i < dev_size)
+		{
+			cJSON *pDev = cJSON_GetArrayItem(pDevs, i);
+			i++;
+			if(pDev == NULL)
+			{
+				continue;
+			}
+
+			cJSON *pDevName = cJSON_GetObjectItem(pDev, FIELD_NAME);
+			if(pDevName == NULL) continue;
+
+			cJSON *pDevDevSN = cJSON_GetObjectItem(pDev, FIELD_DEVSN);
+			if(pDevDevSN == NULL) continue;
+
+			cJSON *pDevDevType = cJSON_GetObjectItem(pDev, FIELD_DEVTYPE);
+			if(pDevDevType == NULL) continue;
+
+			cJSON *pDevZnetStatus = cJSON_GetObjectItem(pDev, FIELD_ZSTATUS);
+			if(pDevZnetStatus == NULL) continue;
+
+			cJSON *pDevData = cJSON_GetObjectItem(pDev, FIELD_DEVDATA);
+			if(pDevData == NULL) continue;
+
+			*(devices + i - 1) = 
+				get_trfield_device_alloc(pDevName->valuestring, 
+											pDevDevSN->valuestring, 
+											pDevDevType->valuestring, 
+											pDevZnetStatus->valuestring, 
+											pDevData->valuestring);
+		}
+
+		trfr_report_t *report = 
+			get_trfr_report_alloc(pAction->valueint, 
+									pGateway->valuestring, 
+									devices, 
+									dev_size);
+
+		trans_report_handler(report);
+		get_trfr_report_free(report);
+	}
+		break;
+
+	case ACTION_CHECK:
+	{
+		cJSON *pGateway = cJSON_GetObjectItem(pRoot, FIELD_GWSN);
+		if(pGateway == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pCodeCheck = cJSON_GetObjectItem(pRoot, FIELD_CODECHECK);
+		if(pCodeCheck == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pCodeData = cJSON_GetObjectItem(pRoot, FIELD_CODEDATA);
+		if(pCodeData == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, FIELD_DEVSNS);
+		if(pDevSNs == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		int i = 0;
+		int devsn_size = cJSON_GetArraySize(pDevSNs);
+		sn_t *dev_sns = calloc(devsn_size, sizeof(sn_t));
+
+		while(i < devsn_size)
+		{
+			cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
+			i++;
+			if(pDevSN == NULL) continue;
+
+			STRS_MEMCPY(dev_sns+i-1, pDevSN->valuestring, 
+					sizeof(sn_t), strlen(pDevSN->valuestring));
+		}
+
+		trfr_check_t *check = 
+			get_trfr_check_alloc(pAction->valueint, 
+									pGateway->valuestring, 
+									dev_sns, 
+									devsn_size, 
+									pCodeCheck->valuestring, 
+									pCodeData->valuestring);
+
+		trans_check_handler(check);
+		get_trfr_check_free(check);
+	}
+		break;
+
+	case ACTION_RESPOND:
+	{
+		cJSON *pGateway = cJSON_GetObjectItem(pRoot, FIELD_GWSN);
+		if(pGateway == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pDevSN = cJSON_GetObjectItem(pRoot, FIELD_DEVSN);
+		if(pDevSN == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pDevData = cJSON_GetObjectItem(pRoot, FIELD_DEVDATA);
+		if(pDevData == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		trfr_respond_t *respond = 
+			get_trfr_respond_alloc(pAction->valueint, 
+										pGateway->valuestring, 
+										pDevSN->valuestring, 
+										pDevData->valuestring);
+
+		trans_respond_handler(respond);
+		get_trfr_respond_free(respond);
+	}
+		break;
+#endif
+#ifdef COMM_CLIENT
+	case ACTION_REFRESH:
+	{
+		cJSON *pGateway = cJSON_GetObjectItem(pRoot, FIELD_GWSN);
+		if(pGateway == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, FIELD_DEVSNS);
+		if(pDevSNs == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		int i = 0;
+		int devsn_size = cJSON_GetArraySize(pDevSNs);
+		sn_t *dev_sns = calloc(devsn_size, sizeof(sn_t));
+
+		while(i < devsn_size)
+		{
+			cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
+			i++;
+			if(pDevSN == NULL) continue;
+
+			STRS_MEMCPY(dev_sns+i-1, pDevSN->valuestring, 
+					sizeof(sn_t), strlen(pDevSN->valuestring));
+		}
+
+		trfr_refresh_t *refresh = 
+			get_trfr_refresh_alloc(pAction->valueint, 
+									pGateway->valuestring, 
+									dev_sns, 
+									devsn_size);
+
+		trans_refresh_handler(refresh);
+		get_trfr_refresh_free(refresh);
+	}
+		break;
+
+	case ACTION_CONTROL:
+	{
+		cJSON *pGateway = cJSON_GetObjectItem(pRoot, FIELD_GWSN);
+		if(pGateway == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, FIELD_DEVSNS);
+		if(pDevSNs == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pCmd = cJSON_GetObjectItem(pRoot, FIELD_CMD);
+		if(pCmd == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		int i = 0;
+		int devsn_size = cJSON_GetArraySize(pDevSNs);
+		sn_t *dev_sns = calloc(devsn_size, sizeof(sn_t));
+
+		while(i < devsn_size)
+		{
+			cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
+			i++;
+			if(pDevSN == NULL) continue;
+
+			STRS_MEMCPY(dev_sns+i-1, pDevSN->valuestring, 
+					sizeof(sn_t), strlen(pDevSN->valuestring));
+		}
+
+		trfr_control_t *control = 
+			get_trfr_control_alloc(pAction->valueint, 
+									pGateway->valuestring, 
+									dev_sns, 
+									devsn_size,
+									pCmd->valuestring);
+
+		trans_control_handler(control);
+		get_trfr_control_free(control);
+	}
+		break;
+#endif
+	}
+
+capps_cjson_end:
 	cJSON_Delete(pRoot);
-	
+capps_arg_end:
 	get_frhandler_arg_free(arg);
 }
 

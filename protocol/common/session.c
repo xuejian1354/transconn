@@ -87,48 +87,22 @@ void session_handler()
 
 #ifdef COMM_CLIENT
 void send_transtocol_request()
-{
-	char *data;
-
-#ifdef TRANS_UDP_SERVICE
-	data = trans_protocol_request_alloc(TRANSTOCOL_UDP);
-	send_frame_udp_request(get_server_ip(), data, strlen(data));
-	free(data);
-#endif
-
-#ifdef TRANS_TCP_CLIENT
-	data = trans_protocol_request_alloc(TRANSTOCOL_TCP);
-	send_frame_tcp_request(data, strlen(data));
-	free(data);
-#endif
-
-#ifdef TRANS_HTTP_REQUEST
-	data = trans_protocol_request_alloc(TRANSTOCOL_HTTP);
-	curl_http_request(CURL_POST, 
-				get_server_ip(), data, transtocol_post_respond_handler);
-	free(data);
-#endif
-}
+{}
 
 #ifdef TRANS_UDP_SERVICE
 void transtocol_udp_respond_handler(char *data)
-{
-	trans_protocol_respond_handler(data);
-}
+{}
 #endif
 
 #ifdef TRANS_TCP_CLIENT
 void transtocol_tcp_respond_handler(char *data)
-{
-	trans_protocol_respond_handler(data);
-}
+{}
 #endif
 
 #ifdef TRANS_HTTP_REQUEST
 size_t transtocol_post_respond_handler(void *buffer, 
 					size_t size, size_t nmemb, void *userp)
 {
-	trans_protocol_respond_handler(buffer);
 	return size*nmemb;
 }
 #endif

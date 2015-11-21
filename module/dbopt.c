@@ -42,7 +42,6 @@ static pthread_mutex_t sql_lock;
 
 static char is_userful = 0;
 static char cmdline[0x4000];
-static char mix_type_name[24];
 static char current_time[64];
 
 static int sql_excute_cmdline(char *cmdline);
@@ -55,13 +54,6 @@ static void del_devices_from_user_sql(char *email, devices_t *devs);
 static void del_areas_from_user_sql(char *email, areas_t *areas);
 static void del_scenes_from_user_sql(char *email, scenes_t *scenes);
 #endif
-
-char *get_mix_name(fr_app_type_t type, uint8 s1, uint8 s2)
-{
-	bzero(mix_type_name, sizeof(mix_type_name));
-	sprintf(mix_type_name, "%s%02X%02X", get_name_from_type(type), s1, s2);
-	return mix_type_name;
-}
 
 char *get_current_time()
 {

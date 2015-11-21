@@ -69,6 +69,9 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 	switch(type)
 	{
 	case FRAPP_LIGHTSWITCH_ONE: 
+	case FRAPP_LAMPSWITCH:
+	case FRAPP_CURTAIN:
+	case FRAPP_DOORLOCK:
 		opt = calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
@@ -237,6 +240,8 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 		
 	case FRAPP_IR_RELAY: 
+	case FRAPP_PROJECTOR:
+	case FRAPP_AIRCONDITION:
 		opt = calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
@@ -309,6 +314,9 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 	switch(opt->type)
 	{
 	case FRAPP_LIGHTSWITCH_ONE: 
+	case FRAPP_LAMPSWITCH:
+	case FRAPP_CURTAIN:
+	case FRAPP_DOORLOCK:
 		if(len >= DEVOPT_LIGHTSWITCH_ONE_FIX_SIZE)
 		{
 			opt->common.method = get_devopt_method_ctox(data[0]);
@@ -451,6 +459,8 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		return 0;
 
 	case FRAPP_IR_RELAY:
+	case FRAPP_PROJECTOR:
+	case FRAPP_AIRCONDITION:
 		if(len >= DEVOPT_IRRELAY_FIX_SIZE)
 		{
 			if(!memcmp(data, DEVOPT_IRRELAY_LEARN_MODE, 3))
@@ -588,6 +598,9 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 	switch(opt->type)
 	{
 	case FRAPP_LIGHTSWITCH_ONE: 
+	case FRAPP_LAMPSWITCH:
+	case FRAPP_CURTAIN:
+	case FRAPP_DOORLOCK:
 		buffer = calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTSWITCH_ONE_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
@@ -721,6 +734,8 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		return buffer;	
 		
 	case FRAPP_IR_RELAY: 
+	case FRAPP_PROJECTOR:
+	case FRAPP_AIRCONDITION:
 		return NULL;
 
 	case FRAPP_AIRCONTROLLER:
@@ -808,6 +823,9 @@ int set_devopt_data_fromstr(dev_opt_t *opt, uint8 *data, int len)
 	switch(opt->type)
 	{
 	case FRAPP_LIGHTSWITCH_ONE: 
+	case FRAPP_LAMPSWITCH:
+	case FRAPP_CURTAIN:
+	case FRAPP_DOORLOCK:
 		if(len >= 1)
 		{
 			opt->device.lightswitch.data.one[0] = data[0];
@@ -930,6 +948,9 @@ fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
 	switch(opt->type)
 	{
 	case FRAPP_LIGHTSWITCH_ONE: 
+	case FRAPP_LAMPSWITCH:
+	case FRAPP_CURTAIN:
+	case FRAPP_DOORLOCK:
 		buffer = calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTSWITCH_ONE_DATASTR_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
@@ -994,6 +1015,8 @@ fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
 		return buffer;
 
 	case FRAPP_IR_RELAY:
+	case FRAPP_PROJECTOR:
+	case FRAPP_AIRCONDITION:
 		buffer = calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_IRRELAY_DATASTR_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
@@ -1040,6 +1063,9 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 	switch(dst->type)
 	{
 	case FRAPP_LIGHTSWITCH_ONE: 
+	case FRAPP_LAMPSWITCH:
+	case FRAPP_CURTAIN:
+	case FRAPP_DOORLOCK:
 		dst->device.lightswitch.data.one[0] = src->device.lightswitch.data.one[0];
 		break;
 		
@@ -1163,6 +1189,21 @@ void devopt_de_print(dev_opt_t *opt)
 	{
 	case FRAPP_LIGHTSWITCH_ONE: 
 		DE_PRINTF(0, "[LightSwitchOne]\n");
+		DE_PRINTF(0, "data:%02X\n\n", opt->device.lightswitch.data.one[0]);
+		break;
+		
+	case FRAPP_LAMPSWITCH:
+		DE_PRINTF(0, "[LampSwitch]\n");
+		DE_PRINTF(0, "data:%02X\n\n", opt->device.lightswitch.data.one[0]);
+		break;
+		
+	case FRAPP_CURTAIN:
+		DE_PRINTF(0, "[Curtain]\n");
+		DE_PRINTF(0, "data:%02X\n\n", opt->device.lightswitch.data.one[0]);
+		break;
+		
+	case FRAPP_DOORLOCK:
+		DE_PRINTF(0, "[Doorlock]\n");
 		DE_PRINTF(0, "data:%02X\n\n", opt->device.lightswitch.data.one[0]);
 		break;
 		

@@ -21,6 +21,7 @@
 #include <debug/dlog.h>
 #include <signal.h>
 #include <tpool.h>
+#include <strings_t.h>
 #include "time.h"
 
 //default program name

@@ -21,34 +21,19 @@
 #include <services/globals.h>
 #include <protocol/devalloc.h>
 #include <module/netapi.h>
-
-typedef enum
-{
-	ACTION_REPORT = 1,
-	ACTION_CHECK,
-	ACTION_REFRESH,
-	ACTION_CONTROL,
-	ACTION_RESPOND
-}trans_action_t;
+#include <protocol/common/fieldlysis.h>
 
 #ifdef COMM_CLIENT
-char *trans_protocol_request_alloc(char *protocol);
-char *trans_report_alloc(zidentify_no_t sns[], int len);
-char *trans_check_alloc(zidentify_no_t sns[], int len);
-char *trans_respond_alloc(zidentify_no_t sns[], int len);
-void trans_refresh_handler(char *data);
-void trans_control_handler(char *data);
-void trans_protocol_respond_handler(char *data);
+void trans_refresh_handler(trfr_refresh_t *refresh);
+void trans_control_handler(trfr_control_t *control);
+void trans_protocol_respond_handler(trfr_tocolres_t *tocolres);
 #endif
 
+void trans_protocol_request_handler(trfr_tocolreq_t *tocolreq);
 #ifdef COMM_SERVER
-void trans_protocol_request_handler(char *data);
-void trans_report_handler(char *data);
-void trans_check_handler(char *data);
-void trans_respond_handler(char *data);
-char *trans_refresh_alloc(zidentify_no_t sns[], int len);
-char *trans_control_alloc(zidentify_no_t sns[], int len);
-char *trans_protocol_respond_alloc(char *protocol);
+void trans_report_handler(trfr_report_t *report);
+void trans_check_handler(trfr_check_t *check);
+void trans_respond_handler(trfr_respond_t *respond);
 #endif
 
 #ifdef COMM_CLIENT

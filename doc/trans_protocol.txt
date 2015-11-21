@@ -1,0 +1,107 @@
+﻿Interactive Action
+1. Add Classroom
+2. Control Devices/Requery Data
+
+Console Tasks
+1.Gateway send data to server and get respond info, by timing
+
+Action:
+Gateway ---> Server
+Protocol Request	1
+Report Data		2
+Check Data		3
+Data Respond		4
+
+Server ---> Gateway
+Refresh Request		5
+Control Cmd		6
+Protocol Respond	7
+
+dev_type:
+LampSwitch	31
+Projector	32
+AirCondition	33
+Curtain		34
+Doorlock	35
+
+Protocol Request/Respond
+{
+    action:    "1",
+    protocol:    "http"
+}
+
+Report Data
+{
+    action:    "2",
+    gw_sn:    "00124B000712ACC1",
+    devices:    [
+        {
+            name:    "窗帘155C",
+            dev_sn:    "00124B000712155C",
+            dev_type:    "34",
+            znet_status:    "1",
+            dev_data:    ""
+        },
+        {
+            name:    “窗帘047A",
+            dev_sn:    “00124B000712047A",
+            dev_type:    “34",
+            znet_status:    “1",
+            dev_data:    ""
+        },
+       {
+            name:    "灯开关5274",
+            dev_sn:    "00124B0007125274",
+            dev_type:    "31",
+            znet_status:    "1",
+            dev_data:    ""
+        }
+    ]
+}
+
+Check Data
+{
+    action:    "3",
+    gw_sn:    "00124B000712ACC1",
+    dev_sns:    [
+         "00124B000712155C",
+         "00124B000712047A",
+         "00124B0007125274" 
+    ],
+    code: {
+         code_check:    "md5",
+         code_data:    "1eefc8cae41face6b907ae495d3243bc"
+    }
+}
+
+Data Respond
+{
+    action:    "4",
+    gw_sn:    "00124B000712ACC1",
+    dev_sn:  "00124B000712155C",
+    dev_data:    ""
+}
+
+Refresh Request
+{
+    action:    "5",
+    gw_sn:    "00124B000712ACC1",
+    dev_sns:    [
+        "00124B000712155C",
+        "00124B000712047A",
+        "00124B0007125274"
+    ]
+}
+
+
+Control Cmd
+{
+    action:    "6",
+    gw_sn:    "00124B000712ACC1",
+    dev_sns:    [
+        "00124B000712155C",
+        "00124B000712047A",
+        "00124B0007125274"
+    ],
+    cmd:    ""
+}
