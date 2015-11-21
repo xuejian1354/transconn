@@ -22,10 +22,10 @@
 #include <services/globals.h>
 #include <protocol/protocol.h>
 #include <strings_t.h>
-#ifdef COMM_SERVER
+#ifdef DB_API_WITH_MYSQL
 #include <mysql/mysql.h>
 #endif
-#ifdef COMM_CLIENT
+#ifdef DB_API_WITH_SQLITE
 #include <sqlite3.h>
 #endif
 

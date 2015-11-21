@@ -22,8 +22,6 @@
 #define DB_SERVER	"localhost"
 #define DB_PORT		3306
 
-#define NO_AREA		"未设置"
-
 #define GET_CMD_LINE()	cmdline
 
 #define SET_CMD_LINE(format, args...)  	\
@@ -32,7 +30,7 @@ st(  									\
 	sprintf(cmdline, format, ##args);  	\
 )
 
-#ifdef COMM_SERVER
+#ifdef DB_API_WITH_MYSQL
 static MYSQL mysql_conn;
 static MYSQL_RES *mysql_res;
 static MYSQL_ROW mysql_row;
@@ -45,7 +43,7 @@ static char cmdline[0x4000];
 static char current_time[64];
 
 static int sql_excute_cmdline(char *cmdline);
-#ifdef COMM_SERVER
+#ifdef DB_API_WITH_MYSQL
 static void sync_devices_with_user_sql(char *email, devices_t *devs);
 static void sync_areas_with_user_sql(char *email, areas_t *areas);
 static void sync_scenes_with_user_sql(char *email, scenes_t *scenes);
@@ -68,7 +66,7 @@ char *get_current_time()
 
 int sql_init()
 {
-#ifdef COMM_SERVER
+#ifdef DB_API_WITH_MYSQL
 	global_conf_t *m_conf = get_global_conf();
 
 	if (mysql_init(&mysql_conn) == NULL)
@@ -109,7 +107,7 @@ int sql_init()
 
 int sql_reconnect()
 {
-#ifdef COMM_SERVER
+#ifdef DB_API_WITH_MYSQL
 	global_conf_t *m_conf = get_global_conf();
 	
 	if(mysql_ping(&mysql_conn))
@@ -150,7 +148,7 @@ int sql_reconnect()
 	   	return -1;
 	}
 
-#ifdef COMM_SERVER	
+#ifdef DB_API_WITH_MYSQL	
 	if( mysql_query(&mysql_conn, cmdline))
     {
 		pthread_mutex_unlock(&sql_lock);
@@ -166,7 +164,7 @@ int sql_reconnect()
 void sql_release()
 {
 	is_userful = 0;
-#ifdef COMM_SERVER
+#ifdef DB_API_WITH_MYSQL
 	DE_PRINTF(1, "%s()%d : sql close \"%s\"\n", 
 	 			__FUNCTION__, __LINE__, get_global_conf()->db_name);
 	mysql_close(&mysql_conn);
@@ -272,7 +270,7 @@ int sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 		return -1;
 	}
 
-#ifdef COMM_SERVER
+#ifdef DB_API_WITH_MYSQL
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
 		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
@@ -420,7 +418,7 @@ int sql_query_gateway(zidentify_no_t gw_no)
 		return -1;
 	}
 
-#ifdef COMM_SERVER
+#ifdef DB_API_WITH_MYSQL
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
 		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
@@ -456,7 +454,7 @@ int sql_del_gateway(zidentify_no_t gw_no)
 	return sql_excute_cmdline(GET_CMD_LINE());
 }
 
-#ifdef COMM_SERVER
+#ifdef DB_API_WITH_MYSQL
 int get_user_info_from_sql(char *email, cli_user_t *user_info)
 {
 	if(email == NULL || user_info == NULL)
@@ -1494,7 +1492,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 
 void sql_test()
 {
-#ifdef COMM_SERVER
+#ifdef DB_API_WITH_MYSQL
      MYSQL mysql_conn;
 	 global_conf_t *m_conf = get_global_conf();
 
