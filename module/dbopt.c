@@ -36,6 +36,10 @@ static MYSQL_RES *mysql_res;
 static MYSQL_ROW mysql_row;
 #endif
 
+#ifdef DB_API_WITH_SQLITE
+static sqlite3 *sqlite_db;
+#endif
+
 static pthread_mutex_t sql_lock;
 
 static char is_userful = 0;
@@ -96,9 +100,73 @@ int sql_init()
 	} 
 #endif
 
+#ifdef DB_API_WITH_SQLITE
+	global_conf_t *m_conf = get_global_conf();
+	char sql_statements[1024] = {0};
+	char *errmsg;
+
+	sprintf(sql_statements, "/mnt/%s.db", m_conf->db_name);
+	if(sqlite3_open(sql_statements, &sqlite_db) != SQLITE_OK)
+	{
+		DE_PRINTF(1, "%s()%d : sql connection failed.\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s\n", sqlite3_errmsg(sqlite_db));
+		sqlite3_close(sqlite_db);
+		return -1;
+	}
+
+	DE_PRINTF(1, "sql connect \"%s\"\n", m_conf->db_name);
+
+	bzero(sql_statements, sizeof(sql_statements));
+	sprintf(sql_statements, "CREATE TABLE gateways (%s%s%s%s%s%s%s%s)",
+				"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
+				"gwsn VARCHAR(32), ",
+				"apptype VARCHAR(8), ",
+				"ipaddr VARCHAR(24), ",
+				"name VARCHAR(255), ",
+				"data TEXT, ",
+				"created_at VARCHAR(64), ",
+				"updated_at VARCHAR(64)");
+
+	if(sqlite3_exec(sqlite_db, sql_statements, NULL, NULL, &errmsg) != SQLITE_OK)
+	{
+		/*DE_PRINTF(1, "%s()%d : sql create table \"gateways\" failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : %s\n",  __FUNCTION__, __LINE__, sqlite3_errmsg(sqlite_db));
+		sqlite3_close(sqlite_db);
+		return -1;*/
+	}
+
+	bzero(sql_statements, sizeof(sql_statements));
+	sprintf(sql_statements, "CREATE TABLE devices (%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s)",
+				"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
+				"serialnum VARCHAR(32), ",
+				"apptype VARCHAR(8), ",
+				"shortaddr VARCHAR(8), ",
+				"ipaddr VARCHAR(24), ",
+				"commtocol VARCHAR(4), ",
+				"gwsn VARCHAR(32), ",
+				"name VARCHAR(64), ",
+				"area VARCHAR(64), ",
+				"update_time VARCHAR(64), ",
+				"isonline TINYINT(1), ",
+				"iscollect TINYINT(1), ",
+				"ispublic TINYINT(1), ",
+				"users TEXT, ",
+				"data TEXT, ",
+				"created_at VARCHAR(64), ",
+				"updated_at VARCHAR(64)");
+
+	if(sqlite3_exec(sqlite_db, sql_statements, NULL, NULL, &errmsg) != SQLITE_OK)
+	{
+		/*DE_PRINTF(1, "%s()%d : sql create table \"devicess\" failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : %s\n",  __FUNCTION__, __LINE__, sqlite3_errmsg(sqlite_db));
+		sqlite3_close(sqlite_db);
+		return -1;*/
+	}
+#endif
+
 	if(pthread_mutex_init(&sql_lock, NULL) != 0)
 	{
-		DE_PRINTF(1, "%s()%d :  pthread_mutext_init failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : pthread_mutext_init failed\n", __FUNCTION__, __LINE__);
         return -1;
 	}
 
@@ -165,9 +233,15 @@ void sql_release()
 {
 	is_userful = 0;
 #ifdef DB_API_WITH_MYSQL
-	DE_PRINTF(1, "%s()%d : sql close \"%s\"\n", 
+	DE_PRINTF(1, "%s()%d : sql close \"%s\"\n",
 	 			__FUNCTION__, __LINE__, get_global_conf()->db_name);
 	mysql_close(&mysql_conn);
+#endif
+
+#ifdef DB_API_WITH_SQLITE
+	DE_PRINTF(1, "%s()%d : sql close \"%s\"\n",
+				__FUNCTION__, __LINE__, get_global_conf()->db_name);
+	sqlite3_close(sqlite_db);
 #endif
 }
 
@@ -1514,6 +1588,25 @@ void sql_test()
 	 }
 
      mysql_close(&mysql_conn);
+#endif
+
+#ifdef DB_API_WITH_SQLITE
+	global_conf_t *m_conf = get_global_conf();
+
+	sqlite3 *sqlite_db = NULL;
+
+	char dbpath[64] = {0};
+	sprintf(dbpath, "/mnt/%s.db", m_conf->db_name);
+
+	if(sqlite3_open(dbpath, &sqlite_db) != SQLITE_OK)
+	{
+		DE_PRINTF(1, "%s()%d : sql connection failed.\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s", sqlite3_errmsg(sqlite_db));
+		return;
+	}
+
+	DE_PRINTF(1, "%s()%d : sql connection OK!\n", __FUNCTION__, __LINE__);
+	sqlite3_close(sqlite_db);
 #endif
 }
 #endif

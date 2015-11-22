@@ -54,6 +54,14 @@
 //udp protocol using port
 #define TRANS_UDP_PORT	11578
 
+//path for android apk path
+#define TRANS_UPDATE_DIR	"/mnt/android_apk"
+
+//database configuration
+#define TRANS_DB_NAME	"loongsmart"
+#define TRANS_DB_USER	"root"
+#define TRANS_DB_PASS	"root"
+
 #ifdef COMM_CLIENT
 //udp protocol using port
 #define TRANS_UDP_SELF_PORT	11578
@@ -173,8 +181,8 @@ int get_daemon_cmdline();
 int mach_init();
 void event_init();
 
-#ifdef READ_CONF_FILE
 global_conf_t *get_global_conf();
+#ifdef READ_CONF_FILE
 int conf_read_from_file();
 
 #ifdef REMOTE_UPDATE_APK

@@ -43,6 +43,15 @@ int main(int argc, char **argv)
 	}
 #endif
 
+#ifdef DB_API_SUPPORT
+	if(sql_init() < 0)
+	{
+		sql_release();
+		return -1;
+	}
+	//sql_release();
+#endif
+
 #ifdef THREAD_POOL_SUPPORT
 	if (tpool_create(TRANS_CLIENT_THREAD_MAX_NUM) < 0)
 	{
