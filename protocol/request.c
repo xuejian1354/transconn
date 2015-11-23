@@ -73,10 +73,14 @@ void trans_respond_handler(trfr_respond_t *respond)
 
 #ifdef COMM_CLIENT
 void sync_gateway_info(gw_info_t *pgw_info)
-{}
+{
+	sql_add_gateway(pgw_info);
+}
 
 void sync_zdev_info(dev_info_t *pdev_info)
-{}
+{
+	sql_add_zdev(get_gateway_info(), pdev_info);
+}
 #endif
 
 #ifdef TRANS_UDP_SERVICE

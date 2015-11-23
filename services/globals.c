@@ -38,9 +38,29 @@ static uint8 _common_no[8] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
 static char de_buf[0x4000];
 #endif
 
-#ifdef READ_CONF_FILE
-static global_conf_t g_conf = {0};
+static global_conf_t g_conf = 
+{
+	0,
+#ifdef SERIAL_SUPPORT
+	TRANS_SERIAL_DEV,
+#endif
+#ifdef TRANS_TCP_SERVER
+	TRANS_TCP_PORT,
+#endif
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+	TRANS_UDP_PORT,
+#endif
+#ifdef REMOTE_UPDATE_APK
+	TRANS_UPDATE_DIR,
+#endif
+#ifdef DB_API_SUPPORT
+	TRANS_DB_NAME,
+	TRANS_DB_USER,
+	TRANS_DB_PASS
+#endif
+};
 
+#ifdef READ_CONF_FILE
 static void get_read_line(char *line, int len);
 static void set_conf_val(char *cmd, char *val);
 static int get_conf_setval();
@@ -106,8 +126,8 @@ uint8 *get_common_no()
 int start_params(int argc, char **argv)
 {
 
-	int ch;  
-    opterr = 0;  
+	int ch;
+	opterr = 0;  
 	global_conf_t t_conf = {0};
 
 
@@ -144,22 +164,32 @@ int start_params(int argc, char **argv)
   #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
     #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-t<TCP Port>] [-u<UDP Port>]\n", argv[0]);
+			DE_PRINTF(0, "Default: \n\t-s %s\n\t-t %d\n\t-u %d\n",
+							TRANS_SERIAL_DEV,
+							TRANS_TCP_PORT,
+							TRANS_UDP_PORT);
 	#else
 			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-t<TCP Port>]\n", argv[0]);
+			DE_PRINTF(0, "Default:\n\t-s %s\n\t-t %d\n", TRANS_SERIAL_DEV, TRANS_TCP_PORT);
     #endif
   #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-u<UDP Port>]\n", argv[0]);
+  			DE_PRINTF(0, "Default:\n\t-s %s\n\t-u %d\n", TRANS_SERIAL_DEV, TRANS_UDP_PORT);
   #else
   			DE_PRINTF(0, "Usage: %s [-s<Serial Device>]\n", argv[0]);
+  			DE_PRINTF(0, "Default:\n\t-s %s\n", TRANS_SERIAL_DEV);
   #endif
 #elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
   #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
   			DE_PRINTF(0, "Usage: %s [-t<TCP Port>] [-u<UDP Port>]\n", argv[0]);
+  			DE_PRINTF(0, "Default:\n\t-t %d\n\t-u %d\n", TRANS_TCP_PORT, TRANS_UDP_PORT);
   #else
   			DE_PRINTF(0, "Usage: %s [-t<TCP Port>]\n", argv[0]);
+  			DE_PRINTF(0, "Default:\n\t-t %d\n", TRANS_TCP_PORT);
   #endif
 #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 			DE_PRINTF(0, "Usage: %s [-u<UDP Port>]\n", argv[0]);
+			DE_PRINTF(0, "Default:\n\t-u %d\n", TRANS_UDP_PORT);
 #else
 			DE_PRINTF(0, "Usage: %s\n", argv[0]);
 #endif
@@ -473,12 +503,12 @@ void event_init()
 #endif
 }
 
-#ifdef READ_CONF_FILE
 global_conf_t *get_global_conf()
 {
 	return &g_conf;
 }
 
+#ifdef READ_CONF_FILE
 int conf_read_from_file()
 {
 	FILE *fp = NULL;
