@@ -38,6 +38,7 @@ static MYSQL_ROW mysql_row;
 
 #ifdef DB_API_WITH_SQLITE
 static sqlite3 *sqlite_db;
+static char *errmsg;
 #endif
 
 static pthread_mutex_t sql_lock;
@@ -75,7 +76,7 @@ int sql_init()
 
 	if (mysql_init(&mysql_conn) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d: sql init failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d: mysql init failed\n", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -86,78 +87,75 @@ int sql_init()
 	if (mysql_real_connect(&mysql_conn, DB_SERVER, m_conf->db_user, 
 		m_conf->db_password, m_conf->db_name, 0, NULL, 0) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d : sql connect \"%s\" failed\n", 
+		DE_PRINTF(1, "%s()%d : mysql connect \"%s\" failed\n", 
 			__FUNCTION__, __LINE__, m_conf->db_name);
 		return -1;
 	}
 
-	DE_PRINTF(1, "sql connect \"%s\"\n", m_conf->db_name);
+	DE_PRINTF(1, "mysql connect \"%s\"\n", m_conf->db_name);
 
 	if(mysql_set_character_set(&mysql_conn, "utf8"))
 	{
-		DE_PRINTF(1, "%s()%d : sql character set failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : mysql character set failed\n", __FUNCTION__, __LINE__);
 		return -1;
 	} 
 #endif
 
 #ifdef DB_API_WITH_SQLITE
 	global_conf_t *m_conf = get_global_conf();
-	char sql_statements[1024] = {0};
-	char *errmsg;
+	char db_path[64] = {0};
 
-	sprintf(sql_statements, "/mnt/%s.db", m_conf->db_name);
-	if(sqlite3_open(sql_statements, &sqlite_db) != SQLITE_OK)
+	sprintf(db_path, "/mnt/%s.db", m_conf->db_name);
+	if(sqlite3_open(db_path, &sqlite_db) != SQLITE_OK)
 	{
-		DE_PRINTF(1, "%s()%d : sql connection failed.\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : sqlite connection failed.\n", __FUNCTION__, __LINE__);
 		DE_PRINTF(1, "%s\n", sqlite3_errmsg(sqlite_db));
 		sqlite3_close(sqlite_db);
 		return -1;
 	}
 
-	DE_PRINTF(1, "sql connect \"%s\"\n", m_conf->db_name);
+	DE_PRINTF(1, "sqlite connect \"%s\"\n", m_conf->db_name);
 
-	bzero(sql_statements, sizeof(sql_statements));
-	sprintf(sql_statements, "CREATE TABLE gateways (%s%s%s%s%s%s%s%s)",
-				"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
-				"gwsn VARCHAR(32), ",
-				"apptype VARCHAR(8), ",
-				"ipaddr VARCHAR(24), ",
-				"name VARCHAR(255), ",
-				"data TEXT, ",
-				"created_at VARCHAR(64), ",
-				"updated_at VARCHAR(64)");
+	SET_CMD_LINE("CREATE TABLE gateways (%s%s%s%s%s%s%s%s)",
+					"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
+					"gwsn VARCHAR(32), ",
+					"apptype VARCHAR(8), ",
+					"ipaddr VARCHAR(24), ",
+					"name VARCHAR(255), ",
+					"data TEXT, ",
+					"created_at VARCHAR(64), ",
+					"updated_at VARCHAR(64)");
 
-	if(sqlite3_exec(sqlite_db, sql_statements, NULL, NULL, &errmsg) != SQLITE_OK)
+	if(sqlite3_exec(sqlite_db, GET_CMD_LINE(), NULL, NULL, &errmsg) != SQLITE_OK)
 	{
-		/*DE_PRINTF(1, "%s()%d : sql create table \"gateways\" failed\n", __FUNCTION__, __LINE__);
+		/*DE_PRINTF(1, "%s()%d : sqlite create table \"gateways\" failed\n", __FUNCTION__, __LINE__);
 		DE_PRINTF(1, "%s()%d : %s\n",  __FUNCTION__, __LINE__, sqlite3_errmsg(sqlite_db));
 		sqlite3_close(sqlite_db);
 		return -1;*/
 	}
 
-	bzero(sql_statements, sizeof(sql_statements));
-	sprintf(sql_statements, "CREATE TABLE devices (%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s)",
-				"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
-				"serialnum VARCHAR(32), ",
-				"apptype VARCHAR(8), ",
-				"shortaddr VARCHAR(8), ",
-				"ipaddr VARCHAR(24), ",
-				"commtocol VARCHAR(4), ",
-				"gwsn VARCHAR(32), ",
-				"name VARCHAR(64), ",
-				"area VARCHAR(64), ",
-				"update_time VARCHAR(64), ",
-				"isonline TINYINT(1), ",
-				"iscollect TINYINT(1), ",
-				"ispublic TINYINT(1), ",
-				"users TEXT, ",
-				"data TEXT, ",
-				"created_at VARCHAR(64), ",
-				"updated_at VARCHAR(64)");
+	SET_CMD_LINE("CREATE TABLE devices (%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s)",
+					"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
+					"serialnum VARCHAR(32), ",
+					"apptype VARCHAR(8), ",
+					"shortaddr VARCHAR(8), ",
+					"ipaddr VARCHAR(24), ",
+					"commtocol VARCHAR(4), ",
+					"gwsn VARCHAR(32), ",
+					"name VARCHAR(64), ",
+					"area VARCHAR(64), ",
+					"updatetime VARCHAR(64), ",
+					"isonline TINYINT(1), ",
+					"iscollect TINYINT(1), ",
+					"ispublic TINYINT(1), ",
+					"users TEXT, ",
+					"data TEXT, ",
+					"created_at VARCHAR(64), ",
+					"updated_at VARCHAR(64)");
 
-	if(sqlite3_exec(sqlite_db, sql_statements, NULL, NULL, &errmsg) != SQLITE_OK)
+	if(sqlite3_exec(sqlite_db, GET_CMD_LINE(), NULL, NULL, &errmsg) != SQLITE_OK)
 	{
-		/*DE_PRINTF(1, "%s()%d : sql create table \"devicess\" failed\n", __FUNCTION__, __LINE__);
+		/*DE_PRINTF(1, "%s()%d : sqlite create table \"devicess\" failed\n", __FUNCTION__, __LINE__);
 		DE_PRINTF(1, "%s()%d : %s\n",  __FUNCTION__, __LINE__, sqlite3_errmsg(sqlite_db));
 		sqlite3_close(sqlite_db);
 		return -1;*/
@@ -177,24 +175,24 @@ int sql_reconnect()
 {
 #ifdef DB_API_WITH_MYSQL
 	global_conf_t *m_conf = get_global_conf();
-	
+
 	if(mysql_ping(&mysql_conn))
 	{
 		is_userful = 0;
 		if (mysql_real_connect(&mysql_conn, DB_SERVER, m_conf->db_user, 
 			m_conf->db_password, m_conf->db_name, 0, NULL, 0) == NULL)
 		{
-			DE_PRINTF(1, "%s()%d : sql connect \"%s\" failed\n", 
+			DE_PRINTF(1, "%s()%d : mysql connect \"%s\" failed\n", 
 				__FUNCTION__, __LINE__, m_conf->db_name);
 			return -1;
 		}
 
-		DE_PRINTF(1, "%s()%d : sql connect \"%s\"\n", 
+		DE_PRINTF(1, "%s()%d : mysql connect \"%s\"\n", 
 			__FUNCTION__, __LINE__, m_conf->db_name);
 
 		if(mysql_set_character_set(&mysql_conn, "utf8"))
 		{
-			DE_PRINTF(1, "%s()%d : sql character set failed\n", 
+			DE_PRINTF(1, "%s()%d : mysql character set failed\n",
 					__FUNCTION__, __LINE__);
 			return -1;
 		}
@@ -216,15 +214,26 @@ int sql_reconnect()
 	   	return -1;
 	}
 
-#ifdef DB_API_WITH_MYSQL	
+#ifdef DB_API_WITH_MYSQL
 	if( mysql_query(&mysql_conn, cmdline))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : mysql query failed\n\n", __FUNCTION__, __LINE__);
 	   	return -1;
     }
 #endif
-	
+
+#ifdef DB_API_WITH_SQLITE
+	char *errmsg;
+	if(sqlite3_exec(sqlite_db, cmdline, NULL, NULL, &errmsg) != SQLITE_OK)
+	{
+		pthread_mutex_unlock(&sql_lock);
+		DE_PRINTF(1, "%s()%d : sqlite exec failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : %s\n\n",  __FUNCTION__, __LINE__, sqlite3_errmsg(sqlite_db));
+		return -1;
+	}
+#endif
+
 	pthread_mutex_unlock(&sql_lock);
 	return 0;
  }
@@ -233,13 +242,13 @@ void sql_release()
 {
 	is_userful = 0;
 #ifdef DB_API_WITH_MYSQL
-	DE_PRINTF(1, "%s()%d : sql close \"%s\"\n",
+	DE_PRINTF(1, "%s()%d : mysql close \"%s\"\n",
 	 			__FUNCTION__, __LINE__, get_global_conf()->db_name);
 	mysql_close(&mysql_conn);
 #endif
 
 #ifdef DB_API_WITH_SQLITE
-	DE_PRINTF(1, "%s()%d : sql close \"%s\"\n",
+	DE_PRINTF(1, "%s()%d : sqlite close \"%s\"\n",
 				__FUNCTION__, __LINE__, get_global_conf()->db_name);
 	sqlite3_close(sqlite_db);
 #endif
@@ -260,7 +269,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 
 	char gwno[24] = {0};
 	incode_xtocs(gwno, p_gw->gw_no, sizeof(zidentify_no_t));
-	
+
 	fr_buffer_t *frbuffer = get_devopt_data_tostr(m_dev->zdev_opt);
 	char data[24] = {0};
 	if(frbuffer != NULL)
@@ -325,7 +334,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 		"\')");
 
 	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	
+
 	return sql_excute_cmdline(GET_CMD_LINE());
 }
 
@@ -338,16 +347,16 @@ int sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 		serstr, 
 		"\'");
 
+#ifdef DB_API_WITH_MYSQL
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
 	{
 		return -1;
 	}
 
-#ifdef DB_API_WITH_MYSQL
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -363,6 +372,29 @@ int sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 	mysql_free_result(mysql_res);
 #endif
 
+#ifdef DB_API_WITH_SQLITE
+ 	sqlite3_stmt *stmt;
+    if(sqlite3_prepare_v2(sqlite_db,
+			GET_CMD_LINE(), -1, &stmt, NULL) != SQLITE_OK)
+    {
+		sqlite3_finalize(stmt);
+        DE_PRINTF(1, "%s()%d : sqlite prepare failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__, errmsg);
+        return -1;
+    }
+
+	while(sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		int counts = sqlite3_column_count(stmt);
+		if(counts > 0)
+		{
+			sqlite3_finalize(stmt);
+			return 0;
+		}
+	}
+	sqlite3_finalize(stmt);
+#endif
+
 	return 1;
 }
 
@@ -370,7 +402,7 @@ int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 {
 	char serno[24] = {0};
 	incode_xtocs(serno, zidentity_no, sizeof(zidentify_no_t));
-	
+
 	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE serialnum=\'",
 		serno,
 		"\'");
@@ -381,11 +413,11 @@ int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 
 int sql_uponline_zdev(gw_info_t *p_gw, 
 			uint8 isonline , uint16* znet_addrs, int addrs_len)
-{	
+{
 	int i = 0;
 	char gwno[24] = {0};
 	char addrs_str[512] = {0};
-	
+
 	if(p_gw == NULL || addrs_len <= 0)
 	{
 		return -1;
@@ -396,7 +428,7 @@ int sql_uponline_zdev(gw_info_t *p_gw,
 	{
 		sprintf(addrs_str+strlen(addrs_str), ", \'%04X\'", znet_addrs[i++]);
 	}
-	
+
 	incode_xtocs(gwno, p_gw->gw_no, sizeof(zidentify_no_t));
 
 	SET_CMD_LINE("%s%d%s%s%s%s%s", 
@@ -419,7 +451,7 @@ int sql_add_gateway(gw_info_t *m_gw)
 
 	char gwno_str[24] = {0};
 	incode_xtocs(gwno_str, m_gw->gw_no, sizeof(zidentify_no_t));
-	
+
 	fr_buffer_t *frbuffer = get_devopt_data_tostr(m_gw->zgw_opt);
 	char data[24] = {0};
 	if(frbuffer != NULL)
@@ -453,7 +485,6 @@ int sql_add_gateway(gw_info_t *m_gw)
 
 		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 		return sql_excute_cmdline(GET_CMD_LINE());
-
 	}
 	else if(ret == 0)
 	{
@@ -487,15 +518,16 @@ int sql_query_gateway(zidentify_no_t gw_no)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+
+#ifdef DB_API_WITH_MYSQL
 	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
 	{
 		return -1;
 	}
 
-#ifdef DB_API_WITH_MYSQL
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -512,6 +544,29 @@ int sql_query_gateway(zidentify_no_t gw_no)
     mysql_free_result(mysql_res);
 #endif
 
+#ifdef DB_API_WITH_SQLITE
+ 	sqlite3_stmt *stmt;
+    if(sqlite3_prepare_v2(sqlite_db,
+			GET_CMD_LINE(), -1, &stmt, NULL) != SQLITE_OK)
+    {
+		sqlite3_finalize(stmt);
+        DE_PRINTF(1, "%s()%d : sqlite prepare failed\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__, errmsg);
+        return -1;
+    }
+
+	while(sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		int counts = sqlite3_column_count(stmt);
+		if(counts > 0)
+		{
+			sqlite3_finalize(stmt);
+			return 0;
+		}
+	}
+	sqlite3_finalize(stmt);
+#endif
+
 	return 1;
 }
 
@@ -519,7 +574,7 @@ int sql_del_gateway(zidentify_no_t gw_no)
 {
 	char gwno_str[24] = {0};
 	incode_xtocs(gwno_str, gw_no, sizeof(zidentify_no_t));
-	
+
 	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE serialnum=\'",
 		gwno_str,
 		"\'");
@@ -550,7 +605,7 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -569,14 +624,14 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 				free(user_info->devices);
 				user_info->devices = NULL;
 			}
-			
+
 			if(mysql_row[1] != NULL && strlen(mysql_row[1]) > 0)
 			{
 				user_info->devices = calloc(1, strlen(mysql_row[1])+9);
 				memcpy(user_info->devices, "devices:", 8);
 				memcpy(user_info->devices+8, mysql_row[1], strlen(mysql_row[1]));
 			}
-			
+
 			if(user_info->areas != NULL)
 			{
 				free(user_info->areas);
@@ -589,7 +644,7 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 				memcpy(user_info->areas, "areas:", 6);
 				memcpy(user_info->areas+6, mysql_row[2], strlen(mysql_row[2]));
 			}
-			
+
 			if(user_info->scenes != NULL)
 			{
 				free(user_info->scenes);
@@ -602,7 +657,7 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 				memcpy(user_info->scenes, "scenes:", 7);
 				memcpy(user_info->scenes+7, mysql_row[3], strlen(mysql_row[3]));
 			}
-			
+
 			mysql_free_result(mysql_res);
 			return 0;
 		}
@@ -610,7 +665,7 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 
     mysql_free_result(mysql_res);
 
-	return 1;	
+	return 1;
 }
 
 void sync_user_info_to_sql(char *data)
@@ -631,7 +686,7 @@ void sync_user_info_to_sql(char *data)
 	{
 		goto sync_end;
 	}
-	
+
 	char *email = pEmail->valuestring;
 
 	cJSON* pDevs = cJSON_GetObjectItem(pRoot, "devices");
@@ -713,7 +768,6 @@ void sync_user_info_to_sql(char *data)
 				}
 			}
 
-			
 			cJSON *pSParams = cJSON_GetObjectItem(pScene, "params");
 			strings_t *params_str = NULL;
 			char **params = NULL;
@@ -738,7 +792,7 @@ void sync_user_info_to_sql(char *data)
 			strings_free(pdevs_str);
 			free(func_ids);
 			strings_free(params_str);
-			
+
 			i++;
 		}
 		sync_scenes_with_user_sql(email, scenes);
@@ -755,7 +809,7 @@ void sync_devices_with_user_sql(char *email, devices_t *devs)
 	{
 		return;
 	}
-	
+
 	SET_CMD_LINE("%s%s%s", 
 		"SELECT devices FROM users WHERE email=\'", 
 		email, 
@@ -769,7 +823,7 @@ void sync_devices_with_user_sql(char *email, devices_t *devs)
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
 		return;
 	}
 
@@ -838,10 +892,10 @@ void sync_devices_with_user_sql(char *email, devices_t *devs)
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 			sql_excute_cmdline(GET_CMD_LINE());
-			
+
 			cJSON_Delete(pRoot);
 			free(devices);
-			
+
 			mysql_free_result(mysql_res);
 			return;
 		}
@@ -854,7 +908,7 @@ void sync_areas_with_user_sql(char *email, areas_t *areas)
 	{
 		return;
 	}
-	
+
 	SET_CMD_LINE("%s%s%s", 
 		"SELECT areas FROM users WHERE email=\'", 
 		email, 
@@ -868,7 +922,7 @@ void sync_areas_with_user_sql(char *email, areas_t *areas)
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
 		return;
 	}
 
@@ -928,7 +982,7 @@ void sync_areas_with_user_sql(char *email, areas_t *areas)
 
 			cJSON_Delete(pRoot);
 			free(areas);
-			
+
 			mysql_free_result(mysql_res);
 			return;
 		}
@@ -941,7 +995,7 @@ void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
 	{
 		return;
 	}
-	
+
 	SET_CMD_LINE("%s%s%s", 
 		"SELECT scenes FROM users WHERE email=\'", 
 		email, 
@@ -955,7 +1009,7 @@ void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
 		return;
 	}
 
@@ -1001,7 +1055,7 @@ void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
 				scene_t *scene = *(scenes->scenes+i);
 				cJSON *t_scene = cJSON_CreateObject();
 				cJSON_AddItemToArray(pSceneArray, t_scene);
-					
+
 				cJSON_AddStringToObject(t_scene, "name", scene->name);
 
 				if(scene->dev_size > 0)
@@ -1060,7 +1114,7 @@ void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
 
 			cJSON_Delete(pRoot);
 			free(devices);
-			
+
 			mysql_free_result(mysql_res);
 			return;
 		}
@@ -1085,7 +1139,7 @@ void del_user_info_to_sql(char *data)
 	{
 		goto del_end;
 	}
-	
+
 	char *email = pEmail->valuestring;
 
 	cJSON* pDevs = cJSON_GetObjectItem(pRoot, "devices");
@@ -1134,7 +1188,7 @@ void del_user_info_to_sql(char *data)
 		while(i < scene_size)
 		{
 			cJSON *pScene = cJSON_GetArrayItem(pScenes, i);
-			
+
 			char *name = cJSON_GetObjectItem(pScene, "name")->valuestring;
 
 			cJSON *pSDevs = cJSON_GetObjectItem(pScene, "devices");
@@ -1167,7 +1221,6 @@ void del_user_info_to_sql(char *data)
 				}
 			}
 
-			
 			cJSON *pSParams = cJSON_GetObjectItem(pScene, "params");
 			strings_t *params_str = NULL;
 			char **params = NULL;
@@ -1192,7 +1245,7 @@ void del_user_info_to_sql(char *data)
 			strings_free(pdevs_str);
 			free(func_ids);
 			strings_free(params_str);
-			
+
 			i++;
 		}
 		del_scenes_from_user_sql(email, scenes);
@@ -1209,7 +1262,7 @@ void del_devices_from_user_sql(char *email, devices_t *devs)
 	{
 		return;
 	}
-	
+
 	SET_CMD_LINE("%s%s%s", 
 		"SELECT devices FROM users WHERE email=\'", 
 		email, 
@@ -1223,7 +1276,7 @@ void del_devices_from_user_sql(char *email, devices_t *devs)
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
 		return;
 	}
 
@@ -1278,7 +1331,7 @@ void del_devices_from_user_sql(char *email, devices_t *devs)
 
 			cJSON_Delete(pRoot);
 			free(devices);
-			
+
 			mysql_free_result(mysql_res);
 			return;
 		}
@@ -1291,7 +1344,7 @@ void del_areas_from_user_sql(char *email, areas_t *areas)
 	{
 		return;
 	}
-	
+
 	SET_CMD_LINE("%s%s%s", 
 		"SELECT areas FROM users WHERE email=\'", 
 		email, 
@@ -1305,7 +1358,7 @@ void del_areas_from_user_sql(char *email, areas_t *areas)
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
 		return;
 	}
 
@@ -1356,10 +1409,10 @@ void del_areas_from_user_sql(char *email, areas_t *areas)
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 			sql_excute_cmdline(GET_CMD_LINE());
-			
+
 			cJSON_Delete(pRoot);
 			free(areas);
-			
+
 			mysql_free_result(mysql_res);
 			return;
 		}
@@ -1372,7 +1425,7 @@ void del_scenes_from_user_sql(char *email, scenes_t *scenes)
 	{
 		return;
 	}
-	
+
 	SET_CMD_LINE("%s%s%s", 
 		"SELECT scenes FROM users WHERE email=\'", 
 		email, 
@@ -1386,7 +1439,7 @@ void del_scenes_from_user_sql(char *email, scenes_t *scenes)
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
 		return;
 	}
 
@@ -1438,10 +1491,10 @@ void del_scenes_from_user_sql(char *email, scenes_t *scenes)
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 			sql_excute_cmdline(GET_CMD_LINE());
-			
+
 			cJSON_Delete(pRoot);
 			free(devices);
-			
+
 			mysql_free_result(mysql_res);
 			return;
 		}
@@ -1454,7 +1507,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 	{
 		return -1;
 	}
-	
+
 	SET_CMD_LINE("%s%s%s", 
 		"SELECT devices FROM users WHERE email=\'", 
 		email, 
@@ -1468,7 +1521,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 
 	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
 	{
-		DE_PRINTF(1, "%s()%d : sql store result failed\n\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -1488,7 +1541,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 			{
 				continue;
 			}
-			 
+
 			int dev_size = cJSON_GetArraySize(pDeviceArray);
 			int i = 0; 
 			while(i < dev_size)
@@ -1504,10 +1557,10 @@ int set_device_to_user_sql(char *email, char *dev_str)
 				
 				i++;
 			}
-			
+
 			cJSON *pDev = cJSON_CreateObject();
 			cJSON_AddItemToArray(pDeviceArray, pDev);
-			
+
 			cJSON_AddStringToObject(pDev, "sn", dev_str);
 			cJSON_AddStringToObject(pDev, "iscollect", "0");
 			cJSON_AddStringToObject(pDev, "locate", "");
@@ -1523,23 +1576,23 @@ int set_device_to_user_sql(char *email, char *dev_str)
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 			sql_excute_cmdline(GET_CMD_LINE());
-			
+
 			cJSON_Delete(pRoot);
 			free(devices);
-			
+
 			mysql_free_result(mysql_res);
 			return 0;
 		}
 	}
 
 	cJSON *pRoot = cJSON_CreateObject();
-	
+
 	cJSON *pDevsArray = cJSON_CreateArray();
 	cJSON_AddItemToObject(pRoot, "devices", pDevsArray);
-	
+
 	cJSON *pDev = cJSON_CreateObject();
 	cJSON_AddItemToArray(pDevsArray, pDev);
-	
+
 	cJSON_AddStringToObject(pDev, "sn", dev_str);
 	cJSON_AddStringToObject(pDev, "iscollect", "0");
 	cJSON_AddStringToObject(pDev, "locate", "");
@@ -1555,7 +1608,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 
 	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 	sql_excute_cmdline(GET_CMD_LINE());
-	
+
 	cJSON_Delete(pRoot);
 	free(devices);
 
@@ -1575,16 +1628,16 @@ void sql_test()
          if (mysql_real_connect(&mysql_conn, DB_SERVER, m_conf->db_user, 
 		 		m_conf->db_password, m_conf->db_name, 0, NULL, 0) != NULL)
 		 {
-		 	DE_PRINTF(1, "%s()%d : sql connection OK!\n", __FUNCTION__, __LINE__);
+		 	DE_PRINTF(1, "%s()%d : mysql connection OK!\n", __FUNCTION__, __LINE__);
          }
 		 else 
 		 {
-		 	DE_PRINTF(1, "%s()%d : sql connection failed.\n", __FUNCTION__, __LINE__);
+		 	DE_PRINTF(1, "%s()%d : mysql connection failed.\n", __FUNCTION__, __LINE__);
 		 }
       }
 	 else
 	 {
-	 	DE_PRINTF(1, "%s()%d : sql initialization failed.\n", __FUNCTION__, __LINE__);
+	 	DE_PRINTF(1, "%s()%d : mysql initialization failed.\n", __FUNCTION__, __LINE__);
 	 }
 
      mysql_close(&mysql_conn);
@@ -1600,12 +1653,12 @@ void sql_test()
 
 	if(sqlite3_open(dbpath, &sqlite_db) != SQLITE_OK)
 	{
-		DE_PRINTF(1, "%s()%d : sql connection failed.\n", __FUNCTION__, __LINE__);
+		DE_PRINTF(1, "%s()%d : sqlite connection failed.\n", __FUNCTION__, __LINE__);
 		DE_PRINTF(1, "%s", sqlite3_errmsg(sqlite_db));
 		return;
 	}
 
-	DE_PRINTF(1, "%s()%d : sql connection OK!\n", __FUNCTION__, __LINE__);
+	DE_PRINTF(1, "%s()%d : sqlite connection OK!\n", __FUNCTION__, __LINE__);
 	sqlite3_close(sqlite_db);
 #endif
 }
