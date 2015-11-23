@@ -126,8 +126,8 @@ uint8 *get_common_no()
 int start_params(int argc, char **argv)
 {
 
-	int ch;  
-    opterr = 0;  
+	int ch;
+	opterr = 0;  
 	global_conf_t t_conf = {0};
 
 
@@ -164,22 +164,32 @@ int start_params(int argc, char **argv)
   #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
     #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-t<TCP Port>] [-u<UDP Port>]\n", argv[0]);
+			DE_PRINTF(0, "Default: \n\t-s %s\n\t-t %d\n\t-u %d\n",
+							TRANS_SERIAL_DEV,
+							TRANS_TCP_PORT,
+							TRANS_UDP_PORT);
 	#else
 			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-t<TCP Port>]\n", argv[0]);
+			DE_PRINTF(0, "Default:\n\t-s %s\n\t-t %d\n", TRANS_SERIAL_DEV, TRANS_TCP_PORT);
     #endif
   #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-u<UDP Port>]\n", argv[0]);
+  			DE_PRINTF(0, "Default:\n\t-s %s\n\t-u %d\n", TRANS_SERIAL_DEV, TRANS_UDP_PORT);
   #else
   			DE_PRINTF(0, "Usage: %s [-s<Serial Device>]\n", argv[0]);
+  			DE_PRINTF(0, "Default:\n\t-s %s\n", TRANS_SERIAL_DEV);
   #endif
 #elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
   #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
   			DE_PRINTF(0, "Usage: %s [-t<TCP Port>] [-u<UDP Port>]\n", argv[0]);
+  			DE_PRINTF(0, "Default:\n\t-t %d\n\t-u %d\n", TRANS_TCP_PORT, TRANS_UDP_PORT);
   #else
   			DE_PRINTF(0, "Usage: %s [-t<TCP Port>]\n", argv[0]);
+  			DE_PRINTF(0, "Default:\n\t-t %d\n", TRANS_TCP_PORT);
   #endif
 #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 			DE_PRINTF(0, "Usage: %s [-u<UDP Port>]\n", argv[0]);
+			DE_PRINTF(0, "Default:\n\t-u %d\n", TRANS_UDP_PORT);
 #else
 			DE_PRINTF(0, "Usage: %s\n", argv[0]);
 #endif
