@@ -48,7 +48,32 @@ sessionsta_t get_session_status()
 
 void set_trans_protocol(transtocol_t tocol)
 {
-	transtocol = tocol;
+	switch(tocol)
+	{
+	case TOCOL_DISABLE:
+		transtocol &= ~TOCOL_ENABLE;
+		break;
+		
+	case TOCOL_ENABLE:
+		transtocol |= TOCOL_ENABLE;
+		break;
+		
+	case TOCOL_UDP:
+		transtocol |= TOCOL_UDP;
+		break;
+		
+	case TOCOL_TCP:
+		transtocol |= TOCOL_TCP;
+		break;
+		
+	case TOCOL_HTTP:
+		transtocol |= TOCOL_HTTP;
+		break;
+		
+	case TOCOL_SERIAL:
+		transtocol |= TOCOL_SERIAL;
+		break;
+	}
 }
 transtocol_t get_trans_protocol()
 {

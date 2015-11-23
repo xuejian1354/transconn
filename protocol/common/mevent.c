@@ -18,6 +18,7 @@
 #include "mevent.h"
 #include <protocol/protocol.h>
 #include <protocol/request.h>
+#include <services/balancer.h>
 
 #ifdef COMM_CLIENT
 #define GATEWAY_INIT_EVENT		0x0001
@@ -37,8 +38,22 @@ void cli_watch(void *p);
 #ifdef COMM_CLIENT
 void gateway_init()
 {
-	timer_event_param_t timer_param;
+#ifdef TRANS_UDP_SERVICE
+	frhandler_arg_t arg;
+	arg.addr.sin_family = PF_INET;
+	arg.addr.sin_port = htons(get_udp_port());
+	arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
+	
+	trans_send_protocol_request(&arg, TOCOL_UDP);
+#endif
+#ifdef TRANS_TCP_CLIENT
+	trans_send_protocol_request(NULL, TOCOL_TCP);
+#endif
+#ifdef TRANS_HTTP_REQUEST
+	trans_send_protocol_request(NULL, TOCOL_HTTP);
+#endif
 
+	timer_event_param_t timer_param;
 	timer_param.resident = 0;
 	timer_param.interval = 1;
 	timer_param.count = 1;

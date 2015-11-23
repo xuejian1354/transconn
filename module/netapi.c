@@ -72,6 +72,7 @@ frhandler_arg_t *get_frhandler_arg_alloc(int fd,
 	arg->buf = calloc(1, len);
 
 	arg->fd = fd;
+	arg->transtocol = transtocol;
 
 	if(addr != NULL)
 	{
@@ -132,6 +133,8 @@ int socket_tcp_server_init(int port)
 #ifdef SELECT_SUPPORT
 	select_set(s_tcpfd);
 #endif
+	set_trans_protocol(TOCOL_TCP);
+	return 0;
 }
 
 void socket_tcp_server_accept(int fd)
@@ -231,7 +234,7 @@ void socket_tcp_server_send(frhandler_arg_t *arg, char *data, int len)
 	{
 		return;
 	}
-	
+
 	send(arg->fd, data, len, 0);
 
 #ifdef DE_PRINT_TCP_PORT
@@ -268,6 +271,7 @@ int socket_tcp_client_connect(int port)
 #ifdef SELECT_SUPPORT
 	select_set(c_tcpfd);
 #endif
+	return 0;
 }
 
 void socket_tcp_client_recv()
@@ -286,7 +290,7 @@ void socket_tcp_client_recv()
 		trans_data_show(DE_TCP_RECV, &m_server_addr, buf, nbytes);
 #endif
 		frhandler_arg_t *frarg = 
-			get_frhandler_arg_alloc(c_tcpfd, &m_server_addr, buf, nbytes);
+			get_frhandler_arg_alloc(c_tcpfd, TOCOL_TCP, &m_server_addr, buf, nbytes);
 #ifdef THREAD_POOL_SUPPORT
 		tpool_add_work(analysis_capps_frame, frarg, TPOOL_LOCK);
 #else
@@ -347,6 +351,10 @@ int socket_udp_service_init(int port)
 #ifdef SELECT_SUPPORT
 	select_set(udpfd);
 #endif
+#ifdef COMM_SERVER
+	set_trans_protocol(TOCOL_UDP);
+#endif
+	return 0;
 }
 
 
@@ -378,31 +386,31 @@ void socket_udp_recvfrom()
 #endif
 }
 
-void socket_udp_sendto(char *addr, char *data, int len)
+void socket_udp_sendto_with_ipaddr(char *ipaddr, char *data, int len)
 {
 	int i,dlen;
 	char saddr[16] = {0};
 	int iport = 0;
 	
-	dlen = strlen(addr);
-	if(addr!=NULL && dlen>0 && dlen<24)
+	dlen = strlen(ipaddr);
+	if(ipaddr!=NULL && dlen>0 && dlen<24)
 	{
 		for(i=0; i<dlen; i++)
 		{
-			if(*(addr+i) == ':')
+			if(*(ipaddr+i) == ':')
 				break;
 		}
 
 		if(i!=0 && i!=dlen)
 		{
-			memcpy(saddr, addr, i);
-			iport = atoi(addr+i+1);
+			memcpy(saddr, ipaddr, i);
+			iport = atoi(ipaddr+i+1);
 		}
 	}
 
 	if(saddr[0]==0 || iport==0)
 	{
-		DE_PRINTF(1, "error ip address, addr=%s\n", addr);
+		DE_PRINTF(1, "error ip address, ipaddr=%s\n", ipaddr);
 		return;
 	}
 	
@@ -412,13 +420,17 @@ void socket_udp_sendto(char *addr, char *data, int len)
 	maddr.sin_port = htons(iport);
 	maddr.sin_addr.s_addr = inet_addr(saddr);
 
+	socket_udp_sendto(&maddr, data, len);
+}
+
+void socket_udp_sendto(struct sockaddr_in *addr, char *data, int len)
+{
 #ifdef TRANS_UDP_SERVICE
-	sendto(udpfd, data, len, 0, 
-		(struct sockaddr *)&maddr, sizeof(struct sockaddr));
+	sendto(udpfd, data, len, 0, (struct sockaddr *)addr, sizeof(struct sockaddr));
 #endif
 
 #ifdef DE_PRINT_UDP_PORT
-	trans_data_show(DE_UDP_SEND, &maddr, data, len);
+	trans_data_show(DE_UDP_SEND, addr, data, len);
 	//PRINT_HEX(data, len);
 #endif
 }
@@ -466,7 +478,7 @@ void delog_udp_sendto(char *data, int len)
 #ifdef TRANS_HTTP_REQUEST
 void curl_http_request(curl_method_t cm, 
 		char *url, char *req, data_handler reback)
-{
+{	
 	switch(cm)
 	{
 	case CURL_GET:
@@ -568,13 +580,10 @@ void curl_post_request(void *ptr)
 
 size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp)
 {
-	//FILE *fptr = (FILE*)userp;   
-    //fwrite(buffer, size, nmemb, fptr);
-	//DE_PRINTF(1, "%s\n", buffer);
 
 	xmlDocPtr doc;
 	xmlNodePtr curNode;
-	xmlChar *szKey;
+	xmlChar *valData;
 	
 	doc = xmlReadMemory(buffer, size*nmemb, NULL, "utf8", XML_PARSE_RECOVER);
 	if(NULL == doc)
@@ -599,16 +608,20 @@ size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp)
     curNode = curNode->xmlChildrenNode;
     while(curNode != NULL) 
     {
-		if((!xmlStrcmp(curNode->name, (const xmlChar *)"head"))) 
+		if((!xmlStrcmp(curNode->name, (const xmlChar *)"body"))) 
 		{
 			curNode = curNode->xmlChildrenNode;
 			while(curNode != NULL)
 			{
-				if((!xmlStrcmp(curNode->name, (const xmlChar *)"title"))) 
+				if((!xmlStrcmp(curNode->name, (const xmlChar *)"data"))) 
 				{
-					szKey = xmlNodeGetContent(curNode);
-					DE_PRINTF(1, "name:%s\ncontent:%s\n", curNode->name, szKey); 
-					xmlFree(szKey); 
+					valData = xmlNodeGetContent(curNode);
+					//DE_PRINTF(1, "name:%s\ncontent:%s\n", curNode->name, valData); 
+					frhandler_arg_t arg = {0};
+					arg->buf = valData;
+					arg->len = strlen(valData);
+					analysis_capps_frame(&arg);
+					xmlFree(valData); 
 					break;
 				}
 				curNode = curNode->next; 
@@ -736,6 +749,7 @@ void trans_data_show(de_print_t deprint,
 		
 		DE_PRINTF(1, "TCP:accept,ip=%s:%u\n\n", 
 			inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+		return;
 	}
 	else if(deprint == DE_TCP_SEND)
 	{
@@ -775,7 +789,7 @@ void trans_data_show(de_print_t deprint,
 		return;
 	}
 				
-	DE_PRINTF(lwflag, "data:%s\n", data);
+	DE_PRINTF(lwflag, "data:%s\n\n", data);
 	lwflag = 0;
 }
 

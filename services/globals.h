@@ -131,7 +131,7 @@ typedef struct
 	char serial_port[16];
 #endif
 
-#ifdef TRANS_TCP_SERVER
+#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	int tcp_port;
 #endif
 

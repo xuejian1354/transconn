@@ -44,7 +44,7 @@ static global_conf_t g_conf =
 #ifdef SERIAL_SUPPORT
 	TRANS_SERIAL_DEV,
 #endif
-#ifdef TRANS_TCP_SERVER
+#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	TRANS_TCP_PORT,
 #endif
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
@@ -379,6 +379,7 @@ openlog_error:
 			__FUNCTION__, __LINE__, DLOG_FILE);
 	}
 
+	set_session_status(SESS_INIT);
 	return 0;
 }
 
@@ -445,8 +446,6 @@ int get_daemon_cmdline()
 
 int mach_init()
 {
-	set_session_status(SESS_INIT);
-	
 #ifdef COMM_CLIENT
 	gw_info_t *p_gw_info = get_gateway_info();
 
@@ -491,6 +490,8 @@ int mach_init()
     }
 #endif
 
+	set_session_status(SESS_READY);
+	set_trans_protocol(TOCOL_ENABLE);
 	return 0;
 }
 

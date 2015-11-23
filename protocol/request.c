@@ -18,56 +18,136 @@
 #include <cJSON.h>
 
 #ifdef COMM_CLIENT
-void trans_refresh_handler(trfr_refresh_t *refresh)
+void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 {}
 
-void trans_control_handler(trfr_control_t *control)
-{}
-
-void trans_protocol_respond_handler(trfr_tocolres_t *tocolres)
+void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
 {}
 #endif
 
-void trans_protocol_request_handler(trfr_tocolreq_t *tocolreq)
+void trans_protocol_request_handler(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq)
 {
 	if(tocolreq == NULL)
 	{
 		return;
 	}
 
-#ifdef COMM_SERVER
-	if(tocolreq->action == ACTION_TOCOLREQ)
-	{
-		if(!strncmp(tocolreq->protocol, FIELD_TOCOL_UDP, 3))
-		{
-			
-		}
-		else if(!strncmp(tocolreq->protocol, FIELD_TOCOL_TCP, 3))
-		{
-			
-		}
-		else if(!strncmp(tocolreq->protocol, FIELD_TOCOL_HTTP, 4))
-		{
-			
-		}
-	}
-#endif
 #ifdef COMM_CLIENT
 	if(tocolreq->action == ACTION_TOCOLRES)
 	{
-
+		if(!strncmp(tocolreq->protocol, JSON_VAL_TOCOL_UDP, 3))
+		{
+			set_trans_protocol(TOCOL_UDP);
+			set_session_status(SESS_WORKING);
+		}
+		else if(!strncmp(tocolreq->protocol, JSON_VAL_TOCOL_TCP, 3))
+		{
+			set_trans_protocol(TOCOL_TCP);
+			set_session_status(SESS_WORKING);
+		}
+		else if(!strncmp(tocolreq->protocol, JSON_VAL_TOCOL_HTTP, 4))
+		{
+			set_trans_protocol(TOCOL_HTTP);
+			set_session_status(SESS_WORKING);
+		}
+	}
+#endif
+#ifdef COMM_SERVER
+	if(tocolreq->action == ACTION_TOCOLREQ)
+	{
+		if(!strncmp(tocolreq->protocol, JSON_VAL_TOCOL_UDP, 3))
+		{
+			trans_send_protocol_request(arg, TOCOL_UDP);
+		}
+		else if(!strncmp(tocolreq->protocol, JSON_VAL_TOCOL_TCP, 3))
+		{
+			trans_send_protocol_request(arg, TOCOL_TCP);
+		}
 	}
 #endif
 }
 
+void trans_send_protocol_request(frhandler_arg_t *arg, transtocol_t tocol)
+{
+	switch(tocol)
+	{
+#ifdef TRANS_UDP_SERVICE	
+	case TOCOL_UDP:
+	{
+		cJSON *pRoot = cJSON_CreateObject();
+		char action_str[4] = {0};
 #ifdef COMM_SERVER
-void trans_report_handler(trfr_report_t *report)
+		sprintf(action_str, "%d", ACTION_TOCOLRES);
+#endif
+#ifdef COMM_CLIENT
+		sprintf(action_str, "%d", ACTION_TOCOLREQ);
+#endif
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, action_str);
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_PROTOCOL, JSON_VAL_TOCOL_UDP);
+		char *frame = cJSON_Print(pRoot);
+		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
+		cJSON_Delete(pRoot);
+	}
+		break;
+#endif
+
+#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)	
+	case TOCOL_TCP:
+	{
+		cJSON *pRoot = cJSON_CreateObject();
+		char action_str[4] = {0};
+#ifdef COMM_SERVER
+		sprintf(action_str, "%d", ACTION_TOCOLRES);
+#endif
+#ifdef COMM_CLIENT
+		sprintf(action_str, "%d", ACTION_TOCOLREQ);
+#endif
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, action_str);
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_PROTOCOL, JSON_VAL_TOCOL_TCP);
+		char *frame = cJSON_Print(pRoot);
+#ifdef TRANS_TCP_SERVER
+		socket_tcp_server_send(arg, frame, strlen(frame));
+#endif
+#ifdef TRANS_TCP_CLIENT
+		socket_tcp_client_send(frame, strlen(frame));
+#endif
+		cJSON_Delete(pRoot);
+	}
+		break;
+#endif
+
+#ifdef TRANS_HTTP_REQUEST
+	case TOCOL_HTTP:
+	{
+		cJSON *pRoot = cJSON_CreateObject();
+		char action_str[4] = {0};
+#ifdef COMM_SERVER
+		sprintf(action_str, "%d", ACTION_TOCOLRES);
+#endif
+#ifdef COMM_CLIENT
+		sprintf(action_str, "%d", ACTION_TOCOLREQ);
+#endif
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, action_str);
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_PROTOCOL, JSON_VAL_TOCOL_HTTP);
+		char *frame = cJSON_Print(pRoot);
+		char url[256] = {0};
+		sprintf(url, "%s%s", "http://", get_server_ip());
+		curl_http_request(CURL_POST, url, frame, curl_data);
+		cJSON_Delete(pRoot);
+	}
+		break;
+#endif
+	}
+}
+
+#ifdef COMM_SERVER
+void trans_report_handler(frhandler_arg_t *arg, trfr_report_t *report)
 {}
 
-void trans_check_handler(trfr_check_t *check)
+void trans_check_handler(frhandler_arg_t *arg, trfr_check_t *check)
 {}
 
-void trans_respond_handler(trfr_respond_t *respond)
+void trans_respond_handler(frhandler_arg_t *arg, trfr_respond_t *respond)
 {}
 #endif
 
@@ -80,26 +160,5 @@ void sync_gateway_info(gw_info_t *pgw_info)
 void sync_zdev_info(dev_info_t *pdev_info)
 {
 	sql_add_zdev(get_gateway_info(), pdev_info);
-}
-#endif
-
-#ifdef TRANS_UDP_SERVICE
-void send_frame_udp_request(char *ipaddr, char *data, int len)
-{
-	socket_udp_sendto(ipaddr, data, len);
-}
-#endif
-
-#ifdef TRANS_TCP_CLIENT
-void send_frame_tcp_request(char *data, int len)
-{
-	socket_tcp_client_send(data, len);
-}
-#endif
-
-#ifdef TRANS_TCP_SERVER
-void send_frame_tcp_respond(frhandler_arg_t *arg, char *data, int len)
-{
-	socket_tcp_server_send(arg, data, len);
 }
 #endif

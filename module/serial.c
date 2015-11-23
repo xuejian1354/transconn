@@ -185,6 +185,7 @@ int serial_init(char *dev)
 	pthread_t uartRead;
 	pthread_create(&uartRead, NULL, uart_read_func, NULL);
 
+	set_trans_protocol(TOCOL_SERIAL);
 	return 0;
 }
 
@@ -201,6 +202,7 @@ int serial_write(char *data, int datalen)
 	}
 #endif
 #endif
+
 	return write(serial_id, data, datalen);
 }
 
@@ -215,6 +217,7 @@ void *uart_read_func(void *p)
         i = 0;
         memset(rbuf, 0, sizeof(rbuf));
         rlen = read(serial_id, rbuf, sizeof(rbuf));
+
         while(i < rlen)
         {
             if(0 == step)
