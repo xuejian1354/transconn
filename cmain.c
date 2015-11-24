@@ -19,6 +19,13 @@
 
 int main(int argc, char **argv)
 {
+#ifdef READ_CONF_FILE
+	if(conf_read_from_file() < 0)
+	{
+		return -1;
+	}
+#endif
+
 #ifdef LOAD_BALANCE_SUPPORT
 	if(serlist_read_from_confile() < 0)
 	{

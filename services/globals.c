@@ -17,6 +17,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <dirent.h>
+#include <protocol/common/fieldlysis.h>
 #include <protocol/common/session.h>
 #include <protocol/common/mevent.h>
 #include <protocol/protocol.h>
@@ -41,6 +42,7 @@ static char de_buf[0x4000];
 static global_conf_t g_conf = 
 {
 	0,
+	{TOCOL_UDP, TOCOL_TCP, TOCOL_HTTP, 0},
 #ifdef SERIAL_SUPPORT
 	TRANS_SERIAL_DEV,
 #endif
@@ -54,9 +56,13 @@ static global_conf_t g_conf =
 	TRANS_UPDATE_DIR,
 #endif
 #ifdef DB_API_SUPPORT
+#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
 	TRANS_DB_NAME,
+#ifdef DB_API_WITH_MYSQL
 	TRANS_DB_USER,
-	TRANS_DB_PASS
+	TRANS_DB_PASS,
+#endif
+#endif
 #endif
 };
 
@@ -515,6 +521,7 @@ int conf_read_from_file()
 	FILE *fp = NULL;
 	char buf[128] = {0};
 	g_conf.isset_flag = 0;
+	memset(g_conf.protocols, 0, sizeof(g_conf.protocols));
 		
 	if((fp = fopen(CONF_FILE, "r")) != NULL)
 	{
@@ -624,6 +631,96 @@ void get_read_line(char *line, int len)
 
 void set_conf_val(char *cmd, char *val)
 {
+	if(!strcmp(cmd, GLOBAL_CONF_COMM_PROTOCOL))
+	{
+		int i, len=strlen(val);
+		int start_pos, end_pos;
+		int start_isset = 0;
+		int end_isset = 0;
+		int pro_index = 0;
+		transtocol_t transtocol_hasset = TOCOL_DISABLE;
+
+		for(i=0; i<=len; i++)
+		{
+			if(start_isset && (end_isset || i == len))
+			{
+				int field_len = end_pos - start_pos;
+				if(i == len && !end_isset)
+				{
+					field_len++;
+				}
+
+				start_isset = 0;
+				end_isset = 0;
+
+				if(!(transtocol_hasset & TOCOL_UDP) && field_len == 3
+					&& !strncmp(val+start_pos, JSON_VAL_TOCOL_UDP, field_len))
+				{
+					g_conf.protocols[pro_index++] = TOCOL_UDP;
+					transtocol_hasset |= TOCOL_UDP;
+				}
+				else if(!(transtocol_hasset & TOCOL_TCP) && field_len == 3
+					&& !strncmp(val+start_pos, JSON_VAL_TOCOL_TCP, field_len))
+				{
+					g_conf.protocols[pro_index++] = TOCOL_TCP;
+					transtocol_hasset |= TOCOL_TCP;
+				}
+				else if(!(transtocol_hasset & TOCOL_HTTP) && field_len == 4
+					&& !strncmp(val+start_pos, JSON_VAL_TOCOL_HTTP, field_len))
+				{
+					g_conf.protocols[pro_index++] = TOCOL_HTTP;
+					transtocol_hasset |= TOCOL_HTTP;
+				}
+
+				if(i == len)
+				{
+					break;
+				}
+			}
+
+			if(!start_isset)
+			{
+				if(*(val+i) == ' '
+					|| *(val+i) == ',')
+				{
+					continue;
+				}
+				else
+				{
+					start_pos = i;
+					end_pos = i+1;
+					start_isset = 1;
+				}
+			}
+			else if(!end_isset)
+			{
+				end_pos = i;
+				if(*(val+i) == ',')
+				{
+					int j = end_pos;
+					while(j > start_pos+1)
+					{
+						if(*(val+j-1) == ' ')
+						{
+							j--;
+						}
+						else
+						{
+							break;
+						}
+					}
+					end_pos = j;
+					end_isset = 1;
+				}
+			}
+		}
+
+		if(pro_index)
+		{
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_PROTOCOL;
+		}
+	}
+
 #ifdef SERIAL_SUPPORT
 	if(!strcmp(cmd, GLOBAL_CONF_SERIAL_PORT))
 	{
@@ -657,11 +754,13 @@ void set_conf_val(char *cmd, char *val)
 #endif
 
 #ifdef DB_API_SUPPORT
+#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
 	if(!strcmp(cmd, GLOBAL_CONF_DATABASE))
 	{
 		strcpy(g_conf.db_name, val);
 		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_DB;
 	}
+#ifdef DB_API_WITH_MYSQL
 	else if(!strcmp(cmd, GLOBAL_CONF_DBUSER))
 	{
 		strcpy(g_conf.db_user, val);
@@ -673,12 +772,15 @@ void set_conf_val(char *cmd, char *val)
 		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_DBPASS;
 	}
 #endif
+#endif
+#endif
 }
 
 int get_conf_setval()
 {
 	int i;
 	uint32 issetflags[] = {
+					GLOBAL_CONF_ISSETVAL_PROTOCOL,
 #ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_ISSETVAL_SERIAL,
 #endif
@@ -692,13 +794,18 @@ int get_conf_setval()
 					GLOBAL_CONF_ISSETVAL_UPAPK,
 #endif
 #ifdef DB_API_SUPPORT
+#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
 					GLOBAL_CONF_ISSETVAL_DB,
+#ifdef DB_API_WITH_MYSQL
 					GLOBAL_CONF_ISSETVAL_DBUSER,
 					GLOBAL_CONF_ISSETVAL_DBPASS,
+#endif
+#endif
 #endif
 					};
 
 	char *issetvals[] = {
+					GLOBAL_CONF_COMM_PROTOCOL,
 #ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_SERIAL_PORT,
 #endif
@@ -712,9 +819,13 @@ int get_conf_setval()
 					GLOBAL_CONF_UPAPK_DIR,
 #endif
 #ifdef DB_API_SUPPORT
+#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
 					GLOBAL_CONF_DATABASE,
+#ifdef DB_API_WITH_MYSQL
 					GLOBAL_CONF_DBUSER,
 					GLOBAL_CONF_DBPASS,
+#endif
+#endif
 #endif
 					};
 

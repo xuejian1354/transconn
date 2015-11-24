@@ -75,6 +75,7 @@
 #define DE_UDP_PORT		13688
 #endif
 
+#define GLOBAL_CONF_COMM_PROTOCOL	"comm_protocol"
 #define GLOBAL_CONF_SERIAL_PORT		"serial_port"
 #define GLOBAL_CONF_TCP_PORT		"tcp_port"
 #define GLOBAL_CONF_UDP_PORT		"udp_port"
@@ -85,13 +86,14 @@
 #define GLOBAL_CONF_DBUSER			"db_username"
 #define GLOBAL_CONF_DBPASS			"db_password"
 
-#define GLOBAL_CONF_ISSETVAL_SERIAL		0x00000001
-#define GLOBAL_CONF_ISSETVAL_TCP		0x00000002
-#define GLOBAL_CONF_ISSETVAL_UDP		0x00000004
-#define GLOBAL_CONF_ISSETVAL_UPAPK		0x00000008
-#define GLOBAL_CONF_ISSETVAL_DB			0x00000010
-#define GLOBAL_CONF_ISSETVAL_DBUSER		0x00000020
-#define GLOBAL_CONF_ISSETVAL_DBPASS		0x00000040
+#define GLOBAL_CONF_ISSETVAL_PROTOCOL	0x00000001
+#define GLOBAL_CONF_ISSETVAL_SERIAL		0x00000002
+#define GLOBAL_CONF_ISSETVAL_TCP		0x00000004
+#define GLOBAL_CONF_ISSETVAL_UDP		0x00000008
+#define GLOBAL_CONF_ISSETVAL_UPAPK		0x00000010
+#define GLOBAL_CONF_ISSETVAL_DB			0x00000020
+#define GLOBAL_CONF_ISSETVAL_DBUSER		0x00000040
+#define GLOBAL_CONF_ISSETVAL_DBPASS		0x00000080
 
 
 /*
@@ -127,6 +129,7 @@ typedef byte cidentify_no_t[8];
 typedef struct
 {
 	uint32 isset_flag;
+	uint32 protocols[4];
 #ifdef SERIAL_SUPPORT
 	char serial_port[16];
 #endif
@@ -144,9 +147,13 @@ typedef struct
 #endif
 
 #ifdef DB_API_SUPPORT
+#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
 	char db_name[32];
+#ifdef DB_API_WITH_MYSQL
 	char db_user[32];
 	char db_password[64];
+#endif
+#endif
 #endif
 }global_conf_t;
 
