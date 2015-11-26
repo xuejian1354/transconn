@@ -618,8 +618,8 @@ size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp)
 					valData = xmlNodeGetContent(curNode);
 					//DE_PRINTF(1, "name:%s\ncontent:%s\n", curNode->name, valData); 
 					frhandler_arg_t arg = {0};
-					arg->buf = valData;
-					arg->len = strlen(valData);
+					arg.buf = valData;
+					arg.len = strlen(valData);
 					analysis_capps_frame(&arg);
 					xmlFree(valData); 
 					break;

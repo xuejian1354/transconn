@@ -252,7 +252,7 @@ char *get_server_ip(void)
 	return none_server_ip;
 }
 
-const char *get_server_ip_from_name(char *name)
+char *get_server_ip_from_name(char *name)
 {
 	relser_info_t *t_ser = NULL;
 	if(p_serlist != NULL)
@@ -266,12 +266,13 @@ const char *get_server_ip_from_name(char *name)
 		{
 			return t_ser->ipaddr;
 		}
+		t_ser = t_ser->next;
 	}
 
 	return none_server_ip;
 }
 
-const char *get_server_name_from_ip(char *ip)
+char *get_server_name_from_ip(char *ip)
 {
 	relser_info_t *t_ser = NULL;
 	if(p_serlist != NULL)
@@ -287,5 +288,5 @@ const char *get_server_name_from_ip(char *ip)
 		}
 	}
 
-	return none_name;
+	return (char *)none_name;
 }

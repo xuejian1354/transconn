@@ -29,6 +29,8 @@
 #define TARGET_NAME "transconn(default)"
 #endif
 
+#define SERVER_IP	"loongsmart.com"
+
 #define SERVER_GW_LIST_MAX_NUM	1024
 #define SERVER_CLI_LIST_MAX_NUM		128
 #define GATEWAY_CLI_LIST_MAX_NUM	24
@@ -79,6 +81,7 @@
 #define GLOBAL_CONF_SERIAL_PORT		"serial_port"
 #define GLOBAL_CONF_TCP_PORT		"tcp_port"
 #define GLOBAL_CONF_UDP_PORT		"udp_port"
+#define GLOBAL_CONF_HTTP_URL		"http_url"
 
 #define GLOBAL_CONF_UPAPK_DIR		"apk_update_dir"
 
@@ -90,10 +93,13 @@
 #define GLOBAL_CONF_ISSETVAL_SERIAL		0x00000002
 #define GLOBAL_CONF_ISSETVAL_TCP		0x00000004
 #define GLOBAL_CONF_ISSETVAL_UDP		0x00000008
-#define GLOBAL_CONF_ISSETVAL_UPAPK		0x00000010
-#define GLOBAL_CONF_ISSETVAL_DB			0x00000020
-#define GLOBAL_CONF_ISSETVAL_DBUSER		0x00000040
-#define GLOBAL_CONF_ISSETVAL_DBPASS		0x00000080
+#define GLOBAL_CONF_ISSETVAL_HTTPURL	0x00000010
+#define GLOBAL_CONF_ISSETVAL_UPAPK		0x00000020
+#define GLOBAL_CONF_ISSETVAL_DB			0x00000040
+#define GLOBAL_CONF_ISSETVAL_DBUSER		0x00000080
+#define GLOBAL_CONF_ISSETVAL_DBPASS		0x00000100
+
+#define GLOBAL_TRANSTOCOL_SIZE		4
 
 
 /*
@@ -129,7 +135,8 @@ typedef byte cidentify_no_t[8];
 typedef struct
 {
 	uint32 isset_flag;
-	uint32 protocols[4];
+	uint32 protocols[GLOBAL_TRANSTOCOL_SIZE];
+	int tocol_len;
 #ifdef SERIAL_SUPPORT
 	char serial_port[16];
 #endif
@@ -140,6 +147,10 @@ typedef struct
 
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	int udp_port;
+#endif
+
+#ifdef TRANS_HTTP_REQUEST
+	char http_url[1024];
 #endif
 
 #ifdef REMOTE_UPDATE_APK
@@ -156,6 +167,13 @@ typedef struct
 #endif
 #endif
 }global_conf_t;
+
+typedef struct ConfVal
+{
+	int head_pos;
+	char *val;
+	struct ConfVal *next;
+}confval_list;
 
 #ifdef DE_TRANS_UDP_STREAM_LOG
 char *get_de_buf();
@@ -191,7 +209,10 @@ void event_init();
 global_conf_t *get_global_conf();
 #ifdef READ_CONF_FILE
 int conf_read_from_file();
-
+void translate_confval_to_str(char *dst, char *src);
+confval_list *get_confval_alloc_from_str(char *str);
+void get_confval_free(confval_list *pval);
+char *get_val_from_name(char *name);
 #ifdef REMOTE_UPDATE_APK
 void reapk_version_code(char *up_flags, char *ipaddr, cidentify_no_t cidentify_no);
 #endif

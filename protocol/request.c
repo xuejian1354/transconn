@@ -38,17 +38,14 @@ void trans_protocol_request_handler(frhandler_arg_t *arg, trfr_tocolreq_t *tocol
 		if(!strncmp(tocolreq->protocol, JSON_VAL_TOCOL_UDP, 3))
 		{
 			set_trans_protocol(TOCOL_UDP);
-			set_session_status(SESS_WORKING);
 		}
 		else if(!strncmp(tocolreq->protocol, JSON_VAL_TOCOL_TCP, 3))
 		{
 			set_trans_protocol(TOCOL_TCP);
-			set_session_status(SESS_WORKING);
 		}
 		else if(!strncmp(tocolreq->protocol, JSON_VAL_TOCOL_HTTP, 4))
 		{
 			set_trans_protocol(TOCOL_HTTP);
-			set_session_status(SESS_WORKING);
 		}
 	}
 #endif
@@ -130,9 +127,7 @@ void trans_send_protocol_request(frhandler_arg_t *arg, transtocol_t tocol)
 		cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, action_str);
 		cJSON_AddStringToObject(pRoot, JSON_FIELD_PROTOCOL, JSON_VAL_TOCOL_HTTP);
 		char *frame = cJSON_Print(pRoot);
-		char url[256] = {0};
-		sprintf(url, "%s%s", "http://", get_server_ip());
-		curl_http_request(CURL_POST, url, frame, curl_data);
+		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
 		cJSON_Delete(pRoot);
 	}
 		break;

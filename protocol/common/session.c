@@ -59,25 +59,58 @@ void set_trans_protocol(transtocol_t tocol)
 		break;
 		
 	case TOCOL_UDP:
-		transtocol |= TOCOL_UDP;
-		break;
-		
 	case TOCOL_TCP:
-		transtocol |= TOCOL_TCP;
-		break;
-		
 	case TOCOL_HTTP:
-		transtocol |= TOCOL_HTTP;
-		break;
-		
-	case TOCOL_SERIAL:
-		transtocol |= TOCOL_SERIAL;
+	{
+#ifdef COMM_SERVER
+		int i = 0;
+		while(i < get_global_conf()->tocol_len)
+		{
+			transtocol_t enable_tocol = get_global_conf()->protocols[i];
+			if(enable_tocol & tocol)
+			{
+				transtocol |= tocol;
+				set_session_status(SESS_WORKING);
+				break;
+			}
+
+			i++;
+		}
+#endif
+#ifdef COMM_CLIENT
+		transtocol |= tocol;
+		set_session_status(SESS_WORKING);
+#endif
+	}
 		break;
 	}
 }
 transtocol_t get_trans_protocol()
 {
+#ifdef COMM_CLIENT
+	if(!(transtocol & TOCOL_ENABLE))
+	{
+		return TOCOL_DISABLE;
+	}
+
+	int i = 0;
+	while(i < get_global_conf()->tocol_len)
+	{
+		transtocol_t enable_tocol = get_global_conf()->protocols[i];
+		if(enable_tocol & transtocol)
+		{
+			return enable_tocol;
+		}
+
+		i++;
+	}
+	
+	return TOCOL_NONE;
+#endif
+
+#ifdef COMM_SERVER
 	return transtocol;
+#endif
 }
 
 void session_handler()
