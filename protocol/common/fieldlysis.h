@@ -20,34 +20,33 @@
 #include <services/globals.h>
 #include <protocol/framelysis.h>
 
-#define FIELD_NAME_MAXSIZE		12
-#define FIELD_SN_MAXSIZE		24
-#define FIELD_DATA_MAXSIZE		7
-#define FIELD_CMD_MAXSIZE		7
-#define FIELD_TOCOL_MAXSIZE		8
-#define FIELD_CODECHECK_MAXSIZE	8
-#define FIELD_CODEDATA_MAXSIZE	40
+#define JSON_FIELD_NAME_MAXSIZE		12
+#define JSON_FIELD_SN_MAXSIZE		24
+#define JSON_FIELD_DATA_MAXSIZE		7
+#define JSON_FIELD_CMD_MAXSIZE		7
+#define JSON_FIELD_TOCOL_MAXSIZE		8
+#define JSON_FIELD_CODECHECK_MAXSIZE	8
+#define JSON_FIELD_CODEDATA_MAXSIZE	40
 
-#define FIELD_ACTION	"action"
-#define FIELD_PROTOCOL	"protocol"
-#define FIELD_GWSN		"gw_sn"
-#define FIELD_DEVICES	"devices"
-#define FIELD_NAME		"name"
-#define FIELD_DEVSN		"dev_sn"
-#define FIELD_DEVSNS	"dev_sns"
-#define FIELD_DEVTYPE	"dev_type"
-#define FIELD_DEVDATA	"dev_data"
-#define FIELD_ZSTATUS	"znet_status"
-#define FIELD_DEVDATA	"dev_data"
-#define FIELD_CODE		"code"
-#define FIELD_CODECHECK	"code_check"
-#define FIELD_CODEDATA	"code_data"
-#define FIELD_CMD		"cmd"
+#define JSON_FIELD_ACTION		"action"
+#define JSON_FIELD_PROTOCOL		"protocol"
+#define JSON_FIELD_GWSN			"gw_sn"
+#define JSON_FIELD_DEVICES		"devices"
+#define JSON_FIELD_NAME			"name"
+#define JSON_FIELD_DEVSN		"dev_sn"
+#define JSON_FIELD_DEVSNS		"dev_sns"
+#define JSON_FIELD_DEVTYPE		"dev_type"
+#define JSON_FIELD_DEVDATA		"dev_data"
+#define JSON_FIELD_ZSTATUS		"znet_status"
+#define JSON_FIELD_DEVDATA		"dev_data"
+#define JSON_FIELD_CODE			"code"
+#define JSON_FIELD_CODECHECK	"code_check"
+#define JSON_FIELD_CODEDATA		"code_data"
+#define JSON_FIELD_CMD			"cmd"
 
-
-#define FIELD_TOCOL_UDP		"udp"
-#define FIELD_TOCOL_TCP		"tcp"
-#define FIELD_TOCOL_HTTP	"http"
+#define JSON_VAL_TOCOL_UDP		"udp"
+#define JSON_VAL_TOCOL_TCP		"tcp"
+#define JSON_VAL_TOCOL_HTTP		"http"
 
 typedef enum
 {
@@ -60,21 +59,21 @@ typedef enum
 	ACTION_TOCOLRES
 }trans_action_t;
 
-typedef char sn_t[FIELD_SN_MAXSIZE];
+typedef char sn_t[JSON_FIELD_SN_MAXSIZE];
 
 typedef struct
 {
-	char name[FIELD_NAME_MAXSIZE];
+	char name[JSON_FIELD_NAME_MAXSIZE];
 	sn_t dev_sn;
 	fr_app_type_t dev_type;
 	char znet_status;
-	char dev_data[FIELD_DATA_MAXSIZE];
+	char dev_data[JSON_FIELD_DATA_MAXSIZE];
 }trfield_device_t;
 
 typedef struct
 {
 	trans_action_t action;
-	char protocol[FIELD_TOCOL_MAXSIZE];
+	char protocol[JSON_FIELD_TOCOL_MAXSIZE];
 }trfr_tocolreq_t, trfr_tocolres_t;
 
 typedef struct
@@ -92,8 +91,8 @@ typedef struct
 	sn_t *dev_sns;
 	int sn_size;
 	struct {
-		char code_check[FIELD_CODECHECK_MAXSIZE];
-		char code_data[FIELD_CODEDATA_MAXSIZE];
+		char code_check[JSON_FIELD_CODECHECK_MAXSIZE];
+		char code_data[JSON_FIELD_CODEDATA_MAXSIZE];
 	} code;
 }trfr_check_t;
 
@@ -102,7 +101,7 @@ typedef struct
 	trans_action_t action;
 	sn_t gw_sn;
 	sn_t dev_sn;
-	char dev_data[FIELD_DATA_MAXSIZE];
+	char dev_data[JSON_FIELD_DATA_MAXSIZE];
 }trfr_respond_t;
 
 typedef struct
@@ -119,7 +118,7 @@ typedef struct
 	sn_t gw_sn;
 	sn_t *dev_sns;
 	int sn_size;
-	char cmd[FIELD_CMD_MAXSIZE];
+	char cmd[JSON_FIELD_CMD_MAXSIZE];
 }trfr_control_t;
 
 trfield_device_t *get_trfield_device_alloc(char *name,

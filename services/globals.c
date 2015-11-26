@@ -17,11 +17,14 @@
 #include <pthread.h>
 #include <errno.h>
 #include <dirent.h>
+#include <protocol/common/fieldlysis.h>
 #include <protocol/common/session.h>
 #include <protocol/common/mevent.h>
 #include <protocol/protocol.h>
+#include <services/balancer.h>
 
 static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+static char port_buf[16];
 #ifdef COMM_CLIENT
 static char serial_port[16] = TRANS_SERIAL_DEV;
 static int tcp_port = TRANS_TCP_PORT;
@@ -41,22 +44,31 @@ static char de_buf[0x4000];
 static global_conf_t g_conf = 
 {
 	0,
+	{TOCOL_UDP, TOCOL_TCP, TOCOL_HTTP, 0},
+	3,
 #ifdef SERIAL_SUPPORT
 	TRANS_SERIAL_DEV,
 #endif
-#ifdef TRANS_TCP_SERVER
+#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	TRANS_TCP_PORT,
 #endif
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	TRANS_UDP_PORT,
 #endif
+#ifdef TRANS_HTTP_REQUEST
+	{0},
+#endif
 #ifdef REMOTE_UPDATE_APK
 	TRANS_UPDATE_DIR,
 #endif
 #ifdef DB_API_SUPPORT
+#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
 	TRANS_DB_NAME,
+#ifdef DB_API_WITH_MYSQL
 	TRANS_DB_USER,
-	TRANS_DB_PASS
+	TRANS_DB_PASS,
+#endif
+#endif
 #endif
 };
 
@@ -322,8 +334,13 @@ int start_params(int argc, char **argv)
 		set_udp_port(TRANS_UDP_PORT);
     #endif
 	}
+#elif defined(TRANS_HTTP_REQUEST)	
 #else
 #warning "No Comm protocol be selected, please set uart, tcp or udp."
+#endif
+
+#if defined(TRANS_HTTP_REQUEST) && !defined(READ_CONF_FILE)
+	sprintf(get_global_conf()->http_url, "http://%s/request", SERVER_IP);
 #endif
 
 #ifdef COMM_CLIENT
@@ -333,15 +350,19 @@ int start_params(int argc, char **argv)
 #endif
 
 #ifdef SERIAL_SUPPORT
-	DE_PRINTF(1, "Serial port device:\"%s\"\n", get_serial_port());
+	DE_PRINTF(1, "Serial port device: \"%s\"\n", get_serial_port());
 #endif
 
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-	DE_PRINTF(1, "TCP transmit port:%d\n", get_tcp_port());
+	DE_PRINTF(1, "TCP transmit port: %d\n", get_tcp_port());
 #endif
 
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-	DE_PRINTF(1, "UDP transmit port:%d\n", get_udp_port());
+	DE_PRINTF(1, "UDP transmit port: %d\n", get_udp_port());
+#endif
+
+#ifdef TRANS_HTTP_REQUEST
+	DE_PRINTF(1, "HTTP URL: \"%s\"\n", get_global_conf()->http_url);
 #endif
 
 	FILE *fp = NULL;
@@ -379,6 +400,7 @@ openlog_error:
 			__FUNCTION__, __LINE__, DLOG_FILE);
 	}
 
+	set_session_status(SESS_INIT);
 	return 0;
 }
 
@@ -445,8 +467,6 @@ int get_daemon_cmdline()
 
 int mach_init()
 {
-	set_session_status(SESS_INIT);
-	
 #ifdef COMM_CLIENT
 	gw_info_t *p_gw_info = get_gateway_info();
 
@@ -491,6 +511,8 @@ int mach_init()
     }
 #endif
 
+	set_session_status(SESS_READY);
+	set_trans_protocol(TOCOL_ENABLE);
 	return 0;
 }
 
@@ -514,7 +536,9 @@ int conf_read_from_file()
 	FILE *fp = NULL;
 	char buf[128] = {0};
 	g_conf.isset_flag = 0;
-		
+	memset(g_conf.protocols, 0, sizeof(g_conf.protocols));
+	g_conf.tocol_len = 0;
+
 	if((fp = fopen(CONF_FILE, "r")) != NULL)
 	{
 		while(fgets(buf, sizeof(buf), fp) != NULL)
@@ -623,6 +647,97 @@ void get_read_line(char *line, int len)
 
 void set_conf_val(char *cmd, char *val)
 {
+	if(!strcmp(cmd, GLOBAL_CONF_COMM_PROTOCOL))
+	{
+		int i, len=strlen(val);
+		int start_pos, end_pos;
+		int start_isset = 0;
+		int end_isset = 0;
+		int pro_index = 0;
+		transtocol_t transtocol_hasset = TOCOL_DISABLE;
+
+		for(i=0; i<=len; i++)
+		{
+			if(start_isset && (end_isset || i == len))
+			{
+				int field_len = end_pos - start_pos;
+				if(i == len && !end_isset)
+				{
+					field_len++;
+				}
+
+				start_isset = 0;
+				end_isset = 0;
+
+				if(!(transtocol_hasset & TOCOL_UDP) && field_len == 3
+					&& !strncmp(val+start_pos, JSON_VAL_TOCOL_UDP, field_len))
+				{
+					g_conf.protocols[pro_index++] = TOCOL_UDP;
+					transtocol_hasset |= TOCOL_UDP;
+				}
+				else if(!(transtocol_hasset & TOCOL_TCP) && field_len == 3
+					&& !strncmp(val+start_pos, JSON_VAL_TOCOL_TCP, field_len))
+				{
+					g_conf.protocols[pro_index++] = TOCOL_TCP;
+					transtocol_hasset |= TOCOL_TCP;
+				}
+				else if(!(transtocol_hasset & TOCOL_HTTP) && field_len == 4
+					&& !strncmp(val+start_pos, JSON_VAL_TOCOL_HTTP, field_len))
+				{
+					g_conf.protocols[pro_index++] = TOCOL_HTTP;
+					transtocol_hasset |= TOCOL_HTTP;
+				}
+
+				if(i == len)
+				{
+					break;
+				}
+			}
+
+			if(!start_isset)
+			{
+				if(*(val+i) == ' '
+					|| *(val+i) == ',')
+				{
+					continue;
+				}
+				else
+				{
+					start_pos = i;
+					end_pos = i+1;
+					start_isset = 1;
+				}
+			}
+			else if(!end_isset)
+			{
+				end_pos = i;
+				if(*(val+i) == ',')
+				{
+					int j = end_pos;
+					while(j > start_pos+1)
+					{
+						if(*(val+j-1) == ' ')
+						{
+							j--;
+						}
+						else
+						{
+							break;
+						}
+					}
+					end_pos = j;
+					end_isset = 1;
+				}
+			}
+		}
+
+		if(pro_index)
+		{
+			g_conf.tocol_len = pro_index;
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_PROTOCOL;
+		}
+	}
+
 #ifdef SERIAL_SUPPORT
 	if(!strcmp(cmd, GLOBAL_CONF_SERIAL_PORT))
 	{
@@ -634,16 +749,54 @@ void set_conf_val(char *cmd, char *val)
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	if(!strcmp(cmd, GLOBAL_CONF_TCP_PORT))
 	{
-		g_conf.tcp_port = atoi(val);
-		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_TCP;
+		confval_list *pval = get_confval_alloc_from_str(val);
+		if(pval != NULL)
+		{
+			g_conf.tcp_port = atoi(get_val_from_name(pval->val));
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_TCP;
+			get_confval_free(pval);
+		}
+		else
+		{
+			g_conf.tcp_port = atoi(val);
+			if(g_conf.tcp_port > 0)
+			{
+				g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_TCP;
+			}
+		}
 	}
 #endif
 
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	if(!strcmp(cmd, GLOBAL_CONF_UDP_PORT))
 	{
-		g_conf.udp_port = atoi(val);
-		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UDP;
+		confval_list *pval = get_confval_alloc_from_str(val);
+		if(pval != NULL)
+		{
+			g_conf.udp_port = atoi(get_val_from_name(pval->val));
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UDP;
+			get_confval_free(pval);
+		}
+		else
+		{
+			g_conf.udp_port = atoi(val);
+			if(g_conf.udp_port > 0)
+			{
+				g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UDP;
+			}
+		}
+	}
+#endif
+
+#ifdef TRANS_HTTP_REQUEST
+	if(!strcmp(cmd, GLOBAL_CONF_HTTP_URL))
+	{		
+		translate_confval_to_str(g_conf.http_url, val);
+
+		if(strlen(g_conf.http_url))
+		{
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_HTTPURL;
+		}
 	}
 #endif
 
@@ -656,11 +809,13 @@ void set_conf_val(char *cmd, char *val)
 #endif
 
 #ifdef DB_API_SUPPORT
+#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
 	if(!strcmp(cmd, GLOBAL_CONF_DATABASE))
 	{
 		strcpy(g_conf.db_name, val);
 		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_DB;
 	}
+#ifdef DB_API_WITH_MYSQL
 	else if(!strcmp(cmd, GLOBAL_CONF_DBUSER))
 	{
 		strcpy(g_conf.db_user, val);
@@ -672,12 +827,15 @@ void set_conf_val(char *cmd, char *val)
 		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_DBPASS;
 	}
 #endif
+#endif
+#endif
 }
 
 int get_conf_setval()
 {
 	int i;
 	uint32 issetflags[] = {
+					GLOBAL_CONF_ISSETVAL_PROTOCOL,
 #ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_ISSETVAL_SERIAL,
 #endif
@@ -687,17 +845,25 @@ int get_conf_setval()
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 					GLOBAL_CONF_ISSETVAL_UDP,
 #endif
+#ifdef TRANS_HTTP_REQUEST
+					GLOBAL_CONF_ISSETVAL_HTTPURL,
+#endif
 #ifdef REMOTE_UPDATE_APK
 					GLOBAL_CONF_ISSETVAL_UPAPK,
 #endif
 #ifdef DB_API_SUPPORT
+#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
 					GLOBAL_CONF_ISSETVAL_DB,
+#ifdef DB_API_WITH_MYSQL
 					GLOBAL_CONF_ISSETVAL_DBUSER,
 					GLOBAL_CONF_ISSETVAL_DBPASS,
+#endif
+#endif
 #endif
 					};
 
 	char *issetvals[] = {
+					GLOBAL_CONF_COMM_PROTOCOL,
 #ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_SERIAL_PORT,
 #endif
@@ -710,10 +876,17 @@ int get_conf_setval()
 #ifdef REMOTE_UPDATE_APK
 					GLOBAL_CONF_UPAPK_DIR,
 #endif
+#ifdef TRANS_HTTP_REQUEST
+					GLOBAL_CONF_HTTP_URL,
+#endif
 #ifdef DB_API_SUPPORT
+#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
 					GLOBAL_CONF_DATABASE,
+#ifdef DB_API_WITH_MYSQL
 					GLOBAL_CONF_DBUSER,
 					GLOBAL_CONF_DBPASS,
+#endif
+#endif
 #endif
 					};
 
@@ -732,6 +905,179 @@ int get_conf_setval()
 	}
 	
 	return 0;
+}
+
+void translate_confval_to_str(char *dst, char *src)
+{
+	int i;
+	int head_isset = 0;
+	int head_pos = 0;
+	int tail_pos = 0;
+	int vallen = strlen(src);
+
+	confval_list *pval = get_confval_alloc_from_str(src);
+
+	for(i=0; i<vallen; i++)
+	{
+		if(!head_isset && *(src+i) == '{')
+		{
+			head_isset = 1;
+			head_pos = i;
+		}
+		else if(head_isset && i > head_pos+2 && *(src+i) == '}')
+		{
+			char str_field[64] = {0};
+			memcpy(str_field, src+tail_pos, head_pos-tail_pos);
+			strcat(dst, str_field);
+			
+			confval_list *t_confval = pval;
+			while(t_confval != NULL)
+			{
+				if(t_confval->head_pos == head_pos)
+				{
+					strcat(dst, get_val_from_name(t_confval->val));
+				}
+				t_confval = t_confval->next;
+			}
+
+			tail_pos = i + 1;
+			head_isset = 0;
+		}
+	}
+
+	if(tail_pos < vallen)
+	{
+		char str_field[64] = {0};
+		memcpy(str_field, src+tail_pos, vallen-tail_pos);
+		strcat(dst, str_field);
+	}
+
+	get_confval_free(pval);
+}
+
+confval_list *get_confval_alloc_from_str(char *str)
+{
+	int i;
+	int vallen = strlen(str);
+	int head_isset = 0;
+	int head_pos;
+	confval_list *pval = NULL;
+	
+	for(i=0; i<vallen; i++)
+	{
+		if(!head_isset && *(str+i) == '{')
+		{
+			head_isset = 1;
+			head_pos = i;
+		}
+		else if(head_isset && i > head_pos+2 && *(str+i) == '}')
+		{
+			int j;
+			int valhead_isset = 0;
+			int valhead_pos;
+
+			for(j=head_pos+1; j<=i; j++)
+			{
+				if(!valhead_isset && *(str+j) == '$')
+				{
+					valhead_pos = j;
+					valhead_isset = 1;
+				}
+				else if(valhead_isset
+						&& (j == i
+							|| *(str+j) == ' '
+							|| *(str+j) == ','
+							|| *(str+j) == ';'
+							|| *(str+j) == '$'))
+				{
+					if(j-valhead_pos > 1)
+					{
+						int valname_len = j - valhead_pos - 1;
+						char *valname = calloc(1, valname_len+1);
+						memcpy(valname, str+valhead_pos+1, valname_len);
+						confval_list *m_confval = calloc(1, sizeof(confval_list));
+						m_confval->head_pos = head_pos;
+						m_confval->val = valname;
+						m_confval->next = NULL;
+
+						if(pval == NULL)
+						{
+							pval = m_confval;
+						}
+						else
+						{
+							confval_list *t_confval = pval;
+							while(t_confval->next != NULL)
+							{
+								t_confval = t_confval->next;
+							}
+							
+							t_confval->next = m_confval;
+						}
+					}
+
+					if(*(str+j) == '$')
+					{
+						valhead_pos = j;
+					}
+					else
+					{
+						valhead_isset = 0;
+					}
+				}
+			}
+
+			head_isset = 0;
+		}
+	}
+
+	return pval;
+}
+
+
+void get_confval_free(confval_list *pval)
+{
+	confval_list *t_confval = pval;
+	while(t_confval != NULL)
+	{
+		confval_list *pre_confval = t_confval;
+		t_confval = t_confval->next;
+		
+		free(pre_confval->val);
+		free(pre_confval);
+	}
+}
+
+char *get_val_from_name(char *name)
+{
+	if(!strcmp(name, "server_ip"))
+	{
+#ifdef LOAD_BALANCE_SUPPORT
+		return get_server_ip();
+#else
+		return SERVER_IP;
+#endif
+	}
+#ifdef LOAD_BALANCE_SUPPORT
+	else if(!strcmp(name+strlen(name)-3, "_ip"))
+	{
+		return get_server_ip_from_name(name);
+	}
+#endif
+	else if(!strcmp(name, "default_tcp_port"))
+	{
+		bzero(port_buf, sizeof(port_buf));
+		sprintf(port_buf, "%d", TRANS_TCP_PORT);
+		return port_buf;
+	}
+	else if(!strcmp(name, "default_udp_port"))
+	{
+		bzero(port_buf, sizeof(port_buf));
+		sprintf(port_buf, "%d", TRANS_UDP_PORT);
+		return port_buf;
+	}
+
+	return "";
 }
 
 #ifdef REMOTE_UPDATE_APK

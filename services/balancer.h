@@ -51,7 +51,7 @@ typedef struct RelSer_List
 
 int serlist_read_from_confile(void);
 char *get_server_ip(void);
-const char *get_server_ip_from_name(char *name);
-const char *get_server_name_from_ip(char *ip);
+char *get_server_ip_from_name(char *name);
+char *get_server_name_from_ip(char *ip);
 
 #endif	//__BALANCER_H__

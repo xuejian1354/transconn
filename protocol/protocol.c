@@ -280,27 +280,28 @@ void analysis_capps_frame(void *ptr)
 		goto capps_arg_end;
 	}
 
-	cJSON *pAction = cJSON_GetObjectItem(pRoot, FIELD_ACTION);
+	cJSON *pAction = cJSON_GetObjectItem(pRoot, JSON_FIELD_ACTION);
 	if(pAction == NULL)
 	{
 		goto capps_cjson_end;
 	}
 
-	switch(pAction->valueint)
+	switch(atoi(pAction->valuestring))
 	{
 	case ACTION_TOCOLREQ:
 	case ACTION_TOCOLRES:
 	{
-		cJSON *pProtocol = cJSON_GetObjectItem(pRoot, FIELD_PROTOCOL);
+		cJSON *pProtocol = cJSON_GetObjectItem(pRoot, JSON_FIELD_PROTOCOL);
 		if(pProtocol == NULL)
 		{
 			goto capps_cjson_end;
 		}
 		
-		trfr_tocolreq_t * tocolreq = 
-			get_trfr_tocolreq_alloc(pAction->valueint, pProtocol->valuestring);
+		trfr_tocolreq_t *tocolreq = 
+			get_trfr_tocolreq_alloc(atoi(pAction->valuestring),
+										pProtocol->valuestring);
 
-		trans_protocol_request_handler(tocolreq);
+		trans_protocol_request_handler(arg, tocolreq);
 		get_trfr_tocolreq_free(tocolreq);
 	}
 		break;
@@ -308,13 +309,13 @@ void analysis_capps_frame(void *ptr)
 #ifdef COMM_SERVER
 	case ACTION_REPORT:
 	{
-		cJSON *pGateway = cJSON_GetObjectItem(pRoot, FIELD_GWSN);
+		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pDevs = cJSON_GetObjectItem(pRoot, FIELD_DEVICES);
+		cJSON *pDevs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVICES);
 		if(pDevs == NULL)
 		{
 			goto capps_cjson_end;
@@ -333,19 +334,19 @@ void analysis_capps_frame(void *ptr)
 				continue;
 			}
 
-			cJSON *pDevName = cJSON_GetObjectItem(pDev, FIELD_NAME);
+			cJSON *pDevName = cJSON_GetObjectItem(pDev, JSON_FIELD_NAME);
 			if(pDevName == NULL) continue;
 
-			cJSON *pDevDevSN = cJSON_GetObjectItem(pDev, FIELD_DEVSN);
+			cJSON *pDevDevSN = cJSON_GetObjectItem(pDev, JSON_FIELD_DEVSN);
 			if(pDevDevSN == NULL) continue;
 
-			cJSON *pDevDevType = cJSON_GetObjectItem(pDev, FIELD_DEVTYPE);
+			cJSON *pDevDevType = cJSON_GetObjectItem(pDev, JSON_FIELD_DEVTYPE);
 			if(pDevDevType == NULL) continue;
 
-			cJSON *pDevZnetStatus = cJSON_GetObjectItem(pDev, FIELD_ZSTATUS);
+			cJSON *pDevZnetStatus = cJSON_GetObjectItem(pDev, JSON_FIELD_ZSTATUS);
 			if(pDevZnetStatus == NULL) continue;
 
-			cJSON *pDevData = cJSON_GetObjectItem(pDev, FIELD_DEVDATA);
+			cJSON *pDevData = cJSON_GetObjectItem(pDev, JSON_FIELD_DEVDATA);
 			if(pDevData == NULL) continue;
 
 			*(devices + i - 1) = 
@@ -357,37 +358,37 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_report_t *report = 
-			get_trfr_report_alloc(pAction->valueint, 
+			get_trfr_report_alloc(atoi(pAction->valuestring),
 									pGateway->valuestring, 
 									devices, 
 									dev_size);
 
-		trans_report_handler(report);
+		trans_report_handler(arg, report);
 		get_trfr_report_free(report);
 	}
 		break;
 
 	case ACTION_CHECK:
 	{
-		cJSON *pGateway = cJSON_GetObjectItem(pRoot, FIELD_GWSN);
+		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pCodeCheck = cJSON_GetObjectItem(pRoot, FIELD_CODECHECK);
+		cJSON *pCodeCheck = cJSON_GetObjectItem(pRoot, JSON_FIELD_CODECHECK);
 		if(pCodeCheck == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pCodeData = cJSON_GetObjectItem(pRoot, FIELD_CODEDATA);
+		cJSON *pCodeData = cJSON_GetObjectItem(pRoot, JSON_FIELD_CODEDATA);
 		if(pCodeData == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, FIELD_DEVSNS);
+		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSNS);
 		if(pDevSNs == NULL)
 		{
 			goto capps_cjson_end;
@@ -408,45 +409,45 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_check_t *check = 
-			get_trfr_check_alloc(pAction->valueint, 
+			get_trfr_check_alloc(atoi(pAction->valuestring), 
 									pGateway->valuestring, 
 									dev_sns, 
 									devsn_size, 
 									pCodeCheck->valuestring, 
 									pCodeData->valuestring);
 
-		trans_check_handler(check);
+		trans_check_handler(arg, check);
 		get_trfr_check_free(check);
 	}
 		break;
 
 	case ACTION_RESPOND:
 	{
-		cJSON *pGateway = cJSON_GetObjectItem(pRoot, FIELD_GWSN);
+		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pDevSN = cJSON_GetObjectItem(pRoot, FIELD_DEVSN);
+		cJSON *pDevSN = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSN);
 		if(pDevSN == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pDevData = cJSON_GetObjectItem(pRoot, FIELD_DEVDATA);
+		cJSON *pDevData = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVDATA);
 		if(pDevData == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
 		trfr_respond_t *respond = 
-			get_trfr_respond_alloc(pAction->valueint, 
+			get_trfr_respond_alloc(atoi(pAction->valuestring),
 										pGateway->valuestring, 
 										pDevSN->valuestring, 
 										pDevData->valuestring);
 
-		trans_respond_handler(respond);
+		trans_respond_handler(arg, respond);
 		get_trfr_respond_free(respond);
 	}
 		break;
@@ -454,13 +455,13 @@ void analysis_capps_frame(void *ptr)
 #ifdef COMM_CLIENT
 	case ACTION_REFRESH:
 	{
-		cJSON *pGateway = cJSON_GetObjectItem(pRoot, FIELD_GWSN);
+		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, FIELD_DEVSNS);
+		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSNS);
 		if(pDevSNs == NULL)
 		{
 			goto capps_cjson_end;
@@ -481,31 +482,31 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_refresh_t *refresh = 
-			get_trfr_refresh_alloc(pAction->valueint, 
+			get_trfr_refresh_alloc(atoi(pAction->valuestring),
 									pGateway->valuestring, 
 									dev_sns, 
 									devsn_size);
 
-		trans_refresh_handler(refresh);
+		trans_refresh_handler(arg, refresh);
 		get_trfr_refresh_free(refresh);
 	}
 		break;
 
 	case ACTION_CONTROL:
 	{
-		cJSON *pGateway = cJSON_GetObjectItem(pRoot, FIELD_GWSN);
+		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, FIELD_DEVSNS);
+		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSNS);
 		if(pDevSNs == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pCmd = cJSON_GetObjectItem(pRoot, FIELD_CMD);
+		cJSON *pCmd = cJSON_GetObjectItem(pRoot, JSON_FIELD_CMD);
 		if(pCmd == NULL)
 		{
 			goto capps_cjson_end;
@@ -526,13 +527,13 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_control_t *control = 
-			get_trfr_control_alloc(pAction->valueint, 
+			get_trfr_control_alloc(atoi(pAction->valuestring), 
 									pGateway->valuestring, 
 									dev_sns, 
 									devsn_size,
 									pCmd->valuestring);
 
-		trans_control_handler(control);
+		trans_control_handler(arg, control);
 		get_trfr_control_free(control);
 	}
 		break;

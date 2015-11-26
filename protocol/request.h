@@ -24,31 +24,20 @@
 #include <protocol/common/fieldlysis.h>
 
 #ifdef COMM_CLIENT
-void trans_refresh_handler(trfr_refresh_t *refresh);
-void trans_control_handler(trfr_control_t *control);
-void trans_protocol_respond_handler(trfr_tocolres_t *tocolres);
+void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh);
+void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control);
 #endif
 
-void trans_protocol_request_handler(trfr_tocolreq_t *tocolreq);
+void trans_protocol_request_handler(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq);
+void trans_send_protocol_request(frhandler_arg_t *arg, transtocol_t tocol);
 #ifdef COMM_SERVER
-void trans_report_handler(trfr_report_t *report);
-void trans_check_handler(trfr_check_t *check);
-void trans_respond_handler(trfr_respond_t *respond);
+void trans_report_handler(frhandler_arg_t *arg, trfr_report_t *report);
+void trans_check_handler(frhandler_arg_t *arg, trfr_check_t *check);
+void trans_respond_handler(frhandler_arg_t *arg, trfr_respond_t *respond);
 #endif
 
 #ifdef COMM_CLIENT
 void sync_gateway_info(gw_info_t *pgw_info);
 void sync_zdev_info(dev_info_t *pdev_info);
 #endif
-
-#ifdef TRANS_UDP_SERVICE
-void send_frame_udp_request(char *ipaddr, char *data, int len);
-#endif
-#ifdef TRANS_TCP_CLIENT
-void send_frame_tcp_request(char *data, int len);
-#endif
-#ifdef TRANS_TCP_SERVER
-void send_frame_tcp_respond(frhandler_arg_t *arg, char *data, int len);
-#endif
-
 #endif  //__REQUEST_H__

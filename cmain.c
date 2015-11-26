@@ -29,6 +29,13 @@ int main(int argc, char **argv)
 		return -1;
 	}
 #endif
+
+#ifdef READ_CONF_FILE
+	if(conf_read_from_file() < 0)
+	{
+		return -1;
+	}
+#endif
 	
 	if(start_params(argc, argv) != 0)
 	{

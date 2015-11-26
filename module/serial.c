@@ -201,6 +201,7 @@ int serial_write(char *data, int datalen)
 	}
 #endif
 #endif
+
 	return write(serial_id, data, datalen);
 }
 
@@ -215,6 +216,7 @@ void *uart_read_func(void *p)
         i = 0;
         memset(rbuf, 0, sizeof(rbuf));
         rlen = read(serial_id, rbuf, sizeof(rbuf));
+
         while(i < rlen)
         {
             if(0 == step)
@@ -359,7 +361,7 @@ serial_update:
 
 #if defined(COMM_SERVER) || defined(COMM_CLIENT)
 				frhandler_arg_t *frarg = 
-					get_frhandler_arg_alloc(serial_id, TOCOL_SERIAL, NULL, tmpFrame, dataLen);
+					get_frhandler_arg_alloc(serial_id, TOCOL_NONE, NULL, tmpFrame, dataLen);
 
 #ifdef THREAD_POOL_SUPPORT
 				tpool_add_work(analysis_zdev_frame, frarg, TPOOL_LOCK);

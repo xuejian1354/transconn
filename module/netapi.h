@@ -77,7 +77,8 @@ void socket_tcp_client_close();
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 int get_udp_fd();
 int socket_udp_service_init(int port);
-void socket_udp_sendto(char *addr, char *data, int len);
+void socket_udp_sendto_with_ipaddr(char *ipaddr, char *data, int len);
+void socket_udp_sendto(struct sockaddr_in *addr, char *data, int len);
 void socket_udp_recvfrom();
 #endif
 

@@ -92,7 +92,7 @@ int sql_init()
 		return -1;
 	}
 
-	DE_PRINTF(1, "mysql connect \"%s\"\n", m_conf->db_name);
+	DE_PRINTF(1, "mysql connect \"%s\"\n\n", m_conf->db_name);
 
 	if(mysql_set_character_set(&mysql_conn, "utf8"))
 	{
@@ -114,7 +114,7 @@ int sql_init()
 		return -1;
 	}
 
-	DE_PRINTF(1, "sqlite connect \"%s\"\n", m_conf->db_name);
+	DE_PRINTF(1, "sqlite connect \"%s\"\n\n", m_conf->db_name);
 
 	SET_CMD_LINE("CREATE TABLE gateways (%s%s%s%s%s%s%s%s)",
 					"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
