@@ -44,10 +44,6 @@
 #define JSON_FIELD_CODEDATA		"code_data"
 #define JSON_FIELD_CMD			"cmd"
 
-#define JSON_VAL_TOCOL_UDP		"udp"
-#define JSON_VAL_TOCOL_TCP		"tcp"
-#define JSON_VAL_TOCOL_HTTP		"http"
-
 typedef enum
 {
 	ACTION_TOCOLREQ = 1,
@@ -124,27 +120,25 @@ typedef struct
 trfield_device_t *get_trfield_device_alloc(char *name,
 	sn_t dev_sn, char *dev_type, char *znet_status, char *dev_data);
 
-trfr_tocolreq_t *get_trfr_tocolreq_alloc(trans_action_t action, char *protocol);
-void get_trfr_tocolreq_free(trfr_tocolreq_t *report);
+trfr_tocolreq_t *get_trfr_tocolreq_alloc(char *protocol);
+void get_trfr_tocolreq_free(trfr_tocolreq_t *tocolreq);
 
-trfr_report_t *get_trfr_report_alloc(trans_action_t action,
-	sn_t gw_sn, trfield_device_t **devices, int dev_size);
+trfr_report_t *get_trfr_report_alloc(sn_t gw_sn, trfield_device_t **devices, int dev_size);
 void get_trfr_report_free(trfr_report_t *report);
 
-trfr_check_t *get_trfr_check_alloc(trans_action_t action,
-	sn_t gw_sn, sn_t dev_sns[], int sn_size, char *code_check, char *code_data);
+trfr_check_t *get_trfr_check_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *code_check, char *code_data);
 void get_trfr_check_free(trfr_check_t *check);
 
-trfr_respond_t *get_trfr_respond_alloc(trans_action_t action,
-	sn_t gw_sn, sn_t dev_sn, char *dev_data);
+trfr_respond_t *get_trfr_respond_alloc(sn_t gw_sn, sn_t dev_sn, char *dev_data);
 void get_trfr_respond_free(trfr_respond_t *respond);
 
-trfr_refresh_t *get_trfr_refresh_alloc(trans_action_t action,
-	sn_t gw_sn, sn_t dev_sns[], int sn_size);
+trfr_refresh_t *get_trfr_refresh_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size);
 void get_trfr_refresh_free(trfr_refresh_t *refresh);
 
-trfr_control_t *get_trfr_control_alloc(trans_action_t action,
-	sn_t gw_sn, sn_t dev_sns[], int sn_size, char *cmd);
+trfr_control_t *get_trfr_control_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *cmd);
 void get_trfr_control_free(trfr_control_t *control);
+
+trfr_tocolreq_t *get_trfr_tocolres_alloc(char *protocol);
+void get_trfr_tocolres_free(trfr_tocolres_t *tocolres);
 
 #endif  //__FIELDLYSIS_H__

@@ -1,9 +1,9 @@
 
   This program support fix running environment by configurations.
-Thera are configurations files '/etc/balancer_serlist' &
+Thera are configurations files '/etc/balance_serlist' &
 '/etc/transconn.conf'.
 
-  '/etc/balancer_serlist' only be used by client (connect_listen).
+  '/etc/balance_serlist' only be used by client (connect_listen).
 The function support by macro LOAD_BALANCE_SUPPORT. You can add
 request server ip address on this file. Each server ip setting has
 two lines: name & ip. The name setting use '[]', and ip setting
@@ -35,7 +35,7 @@ system default udp port.
   http_url = http://{$server_ip}/request
   Configurate HTTP URL. This support only for client. The '{$val}'
 pattern can get val from system default. Using '{$[Server Name]_ip}'
-can get ip from /etc/balancer_serlist.
+can get ip from /etc/balance_serlist.
 
   apk_update_dir = /mnt/android_apk
   Configurate update android apk locates. This support only for server.

@@ -288,8 +288,8 @@ void analysis_capps_frame(void *ptr)
 
 	switch(atoi(pAction->valuestring))
 	{
+#ifdef COMM_SERVER
 	case ACTION_TOCOLREQ:
-	case ACTION_TOCOLRES:
 	{
 		cJSON *pProtocol = cJSON_GetObjectItem(pRoot, JSON_FIELD_PROTOCOL);
 		if(pProtocol == NULL)
@@ -297,16 +297,12 @@ void analysis_capps_frame(void *ptr)
 			goto capps_cjson_end;
 		}
 		
-		trfr_tocolreq_t *tocolreq = 
-			get_trfr_tocolreq_alloc(atoi(pAction->valuestring),
-										pProtocol->valuestring);
-
-		trans_protocol_request_handler(arg, tocolreq);
+		trfr_tocolreq_t *tocolreq = get_trfr_tocolreq_alloc(pProtocol->valuestring);
+		trans_tocolreq_handler(arg, tocolreq);
 		get_trfr_tocolreq_free(tocolreq);
 	}
 		break;
 
-#ifdef COMM_SERVER
 	case ACTION_REPORT:
 	{
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
@@ -358,10 +354,7 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_report_t *report = 
-			get_trfr_report_alloc(atoi(pAction->valuestring),
-									pGateway->valuestring, 
-									devices, 
-									dev_size);
+			get_trfr_report_alloc(pGateway->valuestring, devices, dev_size);
 
 		trans_report_handler(arg, report);
 		get_trfr_report_free(report);
@@ -370,34 +363,46 @@ void analysis_capps_frame(void *ptr)
 
 	case ACTION_CHECK:
 	{
+
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pCodeCheck = cJSON_GetObjectItem(pRoot, JSON_FIELD_CODECHECK);
+		cJSON *pCode = cJSON_GetObjectItem(pRoot, JSON_FIELD_CODE);
+		if(pCode == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pCodeCheck = cJSON_GetObjectItem(pCode, JSON_FIELD_CODECHECK);
 		if(pCodeCheck == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pCodeData = cJSON_GetObjectItem(pRoot, JSON_FIELD_CODEDATA);
+		cJSON *pCodeData = cJSON_GetObjectItem(pCode, JSON_FIELD_CODEDATA);
 		if(pCodeData == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
+		int devsn_size;
+		sn_t *dev_sns;
 		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSNS);
 		if(pDevSNs == NULL)
 		{
-			goto capps_cjson_end;
+			devsn_size = 0;
+			dev_sns = NULL;
+		}
+		else
+		{
+			devsn_size = cJSON_GetArraySize(pDevSNs);
+			dev_sns = calloc(devsn_size, sizeof(sn_t));
 		}
 
 		int i = 0;
-		int devsn_size = cJSON_GetArraySize(pDevSNs);
-		sn_t *dev_sns = calloc(devsn_size, sizeof(sn_t));
-
 		while(i < devsn_size)
 		{
 			cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
@@ -409,8 +414,7 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_check_t *check = 
-			get_trfr_check_alloc(atoi(pAction->valuestring), 
-									pGateway->valuestring, 
+			get_trfr_check_alloc(pGateway->valuestring, 
 									dev_sns, 
 									devsn_size, 
 									pCodeCheck->valuestring, 
@@ -442,8 +446,7 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_respond_t *respond = 
-			get_trfr_respond_alloc(atoi(pAction->valuestring),
-										pGateway->valuestring, 
+			get_trfr_respond_alloc(pGateway->valuestring, 
 										pDevSN->valuestring, 
 										pDevData->valuestring);
 
@@ -482,8 +485,7 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_refresh_t *refresh = 
-			get_trfr_refresh_alloc(atoi(pAction->valuestring),
-									pGateway->valuestring, 
+			get_trfr_refresh_alloc(pGateway->valuestring, 
 									dev_sns, 
 									devsn_size);
 
@@ -527,14 +529,27 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_control_t *control = 
-			get_trfr_control_alloc(atoi(pAction->valuestring), 
-									pGateway->valuestring, 
+			get_trfr_control_alloc(pGateway->valuestring, 
 									dev_sns, 
 									devsn_size,
 									pCmd->valuestring);
 
 		trans_control_handler(arg, control);
 		get_trfr_control_free(control);
+	}
+		break;
+
+	case ACTION_TOCOLRES:
+	{
+		cJSON *pProtocol = cJSON_GetObjectItem(pRoot, JSON_FIELD_PROTOCOL);
+		if(pProtocol == NULL)
+		{
+			goto capps_cjson_end;
+		}
+		
+		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(pProtocol->valuestring);
+		trans_tocolres_handler(arg, tocolres);
+		get_trfr_tocolreq_free(tocolres);
 	}
 		break;
 #endif
@@ -544,5 +559,9 @@ capps_cjson_end:
 	cJSON_Delete(pRoot);
 capps_arg_end:
 	get_frhandler_arg_free(arg);
+
+#ifdef COMM_CLIENT
+	set_refresh_check();
+#endif
 }
 

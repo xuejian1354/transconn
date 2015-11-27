@@ -83,6 +83,13 @@ void set_trans_protocol(transtocol_t tocol)
 #endif
 	}
 		break;
+
+	case TOCOL_NONE:
+#ifdef COMM_CLIENT
+		transtocol &= ~(TOCOL_UDP | TOCOL_TCP | TOCOL_HTTP);
+		set_session_status(SESS_WORKING);
+#endif
+		break;
 	}
 }
 transtocol_t get_trans_protocol()

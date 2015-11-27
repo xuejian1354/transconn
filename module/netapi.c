@@ -573,6 +573,11 @@ void curl_post_request(void *ptr)
 				break;
         }
     }
+	else
+	{
+		DE_PRINTF(0, "%s\nHTTP-Post:%s\nrequest:%s\n",
+			get_time_head(), arg->url, arg->req);
+	}
   
     curl_easy_cleanup(curl);
 	free(arg);
@@ -618,6 +623,7 @@ size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp)
 					valData = xmlNodeGetContent(curNode);
 					//DE_PRINTF(1, "name:%s\ncontent:%s\n", curNode->name, valData); 
 					frhandler_arg_t arg = {0};
+					arg.transtocol = TOCOL_HTTP;
 					arg.buf = valData;
 					arg.len = strlen(valData);
 					analysis_capps_frame(&arg);
@@ -722,7 +728,8 @@ void trans_data_show(de_print_t deprint,
 			return;
 		}
 		
-		DE_PRINTF(lwflag, "UDP:send %d bytes, to ip=%s:%u\n", 
+		DE_PRINTF(lwflag, "%s\nUDP:send %d bytes, to ip=%s:%u\n", 
+					get_time_head(),
 					len, inet_ntoa(addr->sin_addr), 
 					ntohs(addr->sin_port));
 	}
@@ -736,7 +743,8 @@ void trans_data_show(de_print_t deprint,
 #ifndef TRANS_UDP_SERVICE
 		return;
 #endif
-		DE_PRINTF(lwflag, "UDP:receive %d bytes, from ip=%s:%u\n", 
+		DE_PRINTF(lwflag, "%s\nUDP:receive %d bytes, from ip=%s:%u\n", 
+					get_time_head(),
 					len, inet_ntoa(addr->sin_addr), 
 					ntohs(addr->sin_port));
 	}
@@ -747,7 +755,8 @@ void trans_data_show(de_print_t deprint,
 			return;
 		}
 		
-		DE_PRINTF(1, "TCP:accept,ip=%s:%u\n\n", 
+		DE_PRINTF(1, "%s\nTCP:accept,ip=%s:%u\n\n", 
+			get_time_head(),
 			inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		return;
 	}
@@ -758,7 +767,8 @@ void trans_data_show(de_print_t deprint,
 			return;
 		}
 		
-		DE_PRINTF(lwflag, "TCP:send %d bytes, to ip=%s:%u\n", 
+		DE_PRINTF(lwflag, "%s\nTCP:send %d bytes, to ip=%s:%u\n", 
+					get_time_head(),
 					len, inet_ntoa(addr->sin_addr), 
 					ntohs(addr->sin_port));
 	}
@@ -769,7 +779,8 @@ void trans_data_show(de_print_t deprint,
 			return;
 		}
 		
-		DE_PRINTF(lwflag, "TCP:receive %d bytes, from ip=%s:%u\n", 
+		DE_PRINTF(lwflag, "%s\nTCP:receive %d bytes, from ip=%s:%u\n", 
+					get_time_head(),
 					len, inet_ntoa(addr->sin_addr), 
 					ntohs(addr->sin_port));
 	}
@@ -779,7 +790,8 @@ void trans_data_show(de_print_t deprint,
 		{
 			return;
 		}
-		DE_PRINTF(1, "TCP:release,ip=%s:%u\n\n", 
+		DE_PRINTF(1, "%s\nTCP:release,ip=%s:%u\n\n", 
+						get_time_head(),
 						inet_ntoa(addr->sin_addr), 
 						ntohs(addr->sin_port));
 		return;

@@ -670,19 +670,19 @@ void set_conf_val(char *cmd, char *val)
 				end_isset = 0;
 
 				if(!(transtocol_hasset & TOCOL_UDP) && field_len == 3
-					&& !strncmp(val+start_pos, JSON_VAL_TOCOL_UDP, field_len))
+					&& !strncmp(val+start_pos, TRANSTOCOL_UDP, field_len))
 				{
 					g_conf.protocols[pro_index++] = TOCOL_UDP;
 					transtocol_hasset |= TOCOL_UDP;
 				}
 				else if(!(transtocol_hasset & TOCOL_TCP) && field_len == 3
-					&& !strncmp(val+start_pos, JSON_VAL_TOCOL_TCP, field_len))
+					&& !strncmp(val+start_pos, TRANSTOCOL_TCP, field_len))
 				{
 					g_conf.protocols[pro_index++] = TOCOL_TCP;
 					transtocol_hasset |= TOCOL_TCP;
 				}
 				else if(!(transtocol_hasset & TOCOL_HTTP) && field_len == 4
-					&& !strncmp(val+start_pos, JSON_VAL_TOCOL_HTTP, field_len))
+					&& !strncmp(val+start_pos, TRANSTOCOL_HTTP, field_len))
 				{
 					g_conf.protocols[pro_index++] = TOCOL_HTTP;
 					transtocol_hasset |= TOCOL_HTTP;
