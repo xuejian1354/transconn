@@ -728,7 +728,7 @@ void trans_data_show(de_print_t deprint,
 			return;
 		}
 		
-		DE_PRINTF(lwflag, "%s\nUDP:send %d bytes, to ip=%s:%u\n", 
+		DE_PRINTF(lwflag, "%s\nUDP:send %d bytes, to ipaddr=%s:%u\n", 
 					get_time_head(),
 					len, inet_ntoa(addr->sin_addr), 
 					ntohs(addr->sin_port));
@@ -743,7 +743,7 @@ void trans_data_show(de_print_t deprint,
 #ifndef TRANS_UDP_SERVICE
 		return;
 #endif
-		DE_PRINTF(lwflag, "%s\nUDP:receive %d bytes, from ip=%s:%u\n", 
+		DE_PRINTF(lwflag, "%s\nUDP:receive %d bytes, from ipaddr=%s:%u\n", 
 					get_time_head(),
 					len, inet_ntoa(addr->sin_addr), 
 					ntohs(addr->sin_port));
@@ -755,7 +755,7 @@ void trans_data_show(de_print_t deprint,
 			return;
 		}
 		
-		DE_PRINTF(1, "%s\nTCP:accept,ip=%s:%u\n\n", 
+		DE_PRINTF(1, "%s\nTCP:accept,ipaddr=%s:%u\n\n", 
 			get_time_head(),
 			inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		return;
@@ -767,7 +767,7 @@ void trans_data_show(de_print_t deprint,
 			return;
 		}
 		
-		DE_PRINTF(lwflag, "%s\nTCP:send %d bytes, to ip=%s:%u\n", 
+		DE_PRINTF(lwflag, "%s\nTCP:send %d bytes, to ipaddr=%s:%u\n", 
 					get_time_head(),
 					len, inet_ntoa(addr->sin_addr), 
 					ntohs(addr->sin_port));
@@ -779,7 +779,7 @@ void trans_data_show(de_print_t deprint,
 			return;
 		}
 		
-		DE_PRINTF(lwflag, "%s\nTCP:receive %d bytes, from ip=%s:%u\n", 
+		DE_PRINTF(lwflag, "%s\nTCP:receive %d bytes, from ipaddr=%s:%u\n", 
 					get_time_head(),
 					len, inet_ntoa(addr->sin_addr), 
 					ntohs(addr->sin_port));
@@ -790,7 +790,7 @@ void trans_data_show(de_print_t deprint,
 		{
 			return;
 		}
-		DE_PRINTF(1, "%s\nTCP:release,ip=%s:%u\n\n", 
+		DE_PRINTF(1, "%s\nTCP:release,ipaddr=%s:%u\n\n", 
 						get_time_head(),
 						inet_ntoa(addr->sin_addr), 
 						ntohs(addr->sin_port));

@@ -45,7 +45,6 @@ static pthread_mutex_t sql_lock;
 
 static char is_userful = 0;
 static char cmdline[0x4000];
-static char current_time[64];
 
 static int sql_excute_cmdline(char *cmdline);
 #ifdef DB_API_WITH_MYSQL
@@ -57,17 +56,6 @@ static void del_devices_from_user_sql(char *email, devices_t *devs);
 static void del_areas_from_user_sql(char *email, areas_t *areas);
 static void del_scenes_from_user_sql(char *email, scenes_t *scenes);
 #endif
-
-char *get_current_time()
-{
-	time_t t;
-	time(&t);
-	bzero(current_time, sizeof(current_time));
-	struct tm *tp= localtime(&t);
-	strftime(current_time, 100, "%Y-%m-%d %H:%M:%S", tp); 
-
-	return current_time;
-}
 
 int sql_init()
 {

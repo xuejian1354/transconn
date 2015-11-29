@@ -16,7 +16,7 @@
  */
 #include "request.h"
 #include <cJSON.h>
-#include <protocol/common/mevent.h>
+#include <protocol/devices.h>
 
 #ifdef COMM_CLIENT
 void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq)
@@ -27,14 +27,13 @@ void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq
 	}
 
 	cJSON *pRoot = cJSON_CreateObject();
-	char action_str[4] = {0};
-	sprintf(action_str, "%d", ACTION_TOCOLREQ);
-	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, action_str);
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(tocolreq->action));
 
 #ifdef TRANS_UDP_SERVICE	
 	if(!strcmp(tocolreq->protocol, TRANSTOCOL_UDP))
 	{
 		cJSON_AddStringToObject(pRoot, JSON_FIELD_PROTOCOL, tocolreq->protocol);
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, tocolreq->random);
 		char *frame = cJSON_Print(pRoot);
 		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
 	}
@@ -44,6 +43,7 @@ void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq
 	if(!strcmp(tocolreq->protocol, TRANSTOCOL_TCP))
 	{
 		cJSON_AddStringToObject(pRoot, JSON_FIELD_PROTOCOL, tocolreq->protocol);
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, tocolreq->random);
 		char *frame = cJSON_Print(pRoot);
 		socket_tcp_client_send(frame, strlen(frame));
 	}
@@ -53,6 +53,7 @@ void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq
 	if(!strcmp(tocolreq->protocol, TRANSTOCOL_HTTP))
 	{
 		cJSON_AddStringToObject(pRoot, JSON_FIELD_PROTOCOL, tocolreq->protocol);
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, tocolreq->random);
 		char *frame = cJSON_Print(pRoot);
 		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
 	}
@@ -62,7 +63,80 @@ void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq
 }
 
 void trans_send_report_request(frhandler_arg_t *arg, trfr_report_t *report)
-{}
+{
+	if(report == NULL)
+	{
+		return;
+	}
+
+	char *frame;
+	cJSON *pRoot = cJSON_CreateObject();
+
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(report->action));
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, report->gw_sn);
+
+	int i = 0;
+	cJSON *pDevs = NULL;
+	if(report->dev_size > 0 && report->devices != NULL)
+	{
+		pDevs = cJSON_CreateArray();
+		cJSON_AddItemToObject(pRoot, JSON_FIELD_DEVICES, pDevs);
+	}
+
+	while(i < report->dev_size)
+	{
+		
+		cJSON *pDev = cJSON_CreateObject();
+		cJSON_AddItemToArray(pDevs, pDev);
+
+		cJSON_AddStringToObject(pDev, JSON_FIELD_NAME, (*(report->devices+i))->name);
+		cJSON_AddStringToObject(pDev, JSON_FIELD_DEVSN, (*(report->devices+i))->dev_sn);
+		char type[4] = {0};
+		get_frapp_type_to_str(type, (*(report->devices+i))->dev_type);
+		cJSON_AddStringToObject(pDev, JSON_FIELD_DEVTYPE, type);
+		if((*(report->devices+i))->znet_status)
+		{
+			cJSON_AddStringToObject(pDev, JSON_FIELD_ZSTATUS, "1");
+		}
+		else
+		{
+			cJSON_AddStringToObject(pDev, JSON_FIELD_ZSTATUS, "0");
+		}
+		cJSON_AddStringToObject(pDev, JSON_FIELD_DEVDATA, (*(report->devices+i))->dev_data);
+		
+		i++;
+	}
+
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, report->random);
+
+	switch(get_trans_protocol())
+	{
+	case TOCOL_DISABLE:
+		break;
+	case TOCOL_ENABLE:
+		break;
+#ifdef TRANS_UDP_SERVICE
+	case TOCOL_UDP:
+		frame = cJSON_Print(pRoot);
+		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
+		break;
+#endif
+#ifdef TRANS_TCP_CLIENT
+	case TOCOL_TCP:
+		frame = cJSON_Print(pRoot);
+		socket_tcp_client_send(frame, strlen(frame));
+		break;
+#endif
+#ifdef TRANS_HTTP_REQUEST
+	case TOCOL_HTTP:
+		frame = cJSON_Print(pRoot);
+		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data)
+		break;
+#endif
+	}
+
+	cJSON_Delete(pRoot);
+}
 
 void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check)
 {
@@ -74,9 +148,7 @@ void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check)
 	char *frame;
 	cJSON *pRoot = cJSON_CreateObject();
 
-	char action_str[4] = {0};
-	sprintf(action_str, "%d", check->action);
-	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, action_str);
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(check->action));
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, check->gw_sn);
 
 	cJSON *pCode = cJSON_CreateObject();
@@ -84,6 +156,7 @@ void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check)
 
 	cJSON_AddStringToObject(pCode, JSON_FIELD_CODECHECK, check->code.code_check);
 	cJSON_AddStringToObject(pCode, JSON_FIELD_CODEDATA, check->code.code_data);
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, check->random);
 
 	switch(get_trans_protocol())
 	{
@@ -130,17 +203,32 @@ void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 		return;
 	}
 
-	if(!strcmp(tocolres->protocol, TRANSTOCOL_UDP))
+	switch(arg->transtocol)
 	{
+	case TOCOL_UDP:
 		set_trans_protocol(TOCOL_UDP);
-	}
-	else if(!strcmp(tocolres->protocol, TRANSTOCOL_TCP))
-	{
+		break;
+
+	case TOCOL_TCP:
 		set_trans_protocol(TOCOL_TCP);
-	}
-	else if(!strcmp(tocolres->protocol, TRANSTOCOL_HTTP))
-	{
+		break;
+	case TOCOL_HTTP:
 		set_trans_protocol(TOCOL_HTTP);
+		break;
+	}
+
+	switch(tocolres->req_action)
+	{
+	case ACTION_REPORT:
+	{
+		dev_info_t *p_dev = get_gateway_info()->p_dev;
+		while(p_dev != NULL)
+		{
+			p_dev->isdata_change = 0;
+			p_dev = p_dev->next;
+		}
+	}
+		break;
 	}
 }
 #endif
@@ -155,14 +243,31 @@ void trans_tocolreq_handler(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq)
 
 	if(tocolreq->action == ACTION_TOCOLREQ)
 	{
-		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(tocolreq->protocol);
+		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(tocolreq->action, tocolreq->random);
 		trans_send_tocolres_request(arg, tocolres);
 		get_trfr_tocolres_free(tocolres);
 	}
 }
 
 void trans_report_handler(frhandler_arg_t *arg, trfr_report_t *report)
-{}
+{
+	if(report == NULL)
+	{
+		return;
+	}
+
+	if(!(get_trans_protocol() & arg->transtocol))
+	{
+		return;
+	}
+
+	if(report->action == ACTION_REPORT)
+	{
+		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(report->action, report->random);
+		trans_send_tocolres_request(arg, tocolres);
+		get_trfr_tocolres_free(tocolres);
+	}
+}
 
 void trans_check_handler(frhandler_arg_t *arg, trfr_check_t *check)
 {
@@ -176,25 +281,12 @@ void trans_check_handler(frhandler_arg_t *arg, trfr_check_t *check)
 		return;
 	}
 
-	char transtocol_str[8] = {0};
-	switch(arg->transtocol)
+	if(check->action == ACTION_CHECK)
 	{
-	case TOCOL_UDP:
-		strcpy(transtocol_str, TRANSTOCOL_UDP);
-		break;
-
-	case TOCOL_TCP:
-		strcpy(transtocol_str, TRANSTOCOL_TCP);
-		break;
-
-	case TOCOL_HTTP:
-		strcpy(transtocol_str, TRANSTOCOL_HTTP);
-		break;
+		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(check->action, check->random);
+		trans_send_tocolres_request(arg, tocolres);
+		get_trfr_tocolres_free(tocolres);
 	}
-
-	trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(transtocol_str);
-	trans_send_tocolres_request(arg, tocolres);
-	get_trfr_tocolres_free(tocolres);
 }
 
 void trans_respond_handler(frhandler_arg_t *arg, trfr_respond_t *respond)
@@ -213,29 +305,31 @@ void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres
 		return;
 	}
 
+	char *frame = NULL;
 	cJSON *pRoot = cJSON_CreateObject();
-	char action_str[4] = {0};
-	sprintf(action_str, "%d", ACTION_TOCOLRES);
-	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, action_str);
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(tocolres->action));
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_REQACTION, get_action_to_str(tocolres->req_action));
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, tocolres->random);
 
-#ifdef TRANS_UDP_SERVICE	
-	if(!strcmp(tocolres->protocol, TRANSTOCOL_UDP))
+	switch(arg->transtocol)
 	{
-
-		cJSON_AddStringToObject(pRoot, JSON_FIELD_PROTOCOL, tocolres->protocol);
-		char *frame = cJSON_Print(pRoot);
+	case TOCOL_UDP:
+#ifdef TRANS_UDP_SERVICE
+		frame = cJSON_Print(pRoot);
 		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
-	}
 #endif
+		break;
 
+	case TOCOL_TCP:
 #if defined(TRANS_TCP_SERVER)
-	if(!strcmp(tocolres->protocol, TRANSTOCOL_TCP))
-	{
-		cJSON_AddStringToObject(pRoot, JSON_FIELD_PROTOCOL, tocolres->protocol);
-		char *frame = cJSON_Print(pRoot);
+		frame = cJSON_Print(pRoot);
 		socket_tcp_server_send(arg, frame, strlen(frame));
-	}
 #endif
+		break;
+
+	case TOCOL_HTTP:
+		break;
+	}
 	
 	cJSON_Delete(pRoot);
 }

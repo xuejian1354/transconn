@@ -18,7 +18,6 @@
 #include <mincode.h>
 #include <module/serial.h>
 #include <protocol/request.h>
-#include <protocol/common/mevent.h>
 
 #ifdef COMM_CLIENT
 static gw_info_t gw_info;
@@ -75,7 +74,13 @@ int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev)
 				t_dev->znet_type = m_dev->znet_type;
 			}
 
-			set_devopt_data_fromopt(t_dev->zdev_opt, m_dev->zdev_opt);
+			int is_change =
+				set_devopt_data_fromopt(t_dev->zdev_opt, m_dev->zdev_opt);
+
+			if(!t_dev->isdata_change)
+			{
+				t_dev->isdata_change = is_change;
+			}
 
 			if(pre_dev != NULL)
 			{

@@ -30,6 +30,7 @@ dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length)
 	dev_info->zapp_type = get_frapp_type_from_str(buffer+20);
 	dev_info->znet_type = get_frnet_type_from_str(buffer[22]);
 	dev_info->zdev_opt = NULL;
+	dev_info->isdata_change = 1;
 	dev_info->next = NULL;
 
 	return dev_info;

@@ -20,15 +20,17 @@
 #include <services/globals.h>
 #include <protocol/framelysis.h>
 
-#define JSON_FIELD_NAME_MAXSIZE		12
+#define JSON_FIELD_NAME_MAXSIZE		64
 #define JSON_FIELD_SN_MAXSIZE		24
 #define JSON_FIELD_DATA_MAXSIZE		7
 #define JSON_FIELD_CMD_MAXSIZE		7
 #define JSON_FIELD_TOCOL_MAXSIZE		8
 #define JSON_FIELD_CODECHECK_MAXSIZE	8
 #define JSON_FIELD_CODEDATA_MAXSIZE	40
+#define JSON_FIELD_RANDOM_MAXSIZE	6
 
 #define JSON_FIELD_ACTION		"action"
+#define JSON_FIELD_REQACTION	"req_action"
 #define JSON_FIELD_PROTOCOL		"protocol"
 #define JSON_FIELD_GWSN			"gw_sn"
 #define JSON_FIELD_DEVICES		"devices"
@@ -38,11 +40,11 @@
 #define JSON_FIELD_DEVTYPE		"dev_type"
 #define JSON_FIELD_DEVDATA		"dev_data"
 #define JSON_FIELD_ZSTATUS		"znet_status"
-#define JSON_FIELD_DEVDATA		"dev_data"
 #define JSON_FIELD_CODE			"code"
 #define JSON_FIELD_CODECHECK	"code_check"
 #define JSON_FIELD_CODEDATA		"code_data"
 #define JSON_FIELD_CMD			"cmd"
+#define JSON_FIELD_RANDOM		"random"
 
 typedef enum
 {
@@ -70,7 +72,8 @@ typedef struct
 {
 	trans_action_t action;
 	char protocol[JSON_FIELD_TOCOL_MAXSIZE];
-}trfr_tocolreq_t, trfr_tocolres_t;
+	char random[JSON_FIELD_RANDOM_MAXSIZE];
+}trfr_tocolreq_t;
 
 typedef struct
 {
@@ -78,6 +81,7 @@ typedef struct
 	sn_t gw_sn;
 	trfield_device_t **devices;
 	int dev_size;
+	char random[JSON_FIELD_RANDOM_MAXSIZE];
 }trfr_report_t;
 
 typedef struct
@@ -90,6 +94,7 @@ typedef struct
 		char code_check[JSON_FIELD_CODECHECK_MAXSIZE];
 		char code_data[JSON_FIELD_CODEDATA_MAXSIZE];
 	} code;
+	char random[JSON_FIELD_RANDOM_MAXSIZE];
 }trfr_check_t;
 
 typedef struct
@@ -98,6 +103,7 @@ typedef struct
 	sn_t gw_sn;
 	sn_t dev_sn;
 	char dev_data[JSON_FIELD_DATA_MAXSIZE];
+	char random[JSON_FIELD_RANDOM_MAXSIZE];
 }trfr_respond_t;
 
 typedef struct
@@ -106,6 +112,7 @@ typedef struct
 	sn_t gw_sn;
 	sn_t *dev_sns;
 	int sn_size;
+	char random[JSON_FIELD_RANDOM_MAXSIZE];
 }trfr_refresh_t;
 
 typedef struct
@@ -115,30 +122,40 @@ typedef struct
 	sn_t *dev_sns;
 	int sn_size;
 	char cmd[JSON_FIELD_CMD_MAXSIZE];
+	char random[JSON_FIELD_RANDOM_MAXSIZE];
 }trfr_control_t;
+
+typedef struct
+{
+	trans_action_t action;
+	trans_action_t req_action;
+	char random[JSON_FIELD_RANDOM_MAXSIZE];
+}trfr_tocolres_t;
+
+char *get_action_to_str(trans_action_t action);
 
 trfield_device_t *get_trfield_device_alloc(char *name,
 	sn_t dev_sn, char *dev_type, char *znet_status, char *dev_data);
 
-trfr_tocolreq_t *get_trfr_tocolreq_alloc(char *protocol);
+trfr_tocolreq_t *get_trfr_tocolreq_alloc(char *protocol, char *random);
 void get_trfr_tocolreq_free(trfr_tocolreq_t *tocolreq);
 
-trfr_report_t *get_trfr_report_alloc(sn_t gw_sn, trfield_device_t **devices, int dev_size);
+trfr_report_t *get_trfr_report_alloc(sn_t gw_sn, trfield_device_t **devices, int dev_size, char *random);
 void get_trfr_report_free(trfr_report_t *report);
 
-trfr_check_t *get_trfr_check_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *code_check, char *code_data);
+trfr_check_t *get_trfr_check_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *code_check, char *code_data, char *random);
 void get_trfr_check_free(trfr_check_t *check);
 
-trfr_respond_t *get_trfr_respond_alloc(sn_t gw_sn, sn_t dev_sn, char *dev_data);
+trfr_respond_t *get_trfr_respond_alloc(sn_t gw_sn, sn_t dev_sn, char *dev_data, char *random);
 void get_trfr_respond_free(trfr_respond_t *respond);
 
-trfr_refresh_t *get_trfr_refresh_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size);
+trfr_refresh_t *get_trfr_refresh_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *random);
 void get_trfr_refresh_free(trfr_refresh_t *refresh);
 
-trfr_control_t *get_trfr_control_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *cmd);
+trfr_control_t *get_trfr_control_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *cmd, char *random);
 void get_trfr_control_free(trfr_control_t *control);
 
-trfr_tocolreq_t *get_trfr_tocolres_alloc(char *protocol);
+trfr_tocolres_t *get_trfr_tocolres_alloc(trans_action_t req_action, char *random);
 void get_trfr_tocolres_free(trfr_tocolres_t *tocolres);
 
 #endif  //__FIELDLYSIS_H__

@@ -217,5 +217,7 @@ char *get_val_from_name(char *name);
 void reapk_version_code(char *up_flags, char *ipaddr, cidentify_no_t cidentify_no);
 #endif
 #endif
-
+char *get_current_time();
+char *get_system_time();
+char *get_md5(char *text, int result_len);
 #endif	//__GLOBALS_H__

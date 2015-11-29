@@ -49,4 +49,8 @@ sessionsta_t get_session_status();
 void set_trans_protocol(transtocol_t tocol);
 transtocol_t get_trans_protocol();
 
+void set_syncdata_checkcode(char *code);
+char *get_syncdata_checkcode();
+char *gen_current_checkcode(zidentify_no_t gw_sn);
+
 #endif  //__SESSION_H__

@@ -11,27 +11,28 @@ making it easily to understand.
 [Action]
   Gateway ---> Server
     Protocol Request	1
-    Report Data			2
-    Check Data			3
-    Data Respond		4
+    Report Data		2
+    Check Data		3
+    Data Respond	4
 
   Server ---> Gateway
-    Refresh Request		5
-    Control Cmd			6
-    Protocol Respond	7
+    Refresh Request	5
+    Control Cmd		6
+    TocolReq Returns	7
 
 [dev_type]
   LampSwitch		31
-  Projector			32
+  Projector		32
   AirCondition		33
-  Curtain			34
-  Doorlock			35
+  Curtain		34
+  Doorlock		35
 
 [Data format(json)]
 Protocol Request/Respond
 {
 	action:		"1",
-	protocol:	"http"
+	protocol:	"http",
+	random:		"ba1f"
 }
 
 Report Data
@@ -60,7 +61,8 @@ Report Data
 			znet_status:	"1",
 			dev_data:		""
 		}
-	]
+	],
+	random:		"df8b"
 }
 
 Check Data
@@ -75,7 +77,8 @@ Check Data
 	code: {
 		code_check:	"md5",
 		code_data:	"1eefc8cae41face6b907ae495d3243bc"
-	}
+	},
+	random:		"36ef"
 }
 
 Data Respond
@@ -83,7 +86,8 @@ Data Respond
 	action:		"4",
 	gw_sn:		"00124B000712ACC1",
 	dev_sn:		"00124B000712155C",
-	dev_data:	""
+	dev_data:	"",
+	random:		"7013"
 }
 
 Refresh Request
@@ -94,7 +98,8 @@ Refresh Request
 		"00124B000712155C",
 		"00124B000712047A",
 		"00124B0007125274"
-	]
+	],
+	random:		"59e1"
 }
 
 Control Cmd
@@ -106,6 +111,14 @@ Control Cmd
 		"00124B000712047A",
 		"00124B0007125274"
 	],
-	cmd:	""
+	cmd:	"",
+	random:		"f6a6"
+}
+
+TocolReq Returns
+{
+	action:		"7",
+	req_action:	"1",
+	random:		"7467"
 }
 

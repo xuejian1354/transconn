@@ -89,7 +89,7 @@ static zh_el_t zh_tables[TN_NUMS+1] =
 };
 #endif
 
-static char mix_type_name[24];
+static char mix_type_name[64];
 
 char *get_name(type_name_t tn)
 {
@@ -112,7 +112,7 @@ char *get_name_from_type(fr_app_type_t type)
 
 char *get_mix_name(fr_app_type_t type, uint8 s1, uint8 s2)
 {
-	bzero(mix_type_name, sizeof(mix_type_name));
+	memset(mix_type_name, 0, sizeof(mix_type_name));
 	sprintf(mix_type_name, "%s%02X%02X", get_name_from_type(type), s1, s2);
 	return mix_type_name;
 }

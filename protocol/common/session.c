@@ -16,11 +16,13 @@
  */
 #include "session.h"
 #include <protocol/request.h>
+#include <protocol/common/mevent.h>
 #include <module/netapi.h>
 #include <services/balancer.h>
 
 static sessionsta_t session_status;
 static transtocol_t transtocol;
+static char checkcode[64];
 
 #ifdef COMM_CLIENT
 void send_transtocol_request();
@@ -118,6 +120,65 @@ transtocol_t get_trans_protocol()
 #ifdef COMM_SERVER
 	return transtocol;
 #endif
+}
+
+void set_syncdata_checkcode(char *code)
+{
+	bzero(checkcode, sizeof(checkcode));
+	STRS_MEMCPY(checkcode, code, sizeof(checkcode), strlen(code));
+}
+
+char *get_syncdata_checkcode()
+{
+	return checkcode;
+}
+
+char *gen_current_checkcode(zidentify_no_t gw_sn)
+{
+	gw_info_t *p_gw = NULL;
+#ifdef COMM_CLIENT
+	p_gw = get_gateway_info();
+#elif defined(COMM_SERVER)
+	p_gw = query_gateway_info(gw_sn);
+#endif
+
+	char *text = NULL;
+	long text_len = 0;
+
+	if(p_gw != NULL)
+	{
+		dev_info_t *p_dev = p_gw->p_dev;
+		while(p_dev != NULL)
+		{
+			fr_buffer_t *buffer = get_devopt_data_tostr(p_dev->zdev_opt);
+			p_dev = p_dev->next;
+
+			if(buffer == NULL)
+			{
+				continue;
+			}
+
+			if(text == NULL)
+			{
+				text = calloc(1, buffer->size+1);
+				text_len = buffer->size+1;
+			}
+			else
+			{
+				text = realloc(text, text_len+buffer->size);
+				text_len += buffer->size;
+			}
+
+			memcpy(text+text_len-buffer->size-1, buffer->data, buffer->size);
+
+			get_buffer_free(buffer);
+		}
+	}
+
+	char *checkcode = get_md5(text, 16);
+	free(text);
+
+	return checkcode;
 }
 
 void session_handler()

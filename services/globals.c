@@ -17,12 +17,14 @@
 #include <pthread.h>
 #include <errno.h>
 #include <dirent.h>
+#include <md5.h>
 #include <protocol/common/fieldlysis.h>
 #include <protocol/common/session.h>
-#include <protocol/common/mevent.h>
 #include <protocol/protocol.h>
 #include <services/balancer.h>
 
+static char current_time[64];
+static char curcode[64];
 static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 static char port_buf[16];
 #ifdef COMM_CLIENT
@@ -1131,5 +1133,48 @@ void reapk_version_code(char *up_flags, char *ipaddr, cidentify_no_t cidentify_n
 	send_frame_udp_request(ipaddr, TRHEAD_UB, &ub);
 }
 #endif
+
+char *get_current_time()
+{
+	time_t t;
+	time(&t);
+	bzero(current_time, sizeof(current_time));
+	struct tm *tp= localtime(&t);
+	strftime(current_time, 100, "%Y-%m-%d %H:%M:%S", tp); 
+
+	return current_time;
+}
+
+char *get_system_time()
+{
+	struct timeval time;
+	gettimeofday(&time, NULL);
+	bzero(current_time, sizeof(current_time));
+	sprintf(current_time, "%u", time.tv_sec);
+
+	return current_time;
+}
+
+char *get_md5(char *text, int result_len)
+{
+	if(text == NULL)
+	{
+		return "";
+	}
+
+	MD5_CTX ctx;
+	uint8 md[16];
+
+	MD5Init(&ctx);
+	MD5Update(&ctx,(unsigned char *)text, strlen(text));
+	MD5Final(md, &ctx);
+
+	result_len = result_len < 16 ? result_len : 16;
+	bzero(curcode, sizeof(curcode));
+	incode_xtocs(curcode, md, result_len);
+
+	return curcode;
+}
+
 #endif
 

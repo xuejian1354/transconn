@@ -108,14 +108,77 @@ void heartbeat_request(void *p)
 			arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
 
 			char gwno_str[20] = {0};
-			incode_xtocs(gwno_str, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-			trfr_check_t *t_check = get_trfr_check_alloc(gwno_str,
-															NULL,
-															0,
-															"d-value",
-															"0");
-			trans_send_check_request(&arg, t_check);
-			get_trfr_check_free(t_check);
+			incode_xtocs(gwno_str,
+							get_gateway_info()->gw_no,
+							sizeof(zidentify_no_t));
+
+			char *cur_code = gen_current_checkcode(NULL);
+			if(strcmp(get_syncdata_checkcode(), cur_code))
+			{
+				set_syncdata_checkcode(cur_code);
+
+				trfield_device_t **devices = NULL;
+				int dev_size = 0;
+
+				dev_info_t *p_dev = get_gateway_info()->p_dev;
+				while(p_dev != NULL)
+				{
+					if(p_dev->isdata_change)
+					{
+						char *name = get_mix_name(p_dev->zapp_type,
+													get_gateway_info()->gw_no[7],
+													p_dev->zidentity_no[7]);
+
+						sn_t dev_sn = {0};
+						incode_xtocs(dev_sn, p_dev->zidentity_no, sizeof(zidentify_no_t));
+
+						char dev_type[4] = {0};
+						get_frapp_type_to_str(dev_type, p_dev->zapp_type);
+
+						fr_buffer_t *data_buffer = get_devopt_data_tostr(p_dev->zdev_opt);
+						char *dev_data = calloc(1, data_buffer->size+1);
+						memcpy(dev_data, data_buffer->data, data_buffer->size);
+						get_buffer_free(data_buffer);
+
+						trfield_device_t *device = 
+							get_trfield_device_alloc(name, dev_sn, dev_type, "1", dev_data);
+						if(device != NULL)
+						{
+							if(devices == NULL)
+							{
+								devices = calloc(1, sizeof(trfield_device_t *));
+								*devices = device;
+							}
+							else
+							{
+								devices = realloc(devices, (dev_size+1)*sizeof(trfield_device_t *));
+								*(devices+dev_size) = device;
+							}
+
+							dev_size++;
+						}
+					}
+					p_dev = p_dev->next;
+				}
+
+				trfr_report_t * report = get_trfr_report_alloc(gwno_str, devices, dev_size, NULL);
+
+				trans_send_report_request(&arg, report);
+				get_trfr_report_free(report);
+			}
+			else
+			{
+				trfr_check_t *t_check =
+					get_trfr_check_alloc(gwno_str,
+											NULL,
+											0,
+											"md5",
+											cur_code,
+											NULL);
+
+				trans_send_check_request(&arg, t_check);
+				get_trfr_check_free(t_check);
+			}
 			set_heartbeat_check(30);
 		}
 			break;
@@ -123,32 +186,12 @@ void heartbeat_request(void *p)
 #ifdef TRANS_TCP_CLIENT
 		case TOCOL_TCP:
 		{
-			char gwno_str[20] = {0};
-			incode_xtocs(gwno_str, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-			trfr_check_t *t_check = get_trfr_check_alloc(gwno_str,
-															NULL,
-															0,
-															"d-value",
-															"0");
-			trans_send_check_request(NULL, t_check);
-			get_trfr_check_free(t_check);
-			set_heartbeat_check(20);
 		}
 			break;
 #endif
 #ifdef TRANS_HTTP_REQUEST
 		case TOCOL_HTTP:
 		{
-			char gwno_str[20] = {0};
-			incode_xtocs(gwno_str, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-			trfr_check_t *t_check = get_trfr_check_alloc(gwno_str,
-															NULL,
-															0,
-															"d-value",
-															"0");
-			trans_send_check_request(NULL, t_check);
-			get_trfr_check_free(t_check);
-			set_heartbeat_check(3);
 		}
 			break;
 #endif
@@ -186,17 +229,17 @@ void gateway_refresh(void *p)
 	arg.addr.sin_port = htons(get_udp_port());
 	arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
 
-	trfr_tocolreq_t *utocolreq = get_trfr_tocolreq_alloc(TRANSTOCOL_UDP);
+	trfr_tocolreq_t *utocolreq = get_trfr_tocolreq_alloc(TRANSTOCOL_UDP, NULL);
 	trans_send_tocolreq_request(&arg, utocolreq);
 	get_trfr_tocolreq_free(utocolreq);
 #endif
 #ifdef TRANS_TCP_CLIENT
-	trfr_tocolreq_t *ttocolreq = get_trfr_tocolreq_alloc(TRANSTOCOL_TCP);
+	trfr_tocolreq_t *ttocolreq = get_trfr_tocolreq_alloc(TRANSTOCOL_TCP, NULL);
 	trans_send_tocolreq_request(NULL, ttocolreq);
 	get_trfr_tocolreq_free(ttocolreq);
 #endif
 #ifdef TRANS_HTTP_REQUEST
-	trfr_tocolreq_t *htocolreq = get_trfr_tocolreq_alloc(TRANSTOCOL_HTTP);
+	trfr_tocolreq_t *htocolreq = get_trfr_tocolreq_alloc(TRANSTOCOL_HTTP, NULL);
 	trans_send_tocolreq_request(NULL, htocolreq);
 	get_trfr_tocolreq_free(htocolreq);
 #endif

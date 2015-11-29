@@ -16,6 +16,15 @@
  */
 #include "fieldlysis.h"
 
+static char action_str[6];
+
+char *get_action_to_str(trans_action_t action)
+{
+	bzero(action_str, sizeof(action_str));
+	sprintf(action_str, "%d", action);
+	return action_str;
+}
+
 trfield_device_t *get_trfield_device_alloc(char *name,
 	sn_t dev_sn, char *dev_type, char *znet_status, char *dev_data)
 {
@@ -35,7 +44,7 @@ trfield_device_t *get_trfield_device_alloc(char *name,
 	return device;
 }
 
-trfr_tocolreq_t *get_trfr_tocolreq_alloc(char *protocol)
+trfr_tocolreq_t *get_trfr_tocolreq_alloc(char *protocol, char *random)
 {
 	if(protocol == NULL)
 	{
@@ -47,6 +56,17 @@ trfr_tocolreq_t *get_trfr_tocolreq_alloc(char *protocol)
 	STRS_MEMCPY(tocolreq->protocol, 
 		protocol, sizeof(tocolreq->protocol), strlen(protocol));
 
+	char *gen_md;
+	if(random == NULL)
+	{
+		gen_md = get_md5(get_system_time(), 2);
+	}
+	else
+	{
+		gen_md = random;
+	}
+
+	STRS_MEMCPY(tocolreq->random, gen_md, sizeof(tocolreq->random), strlen(gen_md));
 	return tocolreq;
 }
 
@@ -55,7 +75,7 @@ void get_trfr_tocolreq_free(trfr_tocolreq_t *tocolreq)
 	free(tocolreq);
 }
 
-trfr_report_t *get_trfr_report_alloc(sn_t gw_sn, trfield_device_t **devices, int dev_size)
+trfr_report_t *get_trfr_report_alloc(sn_t gw_sn, trfield_device_t **devices, int dev_size, char *random)
 {
 	if(gw_sn == NULL || devices == NULL || dev_size <= 0)
 	{
@@ -69,6 +89,17 @@ trfr_report_t *get_trfr_report_alloc(sn_t gw_sn, trfield_device_t **devices, int
 	report->devices = devices;
 	report->dev_size = dev_size;
 
+	char *gen_md;
+	if(random == NULL)
+	{
+		gen_md = get_md5(get_system_time(), 2);
+	}
+	else
+	{
+		gen_md = random;
+	}
+
+	STRS_MEMCPY(report->random, gen_md, sizeof(report->random), strlen(gen_md));
 	return report;
 }
 
@@ -90,7 +121,7 @@ void get_trfr_report_free(trfr_report_t *report)
 	}
 }
 
-trfr_check_t *get_trfr_check_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *code_check, char *code_data)
+trfr_check_t *get_trfr_check_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *code_check, char *code_data, char *random)
 {
 	if(gw_sn == NULL ||  code_check == NULL || code_data == NULL)
 	{
@@ -108,6 +139,18 @@ trfr_check_t *get_trfr_check_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char
 	STRS_MEMCPY(check->code.code_data, 
 		code_data, sizeof(check->code.code_data), strlen(code_data));
 
+	char *gen_md;
+	if(random == NULL)
+	{
+		gen_md = get_md5(get_system_time(), 2);
+	}
+	else
+	{
+		gen_md = random;
+	}
+
+	STRS_MEMCPY(check->random, gen_md, sizeof(check->random), strlen(gen_md));
+
 	return check;
 }
 
@@ -124,7 +167,7 @@ void get_trfr_check_free(trfr_check_t *check)
 	}
 }
 
-trfr_respond_t *get_trfr_respond_alloc(sn_t gw_sn, sn_t dev_sn, char *dev_data)
+trfr_respond_t *get_trfr_respond_alloc(sn_t gw_sn, sn_t dev_sn, char *dev_data, char *random)
 {
 	if(gw_sn == NULL || dev_sn == NULL || dev_data == NULL)
 	{
@@ -138,6 +181,18 @@ trfr_respond_t *get_trfr_respond_alloc(sn_t gw_sn, sn_t dev_sn, char *dev_data)
 	STRS_MEMCPY(respond->dev_data, 
 		dev_data, sizeof(respond->dev_data), strlen(dev_data));
 
+	char *gen_md;
+	if(random == NULL)
+	{
+		gen_md = get_md5(get_system_time(), 2);
+	}
+	else
+	{
+		gen_md = random;
+	}
+
+	STRS_MEMCPY(respond->random, gen_md, sizeof(respond->random), strlen(gen_md));
+	
 	return respond;
 }
 
@@ -146,7 +201,7 @@ void get_trfr_respond_free(trfr_respond_t *respond)
 	free(respond);
 }
 
-trfr_refresh_t *get_trfr_refresh_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size)
+trfr_refresh_t *get_trfr_refresh_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *random)
 {
 	if(gw_sn == NULL || dev_sns == NULL || sn_size <=0)
 	{
@@ -159,6 +214,18 @@ trfr_refresh_t *get_trfr_refresh_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size)
 	STRS_MEMCPY(refresh->gw_sn, gw_sn, sizeof(refresh->gw_sn), strlen(gw_sn));
 	refresh->dev_sns = dev_sns;
 	refresh->sn_size = sn_size;
+
+	char *gen_md;
+	if(random == NULL)
+	{
+		gen_md = get_md5(get_system_time(), 2);
+	}
+	else
+	{
+		gen_md = random;
+	}
+
+	STRS_MEMCPY(refresh->random, gen_md, sizeof(refresh->random), strlen(gen_md));
 
 	return refresh;
 }
@@ -176,7 +243,7 @@ void get_trfr_refresh_free(trfr_refresh_t *refresh)
 	}
 }
 
-trfr_control_t *get_trfr_control_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *cmd)
+trfr_control_t *get_trfr_control_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *cmd, char *random)
 {
 	if(gw_sn == NULL || dev_sns == NULL || sn_size <= 0 || cmd == NULL)
 	{
@@ -190,6 +257,18 @@ trfr_control_t *get_trfr_control_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, 
 	control->dev_sns = dev_sns;
 	control->sn_size = sn_size;
 	STRS_MEMCPY(control->cmd, cmd, sizeof(control->cmd), strlen(cmd));
+
+	char *gen_md;
+	if(random == NULL)
+	{
+		gen_md = get_md5(get_system_time(), 2);
+	}
+	else
+	{
+		gen_md = random;
+	}
+
+	STRS_MEMCPY(control->random, gen_md, sizeof(control->random), strlen(gen_md));
 
 	return control;
 }
@@ -207,19 +286,25 @@ void get_trfr_control_free(trfr_control_t *control)
 	}
 }
 
-trfr_tocolreq_t *get_trfr_tocolres_alloc(char *protocol)
+trfr_tocolres_t *get_trfr_tocolres_alloc(trans_action_t req_action, char *random)
 {
-	if(protocol == NULL)
+	trfr_tocolres_t *tocolres = calloc(1, sizeof(trfr_tocolres_t));
+	tocolres->action = ACTION_TOCOLRES;
+	tocolres->req_action = req_action;
+
+	char *gen_md;
+	if(random == NULL)
 	{
-		return NULL;
+		gen_md = get_md5(get_system_time(), 2);
+	}
+	else
+	{
+		gen_md = random;
 	}
 
-	trfr_tocolreq_t *tocolreq = calloc(1, sizeof(trfr_tocolreq_t));
-	tocolreq->action = ACTION_TOCOLRES;
-	STRS_MEMCPY(tocolreq->protocol, 
-		protocol, sizeof(tocolreq->protocol), strlen(protocol));
+	STRS_MEMCPY(tocolres->random, gen_md, sizeof(tocolres->random), strlen(gen_md));
 
-	return tocolreq;
+	return tocolres;
 }
 
 void get_trfr_tocolres_free(trfr_tocolres_t *tocolres)

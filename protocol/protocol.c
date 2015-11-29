@@ -82,6 +82,7 @@ void analysis_zdev_frame(void *ptr)
 
 		dev_info->zdev_opt = 
 			get_devopt_fromstr(dev_info->zapp_type, uo->data, uo->data_len);
+		dev_info->isdata_change = 1;
 
 		set_zdev_check(dev_info->znet_addr);
 		uint16 znet_addr = dev_info->znet_addr;
@@ -145,9 +146,15 @@ void analysis_zdev_frame(void *ptr)
 			}
 			else
 			{
-				if(zdev_sync_zopt(dev_info->zdev_opt, ur->data, ur->data_len) ==0 )
+				int ret = zdev_sync_zopt(dev_info->zdev_opt, ur->data, ur->data_len);
+				if(ret != 1)
 				{
 					sync_zdev_info(dev_info);
+				}
+
+				if(ret == 2 && !dev_info->isdata_change)
+				{
+					dev_info->isdata_change = 1;
 				}
 			}
 		}
@@ -244,7 +251,7 @@ void analysis_zdev_frame(void *ptr)
 int zdev_sync_zopt(dev_opt_t *dst_opt, uint8 *data, uint8 datalen)
 {
 	dev_opt_t *src_opt = get_devopt_fromstr(dst_opt->type, data, datalen);
-	set_devopt_data_fromopt(dst_opt, src_opt);
+	int is_change = set_devopt_data_fromopt(dst_opt, src_opt);
 	get_devopt_free(src_opt);
 #ifdef DE_PRINT_SERIAL_PORT
 	devopt_de_print(dst_opt);
@@ -260,6 +267,11 @@ int zdev_sync_zopt(dev_opt_t *dst_opt, uint8 *data, uint8 datalen)
 			&& !dst_opt->device.envdetection.up_setting))
 	{
 		return 1;
+	}
+
+	if(is_change)
+	{
+		return 2;
 	}
 
 	return 0;
@@ -296,8 +308,15 @@ void analysis_capps_frame(void *ptr)
 		{
 			goto capps_cjson_end;
 		}
-		
-		trfr_tocolreq_t *tocolreq = get_trfr_tocolreq_alloc(pProtocol->valuestring);
+
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		trfr_tocolreq_t *tocolreq =
+			get_trfr_tocolreq_alloc(pProtocol->valuestring, pRandom->valuestring);
 		trans_tocolreq_handler(arg, tocolreq);
 		get_trfr_tocolreq_free(tocolreq);
 	}
@@ -310,17 +329,28 @@ void analysis_capps_frame(void *ptr)
 		{
 			goto capps_cjson_end;
 		}
-
-		cJSON *pDevs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVICES);
-		if(pDevs == NULL)
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
 		{
 			goto capps_cjson_end;
 		}
+		
 
-		int i = 0;
-		int dev_size = cJSON_GetArraySize(pDevs);
-		trfield_device_t **devices = calloc(dev_size, sizeof(trfield_device_t *));
-			
+		cJSON *pDevs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVICES);
+		int dev_size;
+		trfield_device_t **devices;
+		if(pDevs == NULL)
+		{
+			dev_size = 0;
+			devices = NULL;
+		}
+		else
+		{
+			dev_size = cJSON_GetArraySize(pDevs);
+			devices = calloc(dev_size, sizeof(trfield_device_t *));
+		}
+
+		int i = 0;			
 		while(i < dev_size)
 		{
 			cJSON *pDev = cJSON_GetArrayItem(pDevs, i);
@@ -354,7 +384,10 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_report_t *report = 
-			get_trfr_report_alloc(pGateway->valuestring, devices, dev_size);
+			get_trfr_report_alloc(pGateway->valuestring,
+									devices,
+									dev_size,
+									pRandom->valuestring);
 
 		trans_report_handler(arg, report);
 		get_trfr_report_free(report);
@@ -366,6 +399,12 @@ void analysis_capps_frame(void *ptr)
 
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
 		{
 			goto capps_cjson_end;
 		}
@@ -418,7 +457,8 @@ void analysis_capps_frame(void *ptr)
 									dev_sns, 
 									devsn_size, 
 									pCodeCheck->valuestring, 
-									pCodeData->valuestring);
+									pCodeData->valuestring,
+									pRandom->valuestring);
 
 		trans_check_handler(arg, check);
 		get_trfr_check_free(check);
@@ -429,6 +469,12 @@ void analysis_capps_frame(void *ptr)
 	{
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
 		{
 			goto capps_cjson_end;
 		}
@@ -448,7 +494,8 @@ void analysis_capps_frame(void *ptr)
 		trfr_respond_t *respond = 
 			get_trfr_respond_alloc(pGateway->valuestring, 
 										pDevSN->valuestring, 
-										pDevData->valuestring);
+										pDevData->valuestring,
+										pRandom->valuestring);
 
 		trans_respond_handler(arg, respond);
 		get_trfr_respond_free(respond);
@@ -460,6 +507,12 @@ void analysis_capps_frame(void *ptr)
 	{
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
 		{
 			goto capps_cjson_end;
 		}
@@ -487,7 +540,8 @@ void analysis_capps_frame(void *ptr)
 		trfr_refresh_t *refresh = 
 			get_trfr_refresh_alloc(pGateway->valuestring, 
 									dev_sns, 
-									devsn_size);
+									devsn_size,
+									pRandom->valuestring);
 
 		trans_refresh_handler(arg, refresh);
 		get_trfr_refresh_free(refresh);
@@ -502,8 +556,8 @@ void analysis_capps_frame(void *ptr)
 			goto capps_cjson_end;
 		}
 
-		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSNS);
-		if(pDevSNs == NULL)
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
 		{
 			goto capps_cjson_end;
 		}
@@ -514,10 +568,22 @@ void analysis_capps_frame(void *ptr)
 			goto capps_cjson_end;
 		}
 
-		int i = 0;
-		int devsn_size = cJSON_GetArraySize(pDevSNs);
-		sn_t *dev_sns = calloc(devsn_size, sizeof(sn_t));
+		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSNS);
+		int devsn_size;
+		sn_t *dev_sns;
+		if(pDevSNs == NULL)
+		{
+			devsn_size = 0;
+			dev_sns = NULL;
+		}
+		else
+		{
+			devsn_size = cJSON_GetArraySize(pDevSNs);
+			dev_sns = calloc(devsn_size, sizeof(sn_t));
+		}
+		
 
+		int i = 0;
 		while(i < devsn_size)
 		{
 			cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
@@ -532,7 +598,8 @@ void analysis_capps_frame(void *ptr)
 			get_trfr_control_alloc(pGateway->valuestring, 
 									dev_sns, 
 									devsn_size,
-									pCmd->valuestring);
+									pCmd->valuestring,
+									pRandom->valuestring);
 
 		trans_control_handler(arg, control);
 		get_trfr_control_free(control);
@@ -541,15 +608,22 @@ void analysis_capps_frame(void *ptr)
 
 	case ACTION_TOCOLRES:
 	{
-		cJSON *pProtocol = cJSON_GetObjectItem(pRoot, JSON_FIELD_PROTOCOL);
-		if(pProtocol == NULL)
+		cJSON *pReqAction = cJSON_GetObjectItem(pRoot, JSON_FIELD_REQACTION);
+		if(pReqAction == NULL)
 		{
 			goto capps_cjson_end;
 		}
-		
-		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(pProtocol->valuestring);
+
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		trfr_tocolres_t *tocolres =
+			get_trfr_tocolres_alloc(atoi(pReqAction->valuestring), pRandom->valuestring);
 		trans_tocolres_handler(arg, tocolres);
-		get_trfr_tocolreq_free(tocolres);
+		get_trfr_tocolres_free(tocolres);
 	}
 		break;
 #endif
