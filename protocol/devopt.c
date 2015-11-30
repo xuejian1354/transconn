@@ -997,6 +997,7 @@ fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
 		buffer->size = DEVOPT_IRDETECT_DATASTR_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
 		incode_xtocs(buffer->data, &opt->device.irdetect.setting, 1);
+		incode_xtocs(buffer->data+2, &opt->device.irdetect.status, 1);
 		return buffer;
 		
 	case FRAPP_DOOR_SENSOR: 
@@ -1004,6 +1005,7 @@ fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
 		buffer->size = DEVOPT_DOORSENSOR_DATASTR_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
 		incode_xtocs(buffer->data, &opt->device.doorsensor.setting, 1);
+		incode_xtocs(buffer->data+2, &opt->device.doorsensor.status, 1);
 		return buffer;
 
 	case FRAPP_ENVDETECTION:

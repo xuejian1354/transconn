@@ -22,7 +22,7 @@
 
 #define JSON_FIELD_NAME_MAXSIZE		64
 #define JSON_FIELD_SN_MAXSIZE		24
-#define JSON_FIELD_DATA_MAXSIZE		7
+#define JSON_FIELD_DATA_MAXSIZE		32
 #define JSON_FIELD_CMD_MAXSIZE		7
 #define JSON_FIELD_TOCOL_MAXSIZE		8
 #define JSON_FIELD_CODECHECK_MAXSIZE	8
@@ -64,7 +64,7 @@ typedef struct
 	char name[JSON_FIELD_NAME_MAXSIZE];
 	sn_t dev_sn;
 	fr_app_type_t dev_type;
-	char znet_status;
+	int znet_status;
 	char dev_data[JSON_FIELD_DATA_MAXSIZE];
 }trfield_device_t;
 
@@ -135,7 +135,7 @@ typedef struct
 char *get_action_to_str(trans_action_t action);
 
 trfield_device_t *get_trfield_device_alloc(char *name,
-	sn_t dev_sn, char *dev_type, char *znet_status, char *dev_data);
+	sn_t dev_sn, char *dev_type, int znet_status, char *dev_data);
 
 trfr_tocolreq_t *get_trfr_tocolreq_alloc(char *protocol, char *random);
 void get_trfr_tocolreq_free(trfr_tocolreq_t *tocolreq);

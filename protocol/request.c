@@ -15,8 +15,15 @@
  * GNU General Public License for more details.
  */
 #include "request.h"
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <sqlite3.h>
 #include <cJSON.h>
 #include <protocol/devices.h>
+#include <services/balancer.h>
+#include <module/dbopt.h>
+
+extern char cmdline[CMDLINE_SIZE];
 
 #ifdef COMM_CLIENT
 void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq)
@@ -227,6 +234,8 @@ void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 			p_dev->isdata_change = 0;
 			p_dev = p_dev->next;
 		}
+
+		sql_set_datachange_zdev(get_gateway_info()->gw_no, 0);
 	}
 		break;
 	}
@@ -343,7 +352,152 @@ void sync_gateway_info(gw_info_t *pgw_info)
 
 void sync_zdev_info(dev_info_t *pdev_info)
 {
+	if(pdev_info == NULL)
+	{
+		return;
+	}
+
 	sql_add_zdev(get_gateway_info(), pdev_info);
+
+	if(pdev_info->isdata_change)
+	{
+		upload_data();
+	}
+}
+
+void upload_data()
+{
+	transtocol_t transtocol = get_trans_protocol();
+	if(transtocol == TOCOL_UDP
+		|| transtocol == TOCOL_TCP
+		|| transtocol == TOCOL_HTTP)
+	{
+		frhandler_arg_t arg;
+		arg.transtocol = transtocol;
+		arg.addr.sin_family = PF_INET;
+		arg.addr.sin_port = htons(get_udp_port());
+		arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
+
+		char gwno_str[20] = {0};
+		incode_xtocs(gwno_str,
+						get_gateway_info()->gw_no,
+						sizeof(zidentify_no_t));
+
+		char *cur_code = gen_current_checkcode(NULL);
+		if(strcmp(get_syncdata_checkcode(), cur_code))
+		{
+			set_syncdata_checkcode(cur_code);
+
+			trfield_device_t **devices = NULL;
+			int dev_size = 0;
+#ifdef DB_API_WITH_SQLITE
+			char gwsn[20] = {0};
+			incode_xtocs(gwsn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+			SET_CMD_LINE("%s%s%s",
+							"SELECT * FROM devices WHERE gwsn=\'",
+							gwsn,
+							"\' AND ischange=\'1\'");
+
+		 	sqlite3_stmt *stmt;
+		    if(sqlite3_prepare_v2(get_sqlite_db(), GET_CMD_LINE(), -1, &stmt, NULL) == SQLITE_OK)
+		    {
+		        while(sqlite3_step(stmt) == SQLITE_ROW)
+				{
+					if(sqlite3_column_count(stmt) > 17)
+					{
+						const char *name = sqlite3_column_text(stmt, 7);
+						const char *dev_sn = sqlite3_column_text(stmt, 1);
+						const char *dev_type = sqlite3_column_text(stmt, 2);
+						int isonline = sqlite3_column_int(stmt, 10);
+						const char *dev_data = sqlite3_column_text(stmt, 15);
+						
+						trfield_device_t *device = 
+							get_trfield_device_alloc((char *)name,
+														(char *)dev_sn,
+														(char *)dev_type,
+														isonline,
+														(char *)dev_data);
+						if(device != NULL)
+						{
+							if(devices == NULL)
+							{
+								devices = calloc(1, sizeof(trfield_device_t *));
+								*devices = device;
+							}
+							else
+							{
+								devices = realloc(devices, (dev_size+1)*sizeof(trfield_device_t *));
+								*(devices+dev_size) = device;
+							}
+
+							dev_size++;
+						}
+					}
+				}
+		    }
+			sqlite3_finalize(stmt);
+#else
+			dev_info_t *p_dev = get_gateway_info()->p_dev;
+			while(p_dev != NULL)
+			{
+				if(p_dev->isdata_change)
+				{
+					char *name = get_mix_name(p_dev->zapp_type,
+												get_gateway_info()->gw_no[7],
+												p_dev->zidentity_no[7]);
+
+					sn_t dev_sn = {0};
+					incode_xtocs(dev_sn, p_dev->zidentity_no, sizeof(zidentify_no_t));
+
+					char dev_type[4] = {0};
+					get_frapp_type_to_str(dev_type, p_dev->zapp_type);
+
+					fr_buffer_t *data_buffer = get_devopt_data_tostr(p_dev->zdev_opt);
+					char *dev_data = calloc(1, data_buffer->size+1);
+					memcpy(dev_data, data_buffer->data, data_buffer->size);
+					get_buffer_free(data_buffer);
+
+					trfield_device_t *device = 
+						get_trfield_device_alloc(name, dev_sn, dev_type, 1, dev_data);
+					if(device != NULL)
+					{
+						if(devices == NULL)
+						{
+							devices = calloc(1, sizeof(trfield_device_t *));
+							*devices = device;
+						}
+						else
+						{
+							devices = realloc(devices, (dev_size+1)*sizeof(trfield_device_t *));
+							*(devices+dev_size) = device;
+						}
+
+						dev_size++;
+					}
+				}
+				p_dev = p_dev->next;
+			}
+#endif
+			trfr_report_t * report = get_trfr_report_alloc(gwno_str, devices, dev_size, NULL);
+
+			trans_send_report_request(&arg, report);
+			get_trfr_report_free(report);
+		}
+		else
+		{
+			trfr_check_t *t_check =
+				get_trfr_check_alloc(gwno_str,
+										NULL,
+										0,
+										"md5",
+										cur_code,
+										NULL);
+
+			trans_send_check_request(&arg, t_check);
+			get_trfr_check_free(t_check);
+		}
+		set_heartbeat_check(30);
+	}
 }
 #endif
 

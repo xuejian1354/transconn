@@ -16,9 +16,13 @@
  */
 
 #include "mevent.h"
+#include <sqlite3.h>
 #include <protocol/protocol.h>
 #include <protocol/request.h>
 #include <services/balancer.h>
+#include <module/dbopt.h>
+
+extern char cmdline[CMDLINE_SIZE];
 
 #ifdef COMM_CLIENT
 #define GATEWAY_INIT_EVENT		0x0001
@@ -32,7 +36,6 @@
 #ifdef COMM_CLIENT
 static int heartbeat_interval;
 
-static void set_heartbeat_check(int interval);
 static void heartbeat_request(void *p);
 static void gateway_refresh(void *p);
 static void zdev_watch(void *p);
@@ -70,7 +73,7 @@ void set_refresh_check()
 	timer_event_param_t timer_param;
 	
 	timer_param.resident = 1;
-	timer_param.interval = 3*heartbeat_interval+2;
+	timer_param.interval = 2*heartbeat_interval+2;
 	timer_param.count = 1;
 	timer_param.immediate = 0;
 	timer_param.arg = NULL;
@@ -93,111 +96,7 @@ void heartbeat_request(void *p)
 
 	case SESS_WORKING:
 	{
-		//Task handler
-		switch(get_trans_protocol())
-		{
-		case TOCOL_DISABLE:
-			break;
-
-#ifdef TRANS_UDP_SERVICE
-		case TOCOL_UDP:
-		{
-			frhandler_arg_t arg;
-			arg.addr.sin_family = PF_INET;
-			arg.addr.sin_port = htons(get_udp_port());
-			arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
-
-			char gwno_str[20] = {0};
-			incode_xtocs(gwno_str,
-							get_gateway_info()->gw_no,
-							sizeof(zidentify_no_t));
-
-			char *cur_code = gen_current_checkcode(NULL);
-			if(strcmp(get_syncdata_checkcode(), cur_code))
-			{
-				set_syncdata_checkcode(cur_code);
-
-				trfield_device_t **devices = NULL;
-				int dev_size = 0;
-
-				dev_info_t *p_dev = get_gateway_info()->p_dev;
-				while(p_dev != NULL)
-				{
-					if(p_dev->isdata_change)
-					{
-						char *name = get_mix_name(p_dev->zapp_type,
-													get_gateway_info()->gw_no[7],
-													p_dev->zidentity_no[7]);
-
-						sn_t dev_sn = {0};
-						incode_xtocs(dev_sn, p_dev->zidentity_no, sizeof(zidentify_no_t));
-
-						char dev_type[4] = {0};
-						get_frapp_type_to_str(dev_type, p_dev->zapp_type);
-
-						fr_buffer_t *data_buffer = get_devopt_data_tostr(p_dev->zdev_opt);
-						char *dev_data = calloc(1, data_buffer->size+1);
-						memcpy(dev_data, data_buffer->data, data_buffer->size);
-						get_buffer_free(data_buffer);
-
-						trfield_device_t *device = 
-							get_trfield_device_alloc(name, dev_sn, dev_type, "1", dev_data);
-						if(device != NULL)
-						{
-							if(devices == NULL)
-							{
-								devices = calloc(1, sizeof(trfield_device_t *));
-								*devices = device;
-							}
-							else
-							{
-								devices = realloc(devices, (dev_size+1)*sizeof(trfield_device_t *));
-								*(devices+dev_size) = device;
-							}
-
-							dev_size++;
-						}
-					}
-					p_dev = p_dev->next;
-				}
-
-				trfr_report_t * report = get_trfr_report_alloc(gwno_str, devices, dev_size, NULL);
-
-				trans_send_report_request(&arg, report);
-				get_trfr_report_free(report);
-			}
-			else
-			{
-				trfr_check_t *t_check =
-					get_trfr_check_alloc(gwno_str,
-											NULL,
-											0,
-											"md5",
-											cur_code,
-											NULL);
-
-				trans_send_check_request(&arg, t_check);
-				get_trfr_check_free(t_check);
-			}
-			set_heartbeat_check(30);
-		}
-			break;
-#endif
-#ifdef TRANS_TCP_CLIENT
-		case TOCOL_TCP:
-		{
-		}
-			break;
-#endif
-#ifdef TRANS_HTTP_REQUEST
-		case TOCOL_HTTP:
-		{
-		}
-			break;
-#endif
-		case TOCOL_NONE:
-			break;
-		}
+		upload_data();
 	}
 		break;
 
@@ -262,7 +161,12 @@ void zdev_watch(void *p)
 {
 	uint16 znet_addr = (uint16)((int)p);
 	DE_PRINTF(1, "del zdevice from list, zdev no:%04X\n\n", znet_addr);
-	
+
+	sql_uponline_zdev(get_gateway_info(),
+							0,
+							&znet_addr,
+							1);
+
 	del_zdevice_info(znet_addr);
 }
 

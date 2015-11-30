@@ -26,10 +26,9 @@ char *get_action_to_str(trans_action_t action)
 }
 
 trfield_device_t *get_trfield_device_alloc(char *name,
-	sn_t dev_sn, char *dev_type, char *znet_status, char *dev_data)
+	sn_t dev_sn, char *dev_type, int znet_status, char *dev_data)
 {
-	if(name == NULL || dev_sn == NULL || dev_type == NULL
-		|| znet_status == NULL || dev_data == NULL)
+	if(name == NULL || dev_sn == NULL || dev_type == NULL || dev_data == NULL)
 	{
 		return NULL;
 	}
@@ -38,7 +37,7 @@ trfield_device_t *get_trfield_device_alloc(char *name,
 	STRS_MEMCPY(device->name, name, sizeof(device->name), strlen(name));
 	STRS_MEMCPY(device->dev_sn, dev_sn, sizeof(device->dev_sn), strlen(dev_sn));
 	device->dev_type = get_frapp_type_from_str(dev_type);
-	device->znet_status = *znet_status;
+	device->znet_status = znet_status;
 	STRS_MEMCPY(device->dev_data, dev_data, sizeof(device->dev_data), strlen(dev_data));
 
 	return device;

@@ -25,6 +25,7 @@
 #ifdef COMM_CLIENT
 void gateway_init();
 void set_refresh_check();
+void set_heartbeat_check(int interval);
 void set_zdev_check(uint16 net_addr);
 void set_cli_check(cli_info_t *p_cli);
 #endif

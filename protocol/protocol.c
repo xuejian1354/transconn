@@ -83,6 +83,7 @@ void analysis_zdev_frame(void *ptr)
 		dev_info->zdev_opt = 
 			get_devopt_fromstr(dev_info->zapp_type, uo->data, uo->data_len);
 		dev_info->isdata_change = 1;
+		sql_set_datachange_zdev(dev_info->zidentity_no, 1);
 
 		set_zdev_check(dev_info->znet_addr);
 		uint16 znet_addr = dev_info->znet_addr;
@@ -147,14 +148,16 @@ void analysis_zdev_frame(void *ptr)
 			else
 			{
 				int ret = zdev_sync_zopt(dev_info->zdev_opt, ur->data, ur->data_len);
-				if(ret != 1)
-				{
-					sync_zdev_info(dev_info);
-				}
-
+				
 				if(ret == 2 && !dev_info->isdata_change)
 				{
 					dev_info->isdata_change = 1;
+					sql_set_datachange_zdev(dev_info->zidentity_no, 1);
+				}
+
+				if(ret != 1)
+				{
+					sync_zdev_info(dev_info);
 				}
 			}
 		}
@@ -376,10 +379,10 @@ void analysis_capps_frame(void *ptr)
 			if(pDevData == NULL) continue;
 
 			*(devices + i - 1) = 
-				get_trfield_device_alloc(pDevName->valuestring, 
-											pDevDevSN->valuestring, 
-											pDevDevType->valuestring, 
-											pDevZnetStatus->valuestring, 
+				get_trfield_device_alloc(pDevName->valuestring,
+											pDevDevSN->valuestring,
+											pDevDevType->valuestring,
+											atoi(pDevZnetStatus->valuestring),
 											pDevData->valuestring);
 		}
 
