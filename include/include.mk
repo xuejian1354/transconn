@@ -14,9 +14,9 @@ inc_files := $(strip $(foreach n, $(SUB_MODULES), \
 			  ) \
 			))
 
-inc_deps :=$(patsubst %, include/%, $(inc_files))
+inc_deps :=$(patsubst %, $(DIR)include/%, $(inc_files))
 inc_dirs_deps :=$(strip $(foreach d, $(inc_dirs), \
-			      $(patsubst %, include/%, $(notdir $(d))) \
+			      $(patsubst %, $(DIR)include/%, $(notdir $(d))) \
 			  ))
 
 ifeq ($(V),1)
@@ -27,8 +27,8 @@ $(inc_dirs_deps):$(inc_dirs)
 	@if [ ! -r $@ ]; then echo "ln -s $(filter %/$(notdir $@),$(inc_dirs)) $@" && ln -s $(filter %/$(notdir $@),$(inc_dirs)) $@; fi;
 endif
 
-$(foreach s,$(inc_files),$(eval include/$(s):$(TOPDIR)/$(s)))
+$(foreach s,$(inc_files),$(eval $(DIR)include/$(s):$(TOPDIR)/$(s)))
 
-include/%:$(TOPDIR)/%
+$(DIR)include/%:$(TOPDIR)/%
 	@mkdir -p $(dir $@)
 	$(call echocmd,GEN,$@,ln -s $< $@)
