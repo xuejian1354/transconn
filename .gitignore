@@ -11,3 +11,5 @@ include/*
 tests/client
 tests/perznet
 tests/deulog
+
+bin/

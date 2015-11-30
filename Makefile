@@ -13,7 +13,10 @@ CLIENT_TARGET:=connect_listen
 TARGET:=$(addprefix $(DIR),$(SERVER_TARGET) $(CLIENT_TARGET))
 export SERVER_TARGET CLIENT_TARGET
 
-INCLUDE+=-I$(TOPDIR)/include -I$(TOPDIR)/lib
+INCLUDE +=-I$(TOPDIR)/include -I$(TOPDIR)/lib
+ifneq ($(DIR),)
+INCLUDE +=-I$(TOPDIR)/$(DIR)include
+endif
 
 STD_LDFLAGS:=-lpthread
 export INCLUDE STD_LDFLAGS
@@ -107,7 +110,7 @@ sclean:
 	(find -name "*-s.[oa]" | xargs $(RM)) && $(RM) $(DIR)$(SERVER_TARGET)
 
 clean:cclean sclean
-	$(RM) -r $(patsubst %/,include/%,debug/ $(dir $(shell ls */transconn.mk))) $(inc_dirs_deps) $(DIR)
+	$(RM) -r $(patsubst %/,$(DIR)include/%,debug/ $(dir $(shell ls */transconn.mk))) $(inc_dirs_deps) $(DIR)
 
 distclean:clean
 	@make -C tests clean
