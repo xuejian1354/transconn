@@ -54,6 +54,11 @@ static zh_el_t zh_tables[TN_NUMS+1] =
     { FRAPP_RELAYSOCKET, "中继开关" },
     { FRAPP_HUMITURE_DETECTION, "温湿度" },
     { FRAPP_SOLENOID_VALVE, "电磁阀" },
+    { FRAPP_LAMPSWITCH, "灯开关" },
+    { FRAPP_PROJECTOR, "投影仪" },
+    { FRAPP_AIRCONDITIONER, "空调" },
+    { FRAPP_CURTAIN, "窗帘" },
+    { FRAPP_DOORLOCK, "门禁" },
     { FRAPP_NONE, "" }
 };
 
@@ -75,6 +80,11 @@ static zh_el_t zh_tables[TN_NUMS+1] =
     { FRAPP_RELAYSOCKET, "NetRelay" },
     { FRAPP_HUMITURE_DETECTION, "Humiture" },
     { FRAPP_SOLENOID_VALVE, "Valve" },
+    { FRAPP_LAMPSWITCH, "LampSwitch" },
+    { FRAPP_PROJECTOR, "Projector" },
+    { FRAPP_AIRCONDITIONER, "AirConditioner" },
+    { FRAPP_CURTAIN, "Curtain" },
+    { FRAPP_DOORLOCK, "Doorlock" },
     { FRAPP_NONE, "" }
 };
 #endif
@@ -200,6 +210,26 @@ fr_app_type_t get_frapp_type_from_str(char *app_type)
 	{
 		return FRAPP_IR_RELAY;
 	}
+	else if(!strncmp(FR_APP_LAMPSWITCH, app_type, 2))
+	{
+		return FRAPP_LAMPSWITCH;
+	}
+	else if(!strncmp(FR_APP_PROJECTOR, app_type, 2))
+	{
+		return FRAPP_PROJECTOR;
+	}
+	else if(!strncmp(FR_APP_AIRCONDITIONER, app_type, 2))
+	{
+		return FRAPP_AIRCONDITIONER;
+	}
+	else if(!strncmp(FR_APP_CURTAIN, app_type, 2))
+	{
+		return FRAPP_CURTAIN;
+	}
+	else if(!strncmp(FR_APP_DOORLOCK, app_type, 2))
+	{
+		return FRAPP_DOORLOCK;
+	}
 	else if(!strncmp(FR_APP_AIRCONTROLLER, app_type, 2))
 	{
 		return FRAPP_AIRCONTROLLER;
@@ -266,6 +296,26 @@ int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 
 	case FRAPP_IR_RELAY:
 		strcpy(dst, FR_APP_IR_RELAY);
+		break;
+
+	case FRAPP_LAMPSWITCH:
+		strcpy(dst, FR_APP_LAMPSWITCH);
+		break;
+
+	case FRAPP_PROJECTOR:
+		strcpy(dst, FR_APP_PROJECTOR);
+		break;
+
+	case FRAPP_AIRCONDITIONER:
+		strcpy(dst, FR_APP_AIRCONDITIONER);
+		break;
+
+	case FRAPP_CURTAIN:
+		strcpy(dst, FR_APP_CURTAIN);
+		break;
+
+	case FRAPP_DOORLOCK:
+		strcpy(dst, FR_APP_DOORLOCK);
 		break;
 
 	case FRAPP_AIRCONTROLLER:

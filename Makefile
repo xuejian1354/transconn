@@ -56,7 +56,7 @@ CLIENT_OBJS:=$(addprefix $(DIR),$(patsubst %.c,%-c.o,$(CLIENT_SOURCES)) $(patsub
 
 .PHONY:all alls tests distclean clean cclean sclean help
 
-all:$(DIR)$(SERVER_TARGET)
+all:$(TARGET)
 
 alls:$(TARGET) tests
 
