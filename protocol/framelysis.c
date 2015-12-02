@@ -212,6 +212,10 @@ fr_app_type_t get_frapp_type_from_str(char *app_type)
 	{
 		return FRAPP_RELAYSOCKET;
 	}
+	else if(!strncmp(FR_APP_LIGHTDETECT, app_type, 2))
+	{
+		return FRAPP_LIGHTDETECT;
+	}
 	else if(!strncmp(FR_APP_HUMITURE_DETECTION, app_type, 2))
 	{
 		return FRAPP_HUMITURE_DETECTION;
@@ -298,6 +302,10 @@ int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 
 	case FRAPP_RELAYSOCKET:
 		strcpy(dst, FR_APP_RELAYSOCKET);
+		break;
+
+	case FRAPP_LIGHTDETECT:
+		strcpy(dst, FR_APP_LIGHTDETECT);
 		break;
 
 	case FRAPP_HUMITURE_DETECTION:

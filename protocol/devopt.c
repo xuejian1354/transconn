@@ -803,6 +803,15 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		incode_xtocs(buffer->data+1, opt->device.relaysocket.data, 1);
 		return buffer;
 
+	case FRAPP_LIGHTDETECT:
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTDETECT_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		
+		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
+		incode_xtoc16(buffer->data+1, opt->device.lightdetect.data);
+		return buffer;
+
 	default: return NULL;
 	}
 }
@@ -920,9 +929,20 @@ int set_devopt_data_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		break;
 
 	case FRAPP_RELAYSOCKET: 
-		if(len >=1)
+		if(len >= 1)
 		{
 			opt->device.relaysocket.data[0] = data[0];
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+
+	case FRAPP_LIGHTDETECT: 
+		if(len >= 4)
+		{
+			incode_ctox16(&(opt->device.lightdetect.data), data, 4);
 		}
 		else
 		{
@@ -1048,6 +1068,13 @@ fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
 		buffer->size = DEVOPT_RELAYSOCKET_DATASTR_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
 		incode_xtocs(buffer->data, opt->device.relaysocket.data, 1);
+		return buffer;
+
+	case FRAPP_LIGHTDETECT: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTDETECT_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		incode_xtoc16(buffer->data, opt->device.lightdetect.data);
 		return buffer;
 
 	default: return NULL;
@@ -1247,6 +1274,14 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 		}
 		break;
 
+	case FRAPP_LIGHTDETECT: 
+		if(dst->device.lightdetect.data != src->device.lightdetect.data)
+		{
+			dst->device.lightdetect.data = src->device.lightdetect.data;
+			is_change = 1;
+		}
+		break;
+
 	default: return -1;
 	}
 
@@ -1351,6 +1386,11 @@ void devopt_de_print(dev_opt_t *opt)
 	case FRAPP_RELAYSOCKET: 
 		DE_PRINTF(0, "[RelaySocket]\n");
 		DE_PRINTF(0, "data:%02X\n\n", opt->device.relaysocket.data[0]);
+		break;
+
+	case FRAPP_LIGHTDETECT:
+		DE_PRINTF(0, "[LightDetect]\n");
+		DE_PRINTF(0, "data:%04X\n\n", opt->device.lightdetect.data);
 		break;
 	}
 }
