@@ -23,6 +23,19 @@
 #include <module/netapi.h>
 #include <protocol/common/fieldlysis.h>
 
+typedef void (*respond_request_t)(frhandler_arg_t *, trfr_respond_t *);
+
+typedef struct RespondData
+{
+	sn_t sn;
+	char dev_data[JSON_FIELD_DATA_MAXSIZE];
+	char random[JSON_FIELD_RANDOM_MAXSIZE];
+	int  timer_id;
+	respond_request_t respond_callback;
+
+	struct RespondData *next;
+}respond_data_t;
+
 #ifdef COMM_CLIENT
 void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq);
 void trans_send_report_request(frhandler_arg_t *arg, trfr_report_t *report);
@@ -49,6 +62,7 @@ void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres
 #ifdef COMM_CLIENT
 void sync_gateway_info(gw_info_t *pgw_info);
 void sync_zdev_info(dev_info_t *pdev_info);
-void upload_data();
+void upload_data(uint8 isrefresh, char *random);
+void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback);
 #endif
 #endif  //__REQUEST_H__

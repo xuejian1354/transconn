@@ -24,14 +24,6 @@
 
 extern char cmdline[CMDLINE_SIZE];
 
-#ifdef COMM_CLIENT
-#define GATEWAY_INIT_EVENT		0x0001
-#define TIMER_REFRESH_EVENT		0x0002
-#define GATEWAY_HEARTBEAT_EVENT	0x0004
-#define ZDEVICE_WATCH_EVENT		0x0005
-#define CLIENT_WATCH_EVENT		0x0006
-#endif
-
 #ifdef TIMER_SUPPORT
 #ifdef COMM_CLIENT
 static int heartbeat_interval;
@@ -96,7 +88,7 @@ void heartbeat_request(void *p)
 
 	case SESS_WORKING:
 	{
-		upload_data();
+		upload_data(0, NULL);
 	}
 		break;
 

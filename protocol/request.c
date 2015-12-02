@@ -20,12 +20,49 @@
 #include <sqlite3.h>
 #include <cJSON.h>
 #include <protocol/devices.h>
+#include <protocol/common/mevent.h>
 #include <services/balancer.h>
 #include <module/dbopt.h>
 
 extern char cmdline[CMDLINE_SIZE];
 
 #ifdef COMM_CLIENT
+respond_data_t *prespond_data = NULL;
+
+void del_respond_data_with_sn(sn_t sn);
+void device_ctrl_timer_callback(void *p);
+
+
+void del_respond_data_with_sn(sn_t sn)
+{
+	respond_data_t *pre_data =  NULL;
+	respond_data_t *t_data = prespond_data;
+
+
+	while(t_data != NULL)
+	{
+		if(strcmp(t_data->sn, sn))
+		{
+			pre_data = t_data;
+			t_data = t_data->next;
+		}
+		else
+		{
+			if(pre_data != NULL)
+			{
+				pre_data->next = t_data->next;
+			}
+			else
+			{
+				prespond_data = t_data->next;
+			}
+
+			free(t_data);
+			return;
+		}
+	}
+}
+
 void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq)
 {
 	if(tocolreq == NULL)
@@ -137,7 +174,7 @@ void trans_send_report_request(frhandler_arg_t *arg, trfr_report_t *report)
 #ifdef TRANS_HTTP_REQUEST
 	case TOCOL_HTTP:
 		frame = cJSON_Print(pRoot);
-		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data)
+		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
 		break;
 #endif
 	}
@@ -186,7 +223,7 @@ void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check)
 #ifdef TRANS_HTTP_REQUEST
 	case TOCOL_HTTP:
 		frame = cJSON_Print(pRoot);
-		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data)
+		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
 		break;
 #endif
 	}
@@ -195,13 +232,122 @@ void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check)
 }
 
 void trans_send_respond_request(frhandler_arg_t *arg, trfr_respond_t *respond)
-{}
+{
+	if(respond == NULL)
+	{
+		return;
+	}
+
+	char *frame;
+	cJSON *pRoot = cJSON_CreateObject();
+
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(respond->action));
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, respond->gw_sn);
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_DEVSN, respond->dev_sn);
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_DEVDATA, respond->dev_data);
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, respond->random);
+
+	switch(get_trans_protocol())
+	{
+	case TOCOL_DISABLE:
+		break;
+	case TOCOL_ENABLE:
+		break;
+#ifdef TRANS_UDP_SERVICE
+	case TOCOL_UDP:
+		frame = cJSON_Print(pRoot);
+		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
+		break;
+#endif
+#ifdef TRANS_TCP_CLIENT
+	case TOCOL_TCP:
+		frame = cJSON_Print(pRoot);
+		socket_tcp_client_send(frame, strlen(frame));
+		break;
+#endif
+#ifdef TRANS_HTTP_REQUEST
+	case TOCOL_HTTP:
+		frame = cJSON_Print(pRoot);
+		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
+		break;
+#endif
+	}
+
+	cJSON_Delete(pRoot);
+}
 
 void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
-{}
+{
+	if(refresh == NULL)
+	{
+		return;
+	}
+
+	zidentify_no_t gw_sn;
+	incode_ctoxs(gw_sn, refresh->gw_sn, 16);
+	if(memcmp(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t)))
+	{
+		return;
+	}
+	
+	if(refresh->dev_sns != NULL && refresh->sn_size > 0)
+	{
+		int i;
+		for(i=0; i<refresh->sn_size; i++)
+		{
+			zidentify_no_t dev_no;
+			incode_ctoxs(dev_no, refresh->dev_sns+i, 16);
+			sql_set_datachange_zdev(dev_no, 1);
+		}
+	}
+	else
+	{
+		sql_set_datachange_zdev(get_gateway_info()->gw_no, 1);
+	}
+
+	upload_data(1, refresh->random);
+}
 
 void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
-{}
+{
+	if(control == NULL)
+	{
+		return;
+	}
+
+	zidentify_no_t gw_sn;
+	incode_ctoxs(gw_sn, control->gw_sn, 16);
+	if(memcmp(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t)))
+	{
+		return;
+	}
+
+	trfield_ctrl_t **ctrls = control->ctrls;
+	if(ctrls == NULL || control->ctrl_size <= 0)
+	{
+		return;
+	}
+
+	int i;
+	for(i=0; i<control->ctrl_size; i++)
+	{
+		trfield_ctrl_t *ctrl = *(ctrls + i);
+		if(ctrl != NULL)
+		{
+			int j;
+			if(ctrl->dev_sns == NULL || ctrl->sn_size <= 0)
+			{
+				continue;
+			}
+
+			for(j=0; j<ctrl->sn_size; j++)
+			{
+				device_ctrl(*(ctrl->dev_sns+j), ctrl->cmd, control->random, trans_send_respond_request);
+				usleep(100);
+			}
+		}
+	}
+}
 
 void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 {
@@ -359,13 +505,55 @@ void sync_zdev_info(dev_info_t *pdev_info)
 
 	sql_add_zdev(get_gateway_info(), pdev_info);
 
+	sn_t dev_sn = {0};
+	incode_xtocs(dev_sn, pdev_info->zidentity_no, sizeof(zidentify_no_t));
+
+	respond_data_t *trespond_data = prespond_data;
+	while(trespond_data != NULL)
+	{
+		if(!strcmp(trespond_data->sn, dev_sn))
+		{
+			frhandler_arg_t arg;
+			arg.transtocol = TOCOL_UDP;
+			arg.addr.sin_family = PF_INET;
+			arg.addr.sin_port = htons(get_udp_port());
+			arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
+
+			sn_t gw_sn = {0};
+			incode_xtocs(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+
+			bzero(trespond_data->dev_data, JSON_FIELD_DATA_MAXSIZE);
+			fr_buffer_t *buffer = get_devopt_data_tostr(pdev_info->zdev_opt);
+			if(buffer != NULL)
+			{
+				incode_xtocs(trespond_data->dev_data, buffer->data, buffer->size);
+			}
+			get_buffer_free(buffer);
+
+			trfr_respond_t *respond =
+				get_trfr_respond_alloc(gw_sn,
+										dev_sn,
+										trespond_data->dev_data,
+										trespond_data->random);
+
+			trespond_data->respond_callback(&arg, respond);
+			get_trfr_respond_free(respond);
+
+			del_timer_event(trespond_data->timer_id);
+			del_respond_data_with_sn(dev_sn);
+			return;
+		}
+
+		trespond_data = trespond_data->next;
+	}
+
 	if(pdev_info->isdata_change)
 	{
-		upload_data();
+		upload_data(0, NULL);
 	}
 }
 
-void upload_data()
+void upload_data(uint8 isrefresh, char *random)
 {
 	transtocol_t transtocol = get_trans_protocol();
 	if(transtocol == TOCOL_UDP
@@ -384,7 +572,7 @@ void upload_data()
 						sizeof(zidentify_no_t));
 
 		char *cur_code = gen_current_checkcode(NULL);
-		if(strcmp(get_syncdata_checkcode(), cur_code))
+		if(isrefresh || strcmp(get_syncdata_checkcode(), cur_code))
 		{
 			set_syncdata_checkcode(cur_code);
 
@@ -478,7 +666,7 @@ void upload_data()
 				p_dev = p_dev->next;
 			}
 #endif
-			trfr_report_t * report = get_trfr_report_alloc(gwno_str, devices, dev_size, NULL);
+			trfr_report_t * report = get_trfr_report_alloc(gwno_str, devices, dev_size, random);
 
 			trans_send_report_request(&arg, report);
 			get_trfr_report_free(report);
@@ -497,6 +685,73 @@ void upload_data()
 			get_trfr_check_free(t_check);
 		}
 		set_heartbeat_check(30);
+	}
+}
+
+void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback)
+{
+	if(sn == NULL || cmd == NULL)
+	{
+		return;
+	}
+
+	int cmd_len = strlen(cmd);
+	if(cmd_len > FRAME_DATA_SIZE)
+	{
+		return;
+	}
+
+	uint16 znet_addr = get_znet_addr_with_sn(sn);
+	int timer_id = (ZDEVICE_RESPOND_EVENT<<16)+znet_addr;
+
+	respond_data_t *mrespond_data = calloc(1, sizeof(respond_data_t));
+
+	strcpy(mrespond_data->sn, sn);
+	strcpy(mrespond_data->random, random);
+	mrespond_data->respond_callback = callback;
+	mrespond_data->timer_id = timer_id;
+	mrespond_data->next = NULL;
+
+	if(prespond_data == NULL)
+	{
+		prespond_data = mrespond_data;
+	}
+	else
+	{
+		respond_data_t *trespond_data = prespond_data;
+		while(trespond_data->next != NULL)
+		{
+			trespond_data = trespond_data->next;
+		}
+		trespond_data->next = mrespond_data;
+	}
+
+	timer_event_param_t param;
+	param.interval = 3;
+	param.count = 1;
+	param.immediate = 0;
+	param.arg = mrespond_data;
+	set_mevent(timer_id, device_ctrl_timer_callback, &param);
+
+	int size = FR_DE_DATA_FIX_LEN + cmd_len;
+	uint8 *buffer = (uint8 *)calloc(size, sizeof(uint8));
+
+	memcpy(buffer, FR_HEAD_DE, 2);
+	memcpy(buffer+2, FR_CMD_SINGLE_EXCUTE, 4);
+	sprintf(buffer+6, "%04X", znet_addr);
+	memcpy(buffer+10, cmd, cmd_len);
+	memcpy(buffer+10+cmd_len, FR_TAIL, 4);
+
+	serial_write(buffer, size);
+	free(buffer);
+}
+
+void device_ctrl_timer_callback(void *p)
+{
+	respond_data_t *mrespond_data = (respond_data_t *)p;
+	if(mrespond_data != NULL)
+	{
+		del_respond_data_with_sn(mrespond_data->sn);
 	}
 }
 #endif

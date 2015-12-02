@@ -191,6 +191,29 @@ dev_info_t *query_zdevice_info_with_sn(zidentify_no_t zidentify_no)
 	return NULL;
 }
 
+uint16 get_znet_addr_with_sn(sn_t sn)
+{
+	if(sn == NULL)
+	{
+		return 0;
+	}
+
+	zidentify_no_t zdev_no;
+	incode_ctoxs(zdev_no, sn, 16);
+
+	dev_info_t *p_dev = query_zdevice_info_with_sn(zdev_no);
+	if(p_dev != NULL)
+	{
+		return p_dev->znet_addr;
+	}
+	else
+	{
+		
+	}
+
+	return 0;
+}
+
 int del_zdevice_info(uint16 znet_addr)
 {
 	return del_zdev_info(get_gateway_info(), znet_addr);

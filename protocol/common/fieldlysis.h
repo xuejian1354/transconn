@@ -23,7 +23,7 @@
 #define JSON_FIELD_NAME_MAXSIZE		64
 #define JSON_FIELD_SN_MAXSIZE		24
 #define JSON_FIELD_DATA_MAXSIZE		32
-#define JSON_FIELD_CMD_MAXSIZE		7
+#define JSON_FIELD_CMD_MAXSIZE		32
 #define JSON_FIELD_TOCOL_MAXSIZE		8
 #define JSON_FIELD_CODECHECK_MAXSIZE	8
 #define JSON_FIELD_CODEDATA_MAXSIZE	40
@@ -43,6 +43,7 @@
 #define JSON_FIELD_CODE			"code"
 #define JSON_FIELD_CODECHECK	"code_check"
 #define JSON_FIELD_CODEDATA		"code_data"
+#define JSON_FIELD_CTRLS		"ctrls"
 #define JSON_FIELD_CMD			"cmd"
 #define JSON_FIELD_RANDOM		"random"
 
@@ -67,6 +68,13 @@ typedef struct
 	int znet_status;
 	char dev_data[JSON_FIELD_DATA_MAXSIZE];
 }trfield_device_t;
+
+typedef struct
+{
+	sn_t *dev_sns;
+	int sn_size;
+	char cmd[JSON_FIELD_CMD_MAXSIZE];
+}trfield_ctrl_t;
 
 typedef struct
 {
@@ -119,9 +127,8 @@ typedef struct
 {
 	trans_action_t action;
 	sn_t gw_sn;
-	sn_t *dev_sns;
-	int sn_size;
-	char cmd[JSON_FIELD_CMD_MAXSIZE];
+	trfield_ctrl_t **ctrls;
+	int ctrl_size;
 	char random[JSON_FIELD_RANDOM_MAXSIZE];
 }trfr_control_t;
 
@@ -136,6 +143,8 @@ char *get_action_to_str(trans_action_t action);
 
 trfield_device_t *get_trfield_device_alloc(char *name,
 	sn_t dev_sn, char *dev_type, int znet_status, char *dev_data);
+
+trfield_ctrl_t *get_trfield_ctrl_alloc(sn_t* dev_sns, int dev_size, char *cmd);
 
 trfr_tocolreq_t *get_trfr_tocolreq_alloc(char *protocol, char *random);
 void get_trfr_tocolreq_free(trfr_tocolreq_t *tocolreq);
@@ -152,7 +161,7 @@ void get_trfr_respond_free(trfr_respond_t *respond);
 trfr_refresh_t *get_trfr_refresh_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *random);
 void get_trfr_refresh_free(trfr_refresh_t *refresh);
 
-trfr_control_t *get_trfr_control_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *cmd, char *random);
+trfr_control_t *get_trfr_control_alloc(sn_t gw_sn, trfield_ctrl_t **ctrls, int ctrl_size, char *random);
 void get_trfr_control_free(trfr_control_t *control);
 
 trfr_tocolres_t *get_trfr_tocolres_alloc(trans_action_t req_action, char *random);

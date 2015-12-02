@@ -16,25 +16,6 @@
  */
 #include "framelysis.h"
 
-//command method
-#define FR_CMD_BROCAST_REFRESH	"/BR/"		//broadcast
-#define FR_CMD_SINGLE_REFRESH	"/SR/"		//single refresh
-#define FR_CMD_SINGLE_EXCUTE	"/EC/"		//single control
-#define FR_CMD_PEROID_EXCUTE	"/EP/"		//recycle request
-#define FR_CMD_PEROID_STOP		"/ES/"		//recycle stop request
-#define FR_CMD_JOIN_CTRL		"/CJ/"		//join permit
-
-#define FR_UC_DATA_FIX_LEN		38		//UC frame fix len
-#define FR_UO_DATA_FIX_LEN		30		//UO frame fix len
-#define FR_UH_DATA_FIX_LEN		11		//UH frame fix len
-#define FR_UR_DATA_FIX_LEN		14		//HR frame fix len
-#define FR_DE_DATA_FIX_LEN		14		//DE frame fix len
-
-
-#define FRAME_DATA_SIZE		128
-#define FRAME_BUFFER_SIZE 	256
-#define MAX_OPTDATA_SIZE	FRAME_DATA_SIZE
-
 
 #ifdef ZH_TYPE_NAME
 static zh_el_t zh_tables[TN_NUMS+1] =

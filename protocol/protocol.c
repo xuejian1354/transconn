@@ -565,43 +565,69 @@ void analysis_capps_frame(void *ptr)
 			goto capps_cjson_end;
 		}
 
-		cJSON *pCmd = cJSON_GetObjectItem(pRoot, JSON_FIELD_CMD);
-		if(pCmd == NULL)
+		cJSON *pCtrls = cJSON_GetObjectItem(pRoot, JSON_FIELD_CTRLS);
+		if(pCtrls == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSNS);
-		int devsn_size;
-		sn_t *dev_sns;
-		if(pDevSNs == NULL)
+		int ctrl_size;
+		trfield_ctrl_t **ctrls;
+		if(pCtrls == NULL)
 		{
-			devsn_size = 0;
-			dev_sns = NULL;
+			ctrl_size = 0;
+			ctrls = NULL;
 		}
 		else
 		{
-			devsn_size = cJSON_GetArraySize(pDevSNs);
-			dev_sns = calloc(devsn_size, sizeof(sn_t));
+			ctrl_size = cJSON_GetArraySize(pCtrls);
+			ctrls = calloc(ctrl_size, sizeof(trfield_ctrl_t *));
 		}
-		
 
-		int i = 0;
-		while(i < devsn_size)
+		int i = 0;			
+		while(i < ctrl_size)
 		{
-			cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
+			cJSON *pCtrl = cJSON_GetArrayItem(pCtrls, i);
 			i++;
-			if(pDevSN == NULL) continue;
+ 			if(pCtrl == NULL) continue;
 
-			STRS_MEMCPY(dev_sns+i-1, pDevSN->valuestring, 
-					sizeof(sn_t), strlen(pDevSN->valuestring));
+			cJSON *pCmd = cJSON_GetObjectItem(pCtrl, JSON_FIELD_CMD);
+			if(pCmd == NULL) continue;
+
+			cJSON *pDevSNs = cJSON_GetObjectItem(pCtrl, JSON_FIELD_DEVSNS);
+			int devsn_size;
+			sn_t *dev_sns;
+			if(pDevSNs == NULL)
+			{
+				devsn_size = 0;
+				dev_sns = NULL;
+			}
+			else
+			{
+				devsn_size = cJSON_GetArraySize(pDevSNs);
+				dev_sns = calloc(devsn_size, sizeof(sn_t));
+			}
+			
+
+			int j = 0;
+			while(j < devsn_size)
+			{
+				cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
+				j++;
+				if(pDevSN == NULL) continue;
+
+				STRS_MEMCPY(dev_sns+j-1, pDevSN->valuestring, 
+						sizeof(sn_t), strlen(pDevSN->valuestring));
+			}
+
+			*(ctrls + i - 1) = 
+				get_trfield_ctrl_alloc(dev_sns, devsn_size, pCmd->valuestring);
 		}
 
 		trfr_control_t *control = 
 			get_trfr_control_alloc(pGateway->valuestring, 
-									dev_sns, 
-									devsn_size,
-									pCmd->valuestring,
+									ctrls, 
+									ctrl_size,
 									pRandom->valuestring);
 
 		trans_control_handler(arg, control);

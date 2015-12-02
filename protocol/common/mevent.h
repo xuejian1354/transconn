@@ -14,12 +14,21 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
- #ifndef __MEVENT_H__
- #define __MEVENT_H__
+#ifndef __MEVENT_H__
+#define __MEVENT_H__
 
- #include <services/globals.h>
- #include <services/etimer.h>
- #include <protocol/protocol.h>
+#include <services/globals.h>
+#include <services/etimer.h>
+#include <protocol/protocol.h>
+
+#ifdef COMM_CLIENT
+#define GATEWAY_INIT_EVENT		0x0001
+#define TIMER_REFRESH_EVENT		0x0002
+#define GATEWAY_HEARTBEAT_EVENT	0x0004
+#define ZDEVICE_RESPOND_EVENT	0x0003
+#define ZDEVICE_WATCH_EVENT		0x0005
+#define CLIENT_WATCH_EVENT		0x0006
+#endif
 
 #ifdef TIMER_SUPPORT
 #ifdef COMM_CLIENT
