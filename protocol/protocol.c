@@ -96,9 +96,48 @@ void analysis_zdev_frame(void *ptr)
 		dev_info = query_zdevice_info(znet_addr);
 		if(dev_info != NULL)
 		{
+			if(dev_info->zapp_type == FRAPP_LIGHTDETECT)
+			{
+				dev_info_t *p_dev = get_gateway_info()->p_dev;
+				uint8 zbuf[1024] = {0};
+				int zlen = 0;
+				while(p_dev != NULL)
+				{
+					if(p_dev->zapp_type == FRAPP_CURTAIN && zlen < 1020)
+					{
+						sprintf(zbuf+zlen, "%04X", p_dev->znet_addr);
+						zlen += 4;
+					}
+					p_dev = p_dev->next;
+				}
+
+				if(zlen > 0)
+				{
+					uint8 mbuf[1040] = {0};
+					sprintf(mbuf, "D:/EC/%04XLTD%s:O\r\n", dev_info->znet_addr, zbuf);
+					serial_write(mbuf, 17+zlen);
+				}
+				goto UO_Free;
+			}
+			else if(dev_info->zapp_type == FRAPP_CURTAIN)
+			{
+				dev_info_t *p_dev = get_gateway_info()->p_dev;
+				while(p_dev != NULL)
+				{
+					if(p_dev->zapp_type == FRAPP_LIGHTDETECT)
+					{
+						uint8 mbuf[24] = {0};
+						sprintf(mbuf, "D:/EC/%04XCTN%04X:O\r\n",
+						p_dev->znet_addr,
+						dev_info->znet_addr);
+						serial_write(mbuf, 21);
+					}
+					p_dev = p_dev->next;
+				}
+			}
 			sync_zdev_info(dev_info);
 		}
-		
+UO_Free:
 		get_frame_free(HEAD_UO, uo);
 	}
 	break;
@@ -147,6 +186,11 @@ void analysis_zdev_frame(void *ptr)
 			}
 			else
 			{
+				if(dev_info->zapp_type == FRAPP_LIGHTDETECT)
+				{
+					goto UR_Free;
+				}
+
 				int ret = zdev_sync_zopt(dev_info->zdev_opt, ur->data, ur->data_len);
 				
 				if(ret == 2 && !dev_info->isdata_change)
@@ -161,6 +205,7 @@ void analysis_zdev_frame(void *ptr)
 				}
 			}
 		}
+UR_Free:
 		get_frame_free(HEAD_UR, ur);
 	}
 	break;
