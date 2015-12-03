@@ -294,6 +294,20 @@ dev_opt_t *get_devopt_data_alloc(fr_app_type_t type, uint8 *data, int len)
 		}
 		return opt;
 
+	case FRAPP_LIGHTDETECT: 
+		opt = calloc(1, sizeof(dev_opt_t));
+		opt->type = type;
+		opt->common.method = DEV_CONTROL_BOTH;
+		if(len >= 4)
+		{
+			incode_ctox16(&(opt->device.lightdetect.data), data);
+		}
+		else
+		{
+			opt->device.lightdetect.data = 0;
+		}
+		return opt;
+
 	default: return NULL;
 	}
 }
@@ -1217,6 +1231,11 @@ void devopt_de_print(dev_opt_t *opt)
 		return;
 	}	
 #endif
+
+	if(opt == NULL)
+	{
+		return;
+	}
 
 	switch(opt->type)
 	{

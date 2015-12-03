@@ -593,6 +593,11 @@ void gp_handler(frhandler_arg_t *arg, gp_t *p_gp)
 	return;
 
 dev_match:	
+	if(p_dev->zapp_type == FRAPP_LIGHTDETECT)
+	{
+		return;
+	}
+
 #ifdef DB_API_SUPPORT
 	if(1)
 	{
@@ -740,6 +745,12 @@ gw_match:
 		dev_info_t *t_dev = get_gateway_info()->p_dev;
 		while(t_dev != NULL)
 		{
+			if(t_dev->zapp_type == FRAPP_LIGHTDETECT)
+			{
+				t_dev = t_dev->next;
+				continue;
+			}
+
 			uo_t m_uo;
 			memcpy(m_uo.head, FR_HEAD_UO, 3);
 			m_uo.type = get_frnet_type_to_ch(t_dev->znet_type);
@@ -797,6 +808,11 @@ gw_match:
 	}
 	else if((p_dev=query_zdevice_info_with_sn(p_gp->zidentify_no)) != NULL)
 	{
+		if(p_dev->zapp_type == FRAPP_LIGHTDETECT)
+		{
+			return;
+		}
+
 		uo_t m_uo;
 		memcpy(m_uo.head, FR_HEAD_UO, 3);
 		m_uo.type = get_frnet_type_to_ch(p_dev->znet_type);
