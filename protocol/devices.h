@@ -19,6 +19,7 @@
 
 #include <services/globals.h>
 #include <protocol/devalloc.h>
+#include <protocol/common/fieldlysis.h>
 
 int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev);
 dev_info_t *query_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
@@ -31,6 +32,7 @@ gw_info_t *get_gateway_info();
 int add_zdevice_info(dev_info_t *m_dev);
 dev_info_t *query_zdevice_info(uint16 znet_addr);
 dev_info_t *query_zdevice_info_with_sn(zidentify_no_t zidentify_no);
+uint16 get_znet_addr_with_sn(sn_t sn);
 int del_zdevice_info(uint16 znet_addr);
 #endif
 

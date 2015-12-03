@@ -38,6 +38,7 @@
 #define DEVOPT_IRDETECT_FIX_SIZE			5
 #define DEVOPT_DOORSENSOR_FIX_SIZE			5
 #define DEVOPT_RELAYSOCKET_FIX_SIZE			3
+#define DEVOPT_LIGHTDETECT_FIX_SIZE			5
 
 #define DEVOPT_LIGHTSWITCH_ONE_DATASTR_FIX_SIZE		2
 #define DEVOPT_LIGHTSWITCH_TWO_DATASTR_FIX_SIZE		4
@@ -46,9 +47,10 @@
 #define DEVOPT_HUELIGHT_DATASTR_FIX_SIZE			8
 #define DEVOPT_ALARM_DATASTR_FIX_SIZE				2
 #define DEVOPT_IRRELAY_DATASTR_FIX_SIZE				5
-#define DEVOPT_IRDETECT_DATASTR_FIX_SIZE			2
-#define DEVOPT_DOORSENSOR_DATASTR_FIX_SIZE			2
+#define DEVOPT_IRDETECT_DATASTR_FIX_SIZE			4
+#define DEVOPT_DOORSENSOR_DATASTR_FIX_SIZE			4
 #define DEVOPT_RELAYSOCKET_DATASTR_FIX_SIZE			2
+#define DEVOPT_LIGHTDETECT_DATASTR_FIX_SIZE			4
 
 #define DEVOPT_IRRELAY_LEARN_MODE	"LEA"
 #define DEVOPT_IRRELAY_SEND_MODE	"SEN"
@@ -162,6 +164,10 @@ typedef struct RelaySocket_Opt
 	uint8 data[1];
 }relaysocket_opt_t;
 
+typedef struct LightDetect_Opt
+{
+	uint16 data;
+}lightdetect_opt_t;
 
 typedef struct Dev_Opt
 {
@@ -184,6 +190,7 @@ typedef struct Dev_Opt
 		envdetection_opt_t envdetection;
 		aircontroller_opt_t aircontroller;
 		relaysocket_opt_t relaysocket;
+		lightdetect_opt_t lightdetect;
 	}device;
 }dev_opt_t;
 

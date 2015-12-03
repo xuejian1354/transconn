@@ -34,6 +34,7 @@ typedef struct Dev_Info
 	fr_app_type_t zapp_type;
 	fr_net_type_t znet_type;
 	dev_opt_t *zdev_opt;
+	uint8 isdata_change;
 	struct Dev_Info *next;
 }dev_info_t;
 

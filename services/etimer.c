@@ -131,6 +131,25 @@ int set_timer_event(timer_event_t *event)
 	return 0;
 }
 
+timer_event_t *query_timer_event(int timer_id)
+{
+	timer_event_t *t_event = p_event;
+
+	while(t_event != NULL)
+	{
+		if(t_event->timer_id != timer_id)
+		{
+			t_event = t_event->next;
+		}
+		else
+		{
+			return t_event;
+		}
+	}
+
+	return NULL;
+}
+
 int del_timer_event(int timer_id)
 {
 	timer_event_t *pre_event = NULL;

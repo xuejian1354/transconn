@@ -16,25 +16,6 @@
  */
 #include "framelysis.h"
 
-//command method
-#define FR_CMD_BROCAST_REFRESH	"/BR/"		//broadcast
-#define FR_CMD_SINGLE_REFRESH	"/SR/"		//single refresh
-#define FR_CMD_SINGLE_EXCUTE	"/EC/"		//single control
-#define FR_CMD_PEROID_EXCUTE	"/EP/"		//recycle request
-#define FR_CMD_PEROID_STOP		"/ES/"		//recycle stop request
-#define FR_CMD_JOIN_CTRL		"/CJ/"		//join permit
-
-#define FR_UC_DATA_FIX_LEN		38		//UC frame fix len
-#define FR_UO_DATA_FIX_LEN		30		//UO frame fix len
-#define FR_UH_DATA_FIX_LEN		11		//UH frame fix len
-#define FR_UR_DATA_FIX_LEN		14		//HR frame fix len
-#define FR_DE_DATA_FIX_LEN		14		//DE frame fix len
-
-
-#define FRAME_DATA_SIZE		128
-#define FRAME_BUFFER_SIZE 	256
-#define MAX_OPTDATA_SIZE	FRAME_DATA_SIZE
-
 
 #ifdef ZH_TYPE_NAME
 static zh_el_t zh_tables[TN_NUMS+1] =
@@ -89,7 +70,7 @@ static zh_el_t zh_tables[TN_NUMS+1] =
 };
 #endif
 
-static char mix_type_name[24];
+static char mix_type_name[64];
 
 char *get_name(type_name_t tn)
 {
@@ -112,7 +93,7 @@ char *get_name_from_type(fr_app_type_t type)
 
 char *get_mix_name(fr_app_type_t type, uint8 s1, uint8 s2)
 {
-	bzero(mix_type_name, sizeof(mix_type_name));
+	memset(mix_type_name, 0, sizeof(mix_type_name));
 	sprintf(mix_type_name, "%s%02X%02X", get_name_from_type(type), s1, s2);
 	return mix_type_name;
 }
@@ -231,6 +212,10 @@ fr_app_type_t get_frapp_type_from_str(char *app_type)
 	{
 		return FRAPP_RELAYSOCKET;
 	}
+	else if(!strncmp(FR_APP_LIGHTDETECT, app_type, 2))
+	{
+		return FRAPP_LIGHTDETECT;
+	}
 	else if(!strncmp(FR_APP_HUMITURE_DETECTION, app_type, 2))
 	{
 		return FRAPP_HUMITURE_DETECTION;
@@ -317,6 +302,10 @@ int get_frapp_type_to_str(char *dst, fr_app_type_t app_type)
 
 	case FRAPP_RELAYSOCKET:
 		strcpy(dst, FR_APP_RELAYSOCKET);
+		break;
+
+	case FRAPP_LIGHTDETECT:
+		strcpy(dst, FR_APP_LIGHTDETECT);
 		break;
 
 	case FRAPP_HUMITURE_DETECTION:

@@ -294,6 +294,20 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		}
 		return opt;
 
+	case FRAPP_LIGHTDETECT: 
+		opt = calloc(1, sizeof(dev_opt_t));
+		opt->type = type;
+		opt->common.method = DEV_CONTROL_BOTH;
+		if(len >= 4)
+		{
+			incode_ctox16(&(opt->device.lightdetect.data), data);
+		}
+		else
+		{
+			opt->device.lightdetect.data = 0;
+		}
+		return opt;
+
 	default: return NULL;
 	}
 }
@@ -803,6 +817,15 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		incode_xtocs(buffer->data+1, opt->device.relaysocket.data, 1);
 		return buffer;
 
+	case FRAPP_LIGHTDETECT:
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTDETECT_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		
+		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
+		incode_xtoc16(buffer->data+1, opt->device.lightdetect.data);
+		return buffer;
+
 	default: return NULL;
 	}
 }
@@ -920,9 +943,20 @@ int set_devopt_data_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		break;
 
 	case FRAPP_RELAYSOCKET: 
-		if(len >=1)
+		if(len >= 1)
 		{
 			opt->device.relaysocket.data[0] = data[0];
+		}
+		else
+		{
+			return -1;
+		}
+		break;
+
+	case FRAPP_LIGHTDETECT: 
+		if(len >= 4)
+		{
+			incode_ctox16(&(opt->device.lightdetect.data), data, 4);
 		}
 		else
 		{
@@ -997,6 +1031,7 @@ fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
 		buffer->size = DEVOPT_IRDETECT_DATASTR_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
 		incode_xtocs(buffer->data, &opt->device.irdetect.setting, 1);
+		incode_xtocs(buffer->data+2, &opt->device.irdetect.status, 1);
 		return buffer;
 		
 	case FRAPP_DOOR_SENSOR: 
@@ -1004,6 +1039,7 @@ fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
 		buffer->size = DEVOPT_DOORSENSOR_DATASTR_FIX_SIZE;
 		buffer->data = calloc(1, buffer->size);
 		incode_xtocs(buffer->data, &opt->device.doorsensor.setting, 1);
+		incode_xtocs(buffer->data+2, &opt->device.doorsensor.status, 1);
 		return buffer;
 
 	case FRAPP_ENVDETECTION:
@@ -1048,6 +1084,13 @@ fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
 		incode_xtocs(buffer->data, opt->device.relaysocket.data, 1);
 		return buffer;
 
+	case FRAPP_LIGHTDETECT: 
+		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer->size = DEVOPT_LIGHTDETECT_DATASTR_FIX_SIZE;
+		buffer->data = calloc(1, buffer->size);
+		incode_xtoc16(buffer->data, opt->device.lightdetect.data);
+		return buffer;
+
 	default: return NULL;
 	}
 }
@@ -1059,6 +1102,8 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 	{
 		return -1;
 	}
+
+	int is_change = 0;
 	
 	switch(dst->type)
 	{
@@ -1066,41 +1111,103 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 	case FRAPP_LAMPSWITCH:
 	case FRAPP_CURTAIN:
 	case FRAPP_DOORLOCK:
-		dst->device.lightswitch.data.one[0] = src->device.lightswitch.data.one[0];
+		if(dst->device.lightswitch.data.one[0] != src->device.lightswitch.data.one[0])
+		{
+			dst->device.lightswitch.data.one[0] = src->device.lightswitch.data.one[0];
+			is_change = 1;
+		}
 		break;
 		
 	case FRAPP_LIGHTSWITCH_TWO: 
-		dst->device.lightswitch.data.two[0] = src->device.lightswitch.data.two[0];
-		dst->device.lightswitch.data.two[1] = src->device.lightswitch.data.two[1];
+		if(dst->device.lightswitch.data.two[0] != src->device.lightswitch.data.two[0])
+		{
+			dst->device.lightswitch.data.two[0] = src->device.lightswitch.data.two[0];
+			is_change = 1;
+		}
+
+		if(dst->device.lightswitch.data.two[1] != src->device.lightswitch.data.two[1])
+		{
+			dst->device.lightswitch.data.two[1] = src->device.lightswitch.data.two[1];
+			is_change = 1;
+		}
 		break;
 		
 	case FRAPP_LIGHTSWITCH_THREE: 
-		dst->device.lightswitch.data.three[0] = src->device.lightswitch.data.three[0];
-		dst->device.lightswitch.data.three[1] = src->device.lightswitch.data.three[1];
-		dst->device.lightswitch.data.three[2] = src->device.lightswitch.data.three[2];
+		if(dst->device.lightswitch.data.three[0] != src->device.lightswitch.data.three[0])
+		{
+			dst->device.lightswitch.data.three[0] = src->device.lightswitch.data.three[0];
+			is_change = 1;
+		}
+
+		if(dst->device.lightswitch.data.three[1] != src->device.lightswitch.data.three[1])
+		{
+			dst->device.lightswitch.data.three[1] = src->device.lightswitch.data.three[1];
+			is_change = 1;
+		}
+		
+		if(dst->device.lightswitch.data.three[2] != src->device.lightswitch.data.three[2])
+		{
+			dst->device.lightswitch.data.three[2] != src->device.lightswitch.data.three[2];
+			is_change = 1;
+		}
 		break;
 		
 	case FRAPP_LIGHTSWITCH_FOUR: 		
-		dst->device.lightswitch.data.four[0] = src->device.lightswitch.data.four[0];
-		dst->device.lightswitch.data.four[1] = src->device.lightswitch.data.four[1];
-		dst->device.lightswitch.data.four[2] = src->device.lightswitch.data.four[2];
-		dst->device.lightswitch.data.four[3] = src->device.lightswitch.data.four[3];
+		if(dst->device.lightswitch.data.three[0] != src->device.lightswitch.data.three[0])
+		{
+			dst->device.lightswitch.data.three[0] = src->device.lightswitch.data.three[0];
+			is_change = 1;
+		}
+
+		if(dst->device.lightswitch.data.three[1] != src->device.lightswitch.data.three[1])
+		{
+			dst->device.lightswitch.data.three[1] = src->device.lightswitch.data.three[1];
+			is_change = 1;
+		}
+		
+		if(dst->device.lightswitch.data.three[2] != src->device.lightswitch.data.three[2])
+		{
+			dst->device.lightswitch.data.three[2] != src->device.lightswitch.data.three[2];
+			is_change = 1;
+		}
+
+		if(dst->device.lightswitch.data.four[3] != src->device.lightswitch.data.four[3])
+		{
+			dst->device.lightswitch.data.four[3] = src->device.lightswitch.data.four[3];
+			is_change = 1;
+		}
 		break;
 
 	case FRAPP_HUELIGHT: 		
-		memcpy(&dst->device.huelight, &src->device.huelight, 4);
+		if(memcmp(&dst->device.huelight, &src->device.huelight, 4))
+		{
+			memcpy(&dst->device.huelight, &src->device.huelight, 4);
+			is_change = 1;
+		}
 		break;
 		
 	case FRAPP_ALARM: 
-		dst->device.alarm.data[0] = src->device.alarm.data[0];
+		if(dst->device.alarm.data[0] != src->device.alarm.data[0])
+		{
+			dst->device.alarm.data[0] = src->device.alarm.data[0];
+			is_change = 1;
+		}
 		break;
 		
 	case FRAPP_IR_DETECTION: 
-		dst->device.irdetect.status[0] = src->device.irdetect.status[0];
+		if(dst->device.irdetect.status[0] != src->device.irdetect.status[0])
+		{
+			dst->device.irdetect.status[0] = src->device.irdetect.status[0];
+			is_change = 1;
+		}
 		break;
 		
 	case FRAPP_DOOR_SENSOR: 
-		dst->device.doorsensor.status[0] = src->device.doorsensor.status[0];
+		if(dst->device.doorsensor.status[0] != src->device.doorsensor.status[0])
+		{
+			dst->device.doorsensor.status[0] = src->device.doorsensor.status[0];
+			is_change = 1;
+		}
 		break;
 
 	case FRAPP_ENVDETECTION:
@@ -1113,24 +1220,28 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 						src->device.envdetection.pm25_threshold;
 			dst->device.envdetection.pm25_val = 
 						src->device.envdetection.pm25_val;
+			is_change = 1;
 		}
 		else if(!memcmp(src->device.envdetection.current_buffer, 
 								DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
 		{
 			dst->device.envdetection.pm25_val = 
 						src->device.envdetection.pm25_val;
+			is_change = 1;
 		}
 		else if(!memcmp(src->device.envdetection.current_buffer, 
 								DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
 		{
 			dst->device.envdetection.pm25_thresmode = 
 						src->device.envdetection.pm25_thresmode;
+			is_change = 1;
 		}
 		else if(!memcmp(src->device.envdetection.current_buffer, 
 								DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
 		{
 			dst->device.envdetection.pm25_threshold = 
 						src->device.envdetection.pm25_threshold;
+			is_change = 1;
 		}
 		break;
 
@@ -1144,35 +1255,51 @@ int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src)
 						src->device.aircontroller.pm25_threshold;
 			dst->device.aircontroller.pm25_val = 
 						src->device.aircontroller.pm25_val;
+			is_change = 1;
 		}
 		else if(!memcmp(src->device.aircontroller.current_buffer, 
 								DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
 		{
 			dst->device.aircontroller.pm25_val = 
 						src->device.aircontroller.pm25_val;
+			is_change = 1;
 		}
 		else if(!memcmp(src->device.aircontroller.current_buffer, 
 								DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
 		{
 			dst->device.aircontroller.pm25_thresmode = 
 						src->device.aircontroller.pm25_thresmode;
+			is_change = 1;
 		}
 		else if(!memcmp(src->device.aircontroller.current_buffer, 
 								DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
 		{
 			dst->device.aircontroller.pm25_threshold = 
 						src->device.aircontroller.pm25_threshold;
+			is_change = 1;
 		}
 		break;
 
 	case FRAPP_RELAYSOCKET: 
-		dst->device.relaysocket.data[0] = src->device.relaysocket.data[0];
+		if(dst->device.relaysocket.data[0] != src->device.relaysocket.data[0])
+		{
+			dst->device.relaysocket.data[0] = src->device.relaysocket.data[0];
+			is_change = 1;
+		}
+		break;
+
+	case FRAPP_LIGHTDETECT: 
+		if(dst->device.lightdetect.data != src->device.lightdetect.data)
+		{
+			dst->device.lightdetect.data = src->device.lightdetect.data;
+			is_change = 1;
+		}
 		break;
 
 	default: return -1;
 	}
 
-	return 0;
+	return is_change;
 }
 
 
@@ -1184,6 +1311,11 @@ void devopt_de_print(dev_opt_t *opt)
 		return;
 	}	
 #endif
+
+	if(opt == NULL)
+	{
+		return;
+	}
 
 	switch(opt->type)
 	{
@@ -1273,6 +1405,11 @@ void devopt_de_print(dev_opt_t *opt)
 	case FRAPP_RELAYSOCKET: 
 		DE_PRINTF(0, "[RelaySocket]\n");
 		DE_PRINTF(0, "data:%02X\n\n", opt->device.relaysocket.data[0]);
+		break;
+
+	case FRAPP_LIGHTDETECT:
+		DE_PRINTF(0, "[LightDetect]\n");
+		DE_PRINTF(0, "data:%04X\n\n", opt->device.lightdetect.data);
 		break;
 	}
 }

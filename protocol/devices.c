@@ -18,7 +18,6 @@
 #include <mincode.h>
 #include <module/serial.h>
 #include <protocol/request.h>
-#include <protocol/common/mevent.h>
 
 #ifdef COMM_CLIENT
 static gw_info_t gw_info;
@@ -75,7 +74,13 @@ int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev)
 				t_dev->znet_type = m_dev->znet_type;
 			}
 
-			set_devopt_data_fromopt(t_dev->zdev_opt, m_dev->zdev_opt);
+			int is_change =
+				set_devopt_data_fromopt(t_dev->zdev_opt, m_dev->zdev_opt);
+
+			if(!t_dev->isdata_change)
+			{
+				t_dev->isdata_change = is_change;
+			}
 
 			if(pre_dev != NULL)
 			{
@@ -184,6 +189,29 @@ dev_info_t *query_zdevice_info_with_sn(zidentify_no_t zidentify_no)
 	}
 
 	return NULL;
+}
+
+uint16 get_znet_addr_with_sn(sn_t sn)
+{
+	if(sn == NULL)
+	{
+		return 0;
+	}
+
+	zidentify_no_t zdev_no;
+	incode_ctoxs(zdev_no, sn, 16);
+
+	dev_info_t *p_dev = query_zdevice_info_with_sn(zdev_no);
+	if(p_dev != NULL)
+	{
+		return p_dev->znet_addr;
+	}
+	else
+	{
+		
+	}
+
+	return 0;
 }
 
 int del_zdevice_info(uint16 znet_addr)

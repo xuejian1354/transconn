@@ -22,13 +22,6 @@
 #define DB_SERVER	"localhost"
 #define DB_PORT		3306
 
-#define GET_CMD_LINE()	cmdline
-
-#define SET_CMD_LINE(format, args...)  	\
-st(  									\
-	bzero(cmdline, sizeof(cmdline));  	\
-	sprintf(cmdline, format, ##args);  	\
-)
 
 #ifdef DB_API_WITH_MYSQL
 static MYSQL mysql_conn;
@@ -44,8 +37,7 @@ static char *errmsg;
 static pthread_mutex_t sql_lock;
 
 static char is_userful = 0;
-static char cmdline[0x4000];
-static char current_time[64];
+char cmdline[CMDLINE_SIZE];
 
 static int sql_excute_cmdline(char *cmdline);
 #ifdef DB_API_WITH_MYSQL
@@ -58,16 +50,12 @@ static void del_areas_from_user_sql(char *email, areas_t *areas);
 static void del_scenes_from_user_sql(char *email, scenes_t *scenes);
 #endif
 
-char *get_current_time()
+#ifdef DB_API_WITH_SQLITE
+sqlite3 *get_sqlite_db()
 {
-	time_t t;
-	time(&t);
-	bzero(current_time, sizeof(current_time));
-	struct tm *tp= localtime(&t);
-	strftime(current_time, 100, "%Y-%m-%d %H:%M:%S", tp); 
-
-	return current_time;
+	return sqlite_db;
 }
+#endif
 
 int sql_init()
 {
@@ -134,7 +122,7 @@ int sql_init()
 		return -1;*/
 	}
 
-	SET_CMD_LINE("CREATE TABLE devices (%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s)",
+	SET_CMD_LINE("CREATE TABLE devices (%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s)",
 					"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
 					"serialnum VARCHAR(32), ",
 					"apptype VARCHAR(8), ",
@@ -148,6 +136,7 @@ int sql_init()
 					"isonline TINYINT(1), ",
 					"iscollect TINYINT(1), ",
 					"ispublic TINYINT(1), ",
+					"ischange TINYINT(1), ",
 					"users TEXT, ",
 					"data TEXT, ",
 					"created_at VARCHAR(64), ",
@@ -280,11 +269,13 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 
 	if(sql_query_zdev(p_gw, m_dev->zidentity_no) == 0)
 	{
-		SET_CMD_LINE("%s%04X%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
+		SET_CMD_LINE("%s%04X%s%s%s%d%s%s%s%s%s%s%s%s%s%s%s%s%s", 
 				"UPDATE devices SET shortaddr=\'",
 				m_dev->znet_addr,
 				"\', apptype=\'",
 				apptype_str,
+				"\', isonline=\'1\', ischange=\'",
+				m_dev->isdata_change,
 				"\', updatetime=\'",
 				get_current_time(),
 				"\', data=\'",
@@ -304,10 +295,10 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 		return sql_excute_cmdline(GET_CMD_LINE());
 	}
 
-	SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
+	SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s%s%s%s%s%d%s%s%s%s%s%s%s", 
 		"INSERT INTO devices (id, serialnum, apptype, shortaddr, ipaddr, ",
 		"commtocol, gwsn, name, area, updatetime, isonline, iscollect, ",
-		"ispublic, users, data, created_at, updated_at) VALUES (NULL, \'",
+		"ispublic, ischange, users, data, created_at, updated_at) VALUES (NULL, \'",
 		serno,
 		"\', \'",
 		apptype_str,
@@ -325,7 +316,9 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 		NO_AREA,
 		"\', \'",
 		get_current_time(),
-		"\', \'1\', \'0\', \'0\', \'\', \'",
+		"\', \'1\', \'0\', \'0\', \'",
+		m_dev->isdata_change,
+		"\', \'\', \'",
 		data,
 		"\', \'",
 		get_current_time(),
@@ -431,10 +424,11 @@ int sql_uponline_zdev(gw_info_t *p_gw,
 
 	incode_xtocs(gwno, p_gw->gw_no, sizeof(zidentify_no_t));
 
-	SET_CMD_LINE("%s%d%s%s%s%s%s", 
+	SET_CMD_LINE("%s%d%s%s%s%s%s%s", 
 				"UPDATE devices SET isonline=\'",
 				isonline,
-				"\' WHERE shortaddr IN (",
+				"\', ischange=\'1\' ",
+				"WHERE shortaddr IN (",
 				addrs_str,
 				") AND gwsn=\'",
 				gwno,
@@ -443,6 +437,41 @@ int sql_uponline_zdev(gw_info_t *p_gw,
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 	return sql_excute_cmdline(GET_CMD_LINE());
 }
+
+#ifdef COMM_CLIENT
+int sql_set_datachange_zdev(zidentify_no_t dev_no, uint8 ischange)
+{
+	char devno_str[24] = {0};
+
+	if(dev_no == NULL )
+	{
+		return -1;
+	}
+
+	incode_xtocs(devno_str, dev_no, sizeof(zidentify_no_t));
+	if(!memcmp(dev_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t)))
+	{
+		SET_CMD_LINE("%s%d%s%s%s", 
+						"UPDATE devices SET ischange=\'",
+						ischange,
+						"\' WHERE gwsn=\'",
+						devno_str,
+						"\'");
+	}
+	else
+	{
+		SET_CMD_LINE("%s%d%s%s%s", 
+						"UPDATE devices SET ischange=\'",
+						ischange,
+						"\' WHERE serialnum=\'",
+						devno_str,
+						"\'");
+	}
+
+	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	return sql_excute_cmdline(GET_CMD_LINE());
+}
+#endif
 
 int sql_add_gateway(gw_info_t *m_gw)
 {

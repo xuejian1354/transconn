@@ -82,6 +82,8 @@ void analysis_zdev_frame(void *ptr)
 
 		dev_info->zdev_opt = 
 			get_devopt_fromstr(dev_info->zapp_type, uo->data, uo->data_len);
+		dev_info->isdata_change = 1;
+		sql_set_datachange_zdev(dev_info->zidentity_no, 1);
 
 		set_zdev_check(dev_info->znet_addr);
 		uint16 znet_addr = dev_info->znet_addr;
@@ -94,9 +96,48 @@ void analysis_zdev_frame(void *ptr)
 		dev_info = query_zdevice_info(znet_addr);
 		if(dev_info != NULL)
 		{
+			if(dev_info->zapp_type == FRAPP_LIGHTDETECT)
+			{
+				dev_info_t *p_dev = get_gateway_info()->p_dev;
+				uint8 zbuf[1024] = {0};
+				int zlen = 0;
+				while(p_dev != NULL)
+				{
+					if(p_dev->zapp_type == FRAPP_CURTAIN && zlen < 1020)
+					{
+						sprintf(zbuf+zlen, "%04X", p_dev->znet_addr);
+						zlen += 4;
+					}
+					p_dev = p_dev->next;
+				}
+
+				if(zlen > 0)
+				{
+					uint8 mbuf[1040] = {0};
+					sprintf(mbuf, "D:/EC/%04XLTD%s:O\r\n", dev_info->znet_addr, zbuf);
+					serial_write(mbuf, 17+zlen);
+				}
+				goto UO_Free;
+			}
+			else if(dev_info->zapp_type == FRAPP_CURTAIN)
+			{
+				dev_info_t *p_dev = get_gateway_info()->p_dev;
+				while(p_dev != NULL)
+				{
+					if(p_dev->zapp_type == FRAPP_LIGHTDETECT)
+					{
+						uint8 mbuf[24] = {0};
+						sprintf(mbuf, "D:/EC/%04XCTN%04X:O\r\n",
+						p_dev->znet_addr,
+						dev_info->znet_addr);
+						serial_write(mbuf, 21);
+					}
+					p_dev = p_dev->next;
+				}
+			}
 			sync_zdev_info(dev_info);
 		}
-		
+UO_Free:
 		get_frame_free(HEAD_UO, uo);
 	}
 	break;
@@ -145,12 +186,26 @@ void analysis_zdev_frame(void *ptr)
 			}
 			else
 			{
-				if(zdev_sync_zopt(dev_info->zdev_opt, ur->data, ur->data_len) ==0 )
+				if(dev_info->zapp_type == FRAPP_LIGHTDETECT)
+				{
+					goto UR_Free;
+				}
+
+				int ret = zdev_sync_zopt(dev_info->zdev_opt, ur->data, ur->data_len);
+				
+				if(ret == 2 && !dev_info->isdata_change)
+				{
+					dev_info->isdata_change = 1;
+					sql_set_datachange_zdev(dev_info->zidentity_no, 1);
+				}
+
+				if(ret != 1)
 				{
 					sync_zdev_info(dev_info);
 				}
 			}
 		}
+UR_Free:
 		get_frame_free(HEAD_UR, ur);
 	}
 	break;
@@ -244,7 +299,7 @@ void analysis_zdev_frame(void *ptr)
 int zdev_sync_zopt(dev_opt_t *dst_opt, uint8 *data, uint8 datalen)
 {
 	dev_opt_t *src_opt = get_devopt_fromstr(dst_opt->type, data, datalen);
-	set_devopt_data_fromopt(dst_opt, src_opt);
+	int is_change = set_devopt_data_fromopt(dst_opt, src_opt);
 	get_devopt_free(src_opt);
 #ifdef DE_PRINT_SERIAL_PORT
 	devopt_de_print(dst_opt);
@@ -260,6 +315,11 @@ int zdev_sync_zopt(dev_opt_t *dst_opt, uint8 *data, uint8 datalen)
 			&& !dst_opt->device.envdetection.up_setting))
 	{
 		return 1;
+	}
+
+	if(is_change)
+	{
+		return 2;
 	}
 
 	return 0;
@@ -288,25 +348,28 @@ void analysis_capps_frame(void *ptr)
 
 	switch(atoi(pAction->valuestring))
 	{
+#ifdef COMM_SERVER
 	case ACTION_TOCOLREQ:
-	case ACTION_TOCOLRES:
 	{
 		cJSON *pProtocol = cJSON_GetObjectItem(pRoot, JSON_FIELD_PROTOCOL);
 		if(pProtocol == NULL)
 		{
 			goto capps_cjson_end;
 		}
-		
-		trfr_tocolreq_t *tocolreq = 
-			get_trfr_tocolreq_alloc(atoi(pAction->valuestring),
-										pProtocol->valuestring);
 
-		trans_protocol_request_handler(arg, tocolreq);
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		trfr_tocolreq_t *tocolreq =
+			get_trfr_tocolreq_alloc(pProtocol->valuestring, pRandom->valuestring);
+		trans_tocolreq_handler(arg, tocolreq);
 		get_trfr_tocolreq_free(tocolreq);
 	}
 		break;
 
-#ifdef COMM_SERVER
 	case ACTION_REPORT:
 	{
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
@@ -314,17 +377,28 @@ void analysis_capps_frame(void *ptr)
 		{
 			goto capps_cjson_end;
 		}
-
-		cJSON *pDevs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVICES);
-		if(pDevs == NULL)
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
 		{
 			goto capps_cjson_end;
 		}
+		
 
-		int i = 0;
-		int dev_size = cJSON_GetArraySize(pDevs);
-		trfield_device_t **devices = calloc(dev_size, sizeof(trfield_device_t *));
-			
+		cJSON *pDevs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVICES);
+		int dev_size;
+		trfield_device_t **devices;
+		if(pDevs == NULL)
+		{
+			dev_size = 0;
+			devices = NULL;
+		}
+		else
+		{
+			dev_size = cJSON_GetArraySize(pDevs);
+			devices = calloc(dev_size, sizeof(trfield_device_t *));
+		}
+
+		int i = 0;			
 		while(i < dev_size)
 		{
 			cJSON *pDev = cJSON_GetArrayItem(pDevs, i);
@@ -350,18 +424,18 @@ void analysis_capps_frame(void *ptr)
 			if(pDevData == NULL) continue;
 
 			*(devices + i - 1) = 
-				get_trfield_device_alloc(pDevName->valuestring, 
-											pDevDevSN->valuestring, 
-											pDevDevType->valuestring, 
-											pDevZnetStatus->valuestring, 
+				get_trfield_device_alloc(pDevName->valuestring,
+											pDevDevSN->valuestring,
+											pDevDevType->valuestring,
+											atoi(pDevZnetStatus->valuestring),
 											pDevData->valuestring);
 		}
 
 		trfr_report_t *report = 
-			get_trfr_report_alloc(atoi(pAction->valuestring),
-									pGateway->valuestring, 
-									devices, 
-									dev_size);
+			get_trfr_report_alloc(pGateway->valuestring,
+									devices,
+									dev_size,
+									pRandom->valuestring);
 
 		trans_report_handler(arg, report);
 		get_trfr_report_free(report);
@@ -370,34 +444,52 @@ void analysis_capps_frame(void *ptr)
 
 	case ACTION_CHECK:
 	{
+
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pCodeCheck = cJSON_GetObjectItem(pRoot, JSON_FIELD_CODECHECK);
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pCode = cJSON_GetObjectItem(pRoot, JSON_FIELD_CODE);
+		if(pCode == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pCodeCheck = cJSON_GetObjectItem(pCode, JSON_FIELD_CODECHECK);
 		if(pCodeCheck == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pCodeData = cJSON_GetObjectItem(pRoot, JSON_FIELD_CODEDATA);
+		cJSON *pCodeData = cJSON_GetObjectItem(pCode, JSON_FIELD_CODEDATA);
 		if(pCodeData == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
+		int devsn_size;
+		sn_t *dev_sns;
 		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSNS);
 		if(pDevSNs == NULL)
 		{
-			goto capps_cjson_end;
+			devsn_size = 0;
+			dev_sns = NULL;
+		}
+		else
+		{
+			devsn_size = cJSON_GetArraySize(pDevSNs);
+			dev_sns = calloc(devsn_size, sizeof(sn_t));
 		}
 
 		int i = 0;
-		int devsn_size = cJSON_GetArraySize(pDevSNs);
-		sn_t *dev_sns = calloc(devsn_size, sizeof(sn_t));
-
 		while(i < devsn_size)
 		{
 			cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
@@ -409,12 +501,12 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_check_t *check = 
-			get_trfr_check_alloc(atoi(pAction->valuestring), 
-									pGateway->valuestring, 
+			get_trfr_check_alloc(pGateway->valuestring, 
 									dev_sns, 
 									devsn_size, 
 									pCodeCheck->valuestring, 
-									pCodeData->valuestring);
+									pCodeData->valuestring,
+									pRandom->valuestring);
 
 		trans_check_handler(arg, check);
 		get_trfr_check_free(check);
@@ -425,6 +517,12 @@ void analysis_capps_frame(void *ptr)
 	{
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
 		{
 			goto capps_cjson_end;
 		}
@@ -442,10 +540,10 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_respond_t *respond = 
-			get_trfr_respond_alloc(atoi(pAction->valuestring),
-										pGateway->valuestring, 
+			get_trfr_respond_alloc(pGateway->valuestring, 
 										pDevSN->valuestring, 
-										pDevData->valuestring);
+										pDevData->valuestring,
+										pRandom->valuestring);
 
 		trans_respond_handler(arg, respond);
 		get_trfr_respond_free(respond);
@@ -457,6 +555,12 @@ void analysis_capps_frame(void *ptr)
 	{
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
 		{
 			goto capps_cjson_end;
 		}
@@ -482,10 +586,10 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_refresh_t *refresh = 
-			get_trfr_refresh_alloc(atoi(pAction->valuestring),
-									pGateway->valuestring, 
+			get_trfr_refresh_alloc(pGateway->valuestring, 
 									dev_sns, 
-									devsn_size);
+									devsn_size,
+									pRandom->valuestring);
 
 		trans_refresh_handler(arg, refresh);
 		get_trfr_refresh_free(refresh);
@@ -500,41 +604,100 @@ void analysis_capps_frame(void *ptr)
 			goto capps_cjson_end;
 		}
 
-		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSNS);
-		if(pDevSNs == NULL)
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		cJSON *pCmd = cJSON_GetObjectItem(pRoot, JSON_FIELD_CMD);
-		if(pCmd == NULL)
+		cJSON *pCtrls = cJSON_GetObjectItem(pRoot, JSON_FIELD_CTRLS);
+		if(pCtrls == NULL)
 		{
 			goto capps_cjson_end;
 		}
 
-		int i = 0;
-		int devsn_size = cJSON_GetArraySize(pDevSNs);
-		sn_t *dev_sns = calloc(devsn_size, sizeof(sn_t));
-
-		while(i < devsn_size)
+		int ctrl_size;
+		trfield_ctrl_t **ctrls;
+		if(pCtrls == NULL)
 		{
-			cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
+			ctrl_size = 0;
+			ctrls = NULL;
+		}
+		else
+		{
+			ctrl_size = cJSON_GetArraySize(pCtrls);
+			ctrls = calloc(ctrl_size, sizeof(trfield_ctrl_t *));
+		}
+
+		int i = 0;			
+		while(i < ctrl_size)
+		{
+			cJSON *pCtrl = cJSON_GetArrayItem(pCtrls, i);
 			i++;
-			if(pDevSN == NULL) continue;
+ 			if(pCtrl == NULL) continue;
 
-			STRS_MEMCPY(dev_sns+i-1, pDevSN->valuestring, 
-					sizeof(sn_t), strlen(pDevSN->valuestring));
+			cJSON *pCmd = cJSON_GetObjectItem(pCtrl, JSON_FIELD_CMD);
+			if(pCmd == NULL) continue;
+
+			cJSON *pDevSNs = cJSON_GetObjectItem(pCtrl, JSON_FIELD_DEVSNS);
+			int devsn_size;
+			sn_t *dev_sns;
+			if(pDevSNs == NULL)
+			{
+				devsn_size = 0;
+				dev_sns = NULL;
+			}
+			else
+			{
+				devsn_size = cJSON_GetArraySize(pDevSNs);
+				dev_sns = calloc(devsn_size, sizeof(sn_t));
+			}
+			
+
+			int j = 0;
+			while(j < devsn_size)
+			{
+				cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
+				j++;
+				if(pDevSN == NULL) continue;
+
+				STRS_MEMCPY(dev_sns+j-1, pDevSN->valuestring, 
+						sizeof(sn_t), strlen(pDevSN->valuestring));
+			}
+
+			*(ctrls + i - 1) = 
+				get_trfield_ctrl_alloc(dev_sns, devsn_size, pCmd->valuestring);
 		}
 
 		trfr_control_t *control = 
-			get_trfr_control_alloc(atoi(pAction->valuestring), 
-									pGateway->valuestring, 
-									dev_sns, 
-									devsn_size,
-									pCmd->valuestring);
+			get_trfr_control_alloc(pGateway->valuestring, 
+									ctrls, 
+									ctrl_size,
+									pRandom->valuestring);
 
 		trans_control_handler(arg, control);
 		get_trfr_control_free(control);
+	}
+		break;
+
+	case ACTION_TOCOLRES:
+	{
+		cJSON *pReqAction = cJSON_GetObjectItem(pRoot, JSON_FIELD_REQACTION);
+		if(pReqAction == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
+		if(pRandom == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		trfr_tocolres_t *tocolres =
+			get_trfr_tocolres_alloc(atoi(pReqAction->valuestring), pRandom->valuestring);
+		trans_tocolres_handler(arg, tocolres);
+		get_trfr_tocolres_free(tocolres);
 	}
 		break;
 #endif
@@ -544,5 +707,9 @@ capps_cjson_end:
 	cJSON_Delete(pRoot);
 capps_arg_end:
 	get_frhandler_arg_free(arg);
+
+#ifdef COMM_CLIENT
+	set_refresh_check();
+#endif
 }
 

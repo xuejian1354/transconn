@@ -19,6 +19,25 @@
 
 #include <services/globals.h>
 
+//command method
+#define FR_CMD_BROCAST_REFRESH	"/BR/"		//broadcast
+#define FR_CMD_SINGLE_REFRESH	"/SR/"		//single refresh
+#define FR_CMD_SINGLE_EXCUTE	"/EC/"		//single control
+#define FR_CMD_PEROID_EXCUTE	"/EP/"		//recycle request
+#define FR_CMD_PEROID_STOP		"/ES/"		//recycle stop request
+#define FR_CMD_JOIN_CTRL		"/CJ/"		//join permit
+
+#define FR_UC_DATA_FIX_LEN		38		//UC frame fix len
+#define FR_UO_DATA_FIX_LEN		30		//UO frame fix len
+#define FR_UH_DATA_FIX_LEN		11		//UH frame fix len
+#define FR_UR_DATA_FIX_LEN		14		//HR frame fix len
+#define FR_DE_DATA_FIX_LEN		14		//DE frame fix len
+
+
+#define FRAME_DATA_SIZE		128
+#define FRAME_BUFFER_SIZE 	256
+#define MAX_OPTDATA_SIZE	FRAME_DATA_SIZE
+
 #define ZH_TYPE_NAME
 
 #ifdef ZH_TYPE_NAME
@@ -56,6 +75,7 @@
 #define FR_APP_IR_RELAY				"21"
 #define FR_APP_AIRCONTROLLER		"F0"
 #define FR_APP_RELAYSOCKET			"F1"
+#define FR_APP_LIGHTDETECT			"F2"
 #define FR_APP_HUMITURE_DETECTION	"A1"
 #define FR_APP_SOLENOID_VALVE		"A2"
 
@@ -93,6 +113,7 @@ typedef enum
 	FRAPP_IR_RELAY = 21,
 	FRAPP_AIRCONTROLLER = 0xF0,
 	FRAPP_RELAYSOCKET = 0xF1,
+	FRAPP_LIGHTDETECT = 0xF2,
 	FRAPP_HUMITURE_DETECTION = 0xA1,
 	FRAPP_SOLENOID_VALVE = 0xA2,
 

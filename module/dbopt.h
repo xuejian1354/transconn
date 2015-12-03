@@ -29,6 +29,18 @@
 #include <sqlite3.h>
 #endif
 
+#define CMDLINE_SIZE	0x4000
+#define GET_CMD_LINE()	cmdline
+
+#define SET_CMD_LINE(format, args...)  	\
+st(  									\
+	bzero(cmdline, sizeof(cmdline));  	\
+	sprintf(cmdline, format, ##args);  	\
+)
+
+#ifdef DB_API_WITH_SQLITE
+sqlite3 *get_sqlite_db();
+#endif
 int sql_init();
 int sql_reconnect();
 void sql_release();
@@ -40,6 +52,10 @@ int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no);
 
 int sql_uponline_zdev(gw_info_t *p_gw, 
 			uint8 isonline , uint16* znet_addrs, int addrs_len);
+
+#ifdef COMM_CLIENT
+int sql_set_datachange_zdev(zidentify_no_t dev_no, uint8 ischange);
+#endif
 
 int sql_add_gateway(gw_info_t *m_gw);
 int sql_query_gateway(zidentify_no_t gw_no);

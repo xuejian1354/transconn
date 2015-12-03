@@ -43,6 +43,7 @@ typedef struct Timer_Event
 
 int timer_init();
 int set_timer_event(timer_event_t *event);
+timer_event_t *query_timer_event(int timer_id);
 int del_timer_event(int timer_id);
 #endif
 #endif  //__ETIMER_H__

@@ -1,10 +1,10 @@
 
   This program support fix running environment by configurations.
-Thera are configurations files '/etc/balancer_serlist' &
+There are configurations files '/etc/balance_serlist' &
 '/etc/transconn.conf'.
 
-  '/etc/balancer_serlist' only be used by client (connect_listen).
-The function support by macro LOAD_BALANCE_SUPPORT. You can add
+  '/etc/balance_serlist' only be used by client(connect_listen).
+This function is support by macro LOAD_BALANCE_SUPPORT. You can add
 request server ip address on this file. Each server ip setting has
 two lines: name & ip. The name setting use '[]', and ip setting
 use 'ip='.
@@ -13,7 +13,7 @@ use 'ip='.
     ip=loongsmart.com
 
   '/etc/transconn.conf' is used for client(connect_listen) &
-server(transconn). The function support by macro READ_CONF_FILE.
+server(transconn). The function is support by macro READ_CONF_FILE.
 There is the configurations and contents as follow:
 
   comm_protocol = udp,tcp,http
@@ -22,7 +22,7 @@ http. Use ',' separate it. And the protocols have priority. The
 left has more higher priority.
 
   serial_port = /dev/ttyS1
-  Configurate serial device. This support only for client.
+  Configurate serial device. This is support only for client.
 
   tcp_port = 11565
   Configurate TCP comm port. Using '{$default_tcp_port}' can get
@@ -33,12 +33,13 @@ system default tcp port.
 system default udp port.
 
   http_url = http://{$server_ip}/request
-  Configurate HTTP URL. This support only for client. The '{$val}'
+  Configurate HTTP URL. This is support only for client. The '{$val}'
 pattern can get val from system default. Using '{$[Server Name]_ip}'
-can get ip from /etc/balancer_serlist.
+can get ip from /etc/balance_serlist.
 
   apk_update_dir = /mnt/android_apk
-  Configurate update android apk locates. This support only for server.
+  Configurate update android apk locates. This is support only for
+server.
 
   db_database = loongsmart
   db_username = root

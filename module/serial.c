@@ -352,7 +352,7 @@ serial_update:
 				if(get_deuart_flag())
 				{
 #endif
-					DE_PRINTF(0, "serial read:%s\n", tmpFrame);
+					DE_PRINTF(0, "%s\nserial read:%s\n", get_time_head(), tmpFrame);
 					//PRINT_HEX(tmpFrame, dataLen);
 #ifdef DE_TRANS_UDP_STREAM_LOG
 				}
