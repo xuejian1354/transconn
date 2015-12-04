@@ -503,19 +503,6 @@ int mach_init()
     }
 #endif
 
-#ifdef COMM_SERVER
-	gw_list_t *p_gw_list = get_gateway_list();
-	p_gw_list->p_gw = NULL;
-	p_gw_list->max_num = 0;
-
-	if(pthread_mutex_init(&(get_gateway_list()->lock), NULL) != 0)
-    {
-        DE_PRINTF(1, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
-            __FUNCTION__, __LINE__, errno, strerror(errno));
-        return -1;
-    }
-#endif
-
 	set_session_status(SESS_READY);
 	set_trans_protocol(TOCOL_ENABLE);
 	return 0;

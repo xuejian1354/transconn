@@ -18,7 +18,7 @@
 #define __DEVICES_H__
 
 #include <services/globals.h>
-#include <protocol/devalloc.h>
+#include <protocol/old/devalloc.h>
 #include <protocol/common/fieldlysis.h>
 
 int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev);

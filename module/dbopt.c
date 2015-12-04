@@ -250,9 +250,6 @@ int sql_isuse()
 
 int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 {
-	char apptype_str[4] = {0};
-	get_frapp_type_to_str(apptype_str, m_dev->zapp_type);
-
 	char serno[24] = {0};
 	incode_xtocs(serno, m_dev->zidentity_no, sizeof(zidentify_no_t));
 
@@ -273,7 +270,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 				"UPDATE devices SET shortaddr=\'",
 				m_dev->znet_addr,
 				"\', apptype=\'",
-				apptype_str,
+				get_frapp_type_to_str(m_dev->zapp_type),
 				"\', isonline=\'1\', ischange=\'",
 				m_dev->isdata_change,
 				"\', updatetime=\'",
@@ -301,7 +298,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 		"ispublic, ischange, users, data, created_at, updated_at) VALUES (NULL, \'",
 		serno,
 		"\', \'",
-		apptype_str,
+		get_frapp_type_to_str(m_dev->zapp_type),
 		"\', \'",
 		m_dev->znet_addr,
 		"\', \'",
@@ -475,9 +472,6 @@ int sql_set_datachange_zdev(zidentify_no_t dev_no, uint8 ischange)
 
 int sql_add_gateway(gw_info_t *m_gw)
 {
-	char apptype_str[4] = {0};
-	get_frapp_type_to_str(apptype_str, m_gw->zapp_type);
-
 	char gwno_str[24] = {0};
 	incode_xtocs(gwno_str, m_gw->gw_no, sizeof(zidentify_no_t));
 
@@ -497,7 +491,7 @@ int sql_add_gateway(gw_info_t *m_gw)
 			"name, data, created_at, updated_at) VALUES (NULL, \'",
 			gwno_str,
 			"\', \'",
-			apptype_str,
+			get_frapp_type_to_str(m_gw->zapp_type),
 			"\', \'",
 			m_gw->ipaddr,
 			"\', \'",
@@ -519,7 +513,7 @@ int sql_add_gateway(gw_info_t *m_gw)
 	{
 		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s", 
 				"UPDATE gateways SET apptype=\'",
-				apptype_str,
+				get_frapp_type_to_str(m_gw->zapp_type),
 				"\', data=\'",
 				data,
 				"\', ipaddr=\'",

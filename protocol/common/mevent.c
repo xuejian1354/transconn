@@ -16,13 +16,17 @@
  */
 
 #include "mevent.h"
+#ifdef DB_API_WITH_SQLITE
 #include <sqlite3.h>
+#endif
 #include <protocol/protocol.h>
 #include <protocol/request.h>
 #include <services/balancer.h>
 #include <module/dbopt.h>
 
+#ifdef DB_API_WITH_SQLITE
 extern char cmdline[CMDLINE_SIZE];
+#endif
 
 #ifdef TIMER_SUPPORT
 #ifdef COMM_CLIENT
@@ -194,47 +198,6 @@ void cli_watch(void *p)
 }
 #endif
 
-#ifdef COMM_SERVER
-void gateway_watch(void *p)
-{
-	char gwno[18] = {0};
-	incode_xtocs(gwno, p, sizeof(zidentify_no_t));
-	DE_PRINTF(1, "del gateway from list, gw no:%s\n\n", gwno);
-
-#ifdef DB_API_SUPPORT
-	gw_info_t *p_gw = query_gateway_info(p);
-	if(p_gw != NULL)
-	{
-		int offline_nums = 0;
-		uint16 offline_addrs[ZDEVICE_MAX_NUM] = {0};
-	
-		dev_info_t *p_dev = p_gw->p_dev;
-		while(p_dev != NULL)
-		{
-			offline_addrs[offline_nums++] = p_dev->znet_addr;
-			p_dev = p_dev->next;
-		}
-
-		sql_uponline_zdev(p_gw, 0, offline_addrs, offline_nums);
-	}
-#endif
-
-	del_gateway_info(p);
-}
-
-void set_gateway_check(zidentify_no_t gw_no, int rand)
-{
-	timer_event_param_t timer_param;
-
-	timer_param.resident = 0;
-	timer_param.interval = 24;
-	timer_param.count = 1;
-	timer_param.immediate = 0;
-	timer_param.arg = (void *)gw_no;
-	
-	set_mevent(rand, gateway_watch, &timer_param);
-}
-#endif
 void set_mevent(int id, timer_callback_t event_callback, timer_event_param_t *param)
 {
 	timer_event_t *timer_event = calloc(1, sizeof(timer_event_t));

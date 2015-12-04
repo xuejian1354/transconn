@@ -18,7 +18,32 @@
 #define __FIELDLYSIS_H__
 
 #include <services/globals.h>
-#include <protocol/framelysis.h>
+
+//app device type
+#define FR_APP_CONNECTOR			"00"
+#define FR_APP_ENDNODE				"00"
+#define FR_APP_LIGHTSWITCH_ONE		"01"
+#define FR_APP_LIGHTSWITCH_TWO		"02"
+#define FR_APP_LIGHTSWITCH_THREE	"03"
+#define FR_APP_LIGHTSWITCH_FOUR		"04"
+#define FR_APP_HUELIGHT				"05"
+#define FR_APP_ALARM				"11"
+#define FR_APP_IR_DETECTION			"12"
+#define FR_APP_DOOR_SENSOR			"13"
+#define FR_APP_ENVDETECTION			"14"
+#define FR_APP_IR_RELAY				"21"
+#define FR_APP_AIRCONTROLLER		"F0"
+#define FR_APP_RELAYSOCKET			"F1"
+#define FR_APP_LIGHTDETECT			"F2"
+#define FR_APP_HUMITURE_DETECTION	"A1"
+#define FR_APP_SOLENOID_VALVE		"A2"
+
+//type for smartlab device
+#define FR_APP_LAMPSWITCH		"31"
+#define FR_APP_PROJECTOR		"32"
+#define FR_APP_AIRCONDITION		"33"
+#define FR_APP_CURTAIN			"34"
+#define FR_APP_DOORLOCK			"35"
 
 #define JSON_FIELD_NAME_MAXSIZE		64
 #define JSON_FIELD_SN_MAXSIZE		24
@@ -46,6 +71,35 @@
 #define JSON_FIELD_CTRLS		"ctrls"
 #define JSON_FIELD_CMD			"cmd"
 #define JSON_FIELD_RANDOM		"random"
+
+typedef enum
+{
+	FRAPP_CONNECTOR = 0,
+	FRAPP_LIGHTSWITCH_ONE = 1,
+	FRAPP_LIGHTSWITCH_TWO = 2,
+	FRAPP_LIGHTSWITCH_THREE = 3,
+	FRAPP_LIGHTSWITCH_FOUR = 4,
+	FRAPP_HUELIGHT = 5,
+	FRAPP_ALARM = 11,
+	FRAPP_IR_DETECTION = 12,
+	FRAPP_DOOR_SENSOR = 13,
+	FRAPP_ENVDETECTION = 14,
+	FRAPP_IR_RELAY = 21,
+	FRAPP_AIRCONTROLLER = 0xF0,
+	FRAPP_RELAYSOCKET = 0xF1,
+	FRAPP_LIGHTDETECT = 0xF2,
+	FRAPP_HUMITURE_DETECTION = 0xA1,
+	FRAPP_SOLENOID_VALVE = 0xA2,
+
+	//type for smartlab device
+	FRAPP_LAMPSWITCH = 31,
+	FRAPP_PROJECTOR = 32,
+	FRAPP_AIRCONDITION = 33,
+	FRAPP_CURTAIN = 34,
+	FRAPP_DOORLOCK = 35,
+	
+	FRAPP_NONE = 0xFF,
+}fr_app_type_t;
 
 typedef enum
 {
@@ -138,6 +192,9 @@ typedef struct
 	trans_action_t req_action;
 	char random[JSON_FIELD_RANDOM_MAXSIZE];
 }trfr_tocolres_t;
+
+fr_app_type_t get_frapp_type_from_str(char *app_type);
+char *get_frapp_type_to_str(fr_app_type_t app_type);
 
 char *get_action_to_str(trans_action_t action);
 

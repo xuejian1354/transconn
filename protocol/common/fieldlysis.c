@@ -18,6 +18,131 @@
 
 static char action_str[6];
 
+fr_app_type_t get_frapp_type_from_str(char *app_type)
+{
+	if(app_type == NULL)
+	{
+		return FRAPP_NONE;
+	}
+	
+	if(!strncmp(FR_APP_CONNECTOR, app_type, 2))
+	{
+		return FRAPP_CONNECTOR;
+	}
+	else if(!strncmp(FR_APP_LIGHTSWITCH_ONE, app_type, 2))
+	{
+		return FRAPP_LIGHTSWITCH_ONE;
+	}
+	else if(!strncmp(FR_APP_LIGHTSWITCH_TWO, app_type, 2))
+	{
+		return FRAPP_LIGHTSWITCH_TWO;
+	}
+	else if(!strncmp(FR_APP_LIGHTSWITCH_THREE, app_type, 2))
+	{
+		return  FRAPP_LIGHTSWITCH_THREE;
+	}
+	else if(!strncmp(FR_APP_LIGHTSWITCH_FOUR, app_type, 2))
+	{
+		return FRAPP_LIGHTSWITCH_FOUR;
+	}
+	else if(!strncmp(FR_APP_HUELIGHT, app_type, 2))
+	{
+		return FRAPP_HUELIGHT;
+	}
+	else if(!strncmp(FR_APP_ALARM, app_type, 2))
+	{
+		return FRAPP_ALARM;
+	}
+	else if(!strncmp(FR_APP_IR_DETECTION, app_type, 2))
+	{
+		return FRAPP_IR_DETECTION;
+	}
+	else if(!strncmp(FR_APP_DOOR_SENSOR, app_type, 2))
+	{
+		return FRAPP_DOOR_SENSOR;
+	}
+	else if(!strncmp(FR_APP_ENVDETECTION, app_type, 2))
+	{
+		return FRAPP_ENVDETECTION;
+	}
+	else if(!strncmp(FR_APP_IR_RELAY, app_type, 2))
+	{
+		return FRAPP_IR_RELAY;
+	}
+	else if(!strncmp(FR_APP_AIRCONTROLLER, app_type, 2))
+	{
+		return FRAPP_AIRCONTROLLER;
+	}
+	else if(!strncmp(FR_APP_RELAYSOCKET, app_type, 2))
+	{
+		return FRAPP_RELAYSOCKET;
+	}
+	else if(!strncmp(FR_APP_LIGHTDETECT, app_type, 2))
+	{
+		return FRAPP_LIGHTDETECT;
+	}
+	else if(!strncmp(FR_APP_HUMITURE_DETECTION, app_type, 2))
+	{
+		return FRAPP_HUMITURE_DETECTION;
+	}
+	else if(!strncmp(FR_APP_SOLENOID_VALVE, app_type, 2))
+	{
+		return FRAPP_SOLENOID_VALVE;
+	}
+	else if(!strncmp(FR_APP_LAMPSWITCH, app_type, 2))
+	{
+		return FRAPP_LAMPSWITCH;
+	}
+	else if(!strncmp(FR_APP_PROJECTOR, app_type, 2))
+	{
+		return FRAPP_PROJECTOR;
+	}
+	else if(!strncmp(FR_APP_AIRCONDITION, app_type, 2))
+	{
+		return FRAPP_AIRCONDITION;
+	}
+	else if(!strncmp(FR_APP_CURTAIN, app_type, 2))
+	{
+		return FRAPP_CURTAIN;
+	}
+	else if(!strncmp(FR_APP_DOORLOCK, app_type, 2))
+	{
+		return FRAPP_DOORLOCK;
+	}
+
+	return FRAPP_NONE;
+}
+
+char *get_frapp_type_to_str(fr_app_type_t app_type)
+{
+	switch(app_type)
+	{
+	case FRAPP_CONNECTOR: return FR_APP_CONNECTOR;
+	case FRAPP_LIGHTSWITCH_ONE: return FR_APP_LIGHTSWITCH_ONE;
+	case FRAPP_LIGHTSWITCH_TWO: return FR_APP_LIGHTSWITCH_TWO;
+	case FRAPP_LIGHTSWITCH_THREE: return FR_APP_LIGHTSWITCH_THREE;
+	case FRAPP_LIGHTSWITCH_FOUR: return FR_APP_LIGHTSWITCH_FOUR;
+	case FRAPP_HUELIGHT: return FR_APP_HUELIGHT;
+	case FRAPP_ALARM: return FR_APP_ALARM;
+	case FRAPP_IR_DETECTION: return FR_APP_IR_DETECTION;
+	case FRAPP_DOOR_SENSOR: return FR_APP_DOOR_SENSOR;
+	case FRAPP_ENVDETECTION: return FR_APP_ENVDETECTION;
+	case FRAPP_IR_RELAY: return FR_APP_IR_RELAY;
+	case FRAPP_AIRCONTROLLER: return FR_APP_AIRCONTROLLER;
+	case FRAPP_RELAYSOCKET: return FR_APP_RELAYSOCKET;
+	case FRAPP_LIGHTDETECT: return FR_APP_LIGHTDETECT;
+	case FRAPP_HUMITURE_DETECTION: return FR_APP_HUMITURE_DETECTION;
+	case FRAPP_SOLENOID_VALVE: return FR_APP_SOLENOID_VALVE;
+	case FRAPP_LAMPSWITCH: return FR_APP_LAMPSWITCH;
+	case FRAPP_PROJECTOR: return FR_APP_PROJECTOR;
+	case FRAPP_AIRCONDITION: return FR_APP_AIRCONDITION;
+	case FRAPP_CURTAIN: return FR_APP_CURTAIN;
+	case FRAPP_DOORLOCK: return FR_APP_DOORLOCK;
+	}
+
+	return "FF";
+}
+
 char *get_action_to_str(trans_action_t action)
 {
 	bzero(action_str, sizeof(action_str));

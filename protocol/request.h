@@ -19,7 +19,7 @@
 #define __REQUEST_H__
 
 #include <services/globals.h>
-#include <protocol/devalloc.h>
+#include <protocol/old/devalloc.h>
 #include <module/netapi.h>
 #include <protocol/common/fieldlysis.h>
 

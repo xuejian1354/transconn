@@ -18,7 +18,7 @@
 #define __DEVOPT_H__
 
 #include <services/globals.h>
-#include <protocol/framelysis.h>
+#include <protocol/old/framelysis.h>
 
 #define DEVCONTROL_NONE		'0'
 #define DEVCONTROL_MANUAL	'1'

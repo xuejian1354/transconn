@@ -17,14 +17,18 @@
 #include "request.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#ifdef DB_API_WITH_SQLITE
 #include <sqlite3.h>
+#endif
 #include <cJSON.h>
-#include <protocol/devices.h>
+#include <protocol/old/devices.h>
 #include <protocol/common/mevent.h>
 #include <services/balancer.h>
 #include <module/dbopt.h>
 
+#ifdef DB_API_WITH_SQLITE
 extern char cmdline[CMDLINE_SIZE];
+#endif
 
 #ifdef COMM_CLIENT
 respond_data_t *prespond_data = NULL;
@@ -135,9 +139,7 @@ void trans_send_report_request(frhandler_arg_t *arg, trfr_report_t *report)
 
 		cJSON_AddStringToObject(pDev, JSON_FIELD_NAME, (*(report->devices+i))->name);
 		cJSON_AddStringToObject(pDev, JSON_FIELD_DEVSN, (*(report->devices+i))->dev_sn);
-		char type[4] = {0};
-		get_frapp_type_to_str(type, (*(report->devices+i))->dev_type);
-		cJSON_AddStringToObject(pDev, JSON_FIELD_DEVTYPE, type);
+		cJSON_AddStringToObject(pDev, JSON_FIELD_DEVTYPE, get_frapp_type_to_str((*(report->devices+i))->dev_type));
 		if((*(report->devices+i))->znet_status)
 		{
 			cJSON_AddStringToObject(pDev, JSON_FIELD_ZSTATUS, "1");
@@ -411,6 +413,8 @@ void trans_report_handler(frhandler_arg_t *arg, trfr_report_t *report)
 		return;
 	}
 
+	//sql_add_zdevices(arg, report);
+
 	if(!(get_trans_protocol() & arg->transtocol))
 	{
 		return;
@@ -450,6 +454,8 @@ void trans_respond_handler(frhandler_arg_t *arg, trfr_respond_t *respond)
 	{
 		return;
 	}
+
+	//sql_update_zdevice(arg, respond);
 
 	if(!(get_trans_protocol() & arg->transtocol))
 	{
@@ -776,16 +782,17 @@ void upload_data(uint8 isrefresh, char *random)
 					sn_t dev_sn = {0};
 					incode_xtocs(dev_sn, p_dev->zidentity_no, sizeof(zidentify_no_t));
 
-					char dev_type[4] = {0};
-					get_frapp_type_to_str(dev_type, p_dev->zapp_type);
-
 					fr_buffer_t *data_buffer = get_devopt_data_tostr(p_dev->zdev_opt);
 					char *dev_data = calloc(1, data_buffer->size+1);
 					memcpy(dev_data, data_buffer->data, data_buffer->size);
 					get_buffer_free(data_buffer);
 
 					trfield_device_t *device = 
-						get_trfield_device_alloc(name, dev_sn, dev_type, 1, dev_data);
+						get_trfield_device_alloc(name,
+													dev_sn,
+													get_frapp_type_to_str(p_dev->zapp_type),
+													1,
+													dev_data);
 					if(device != NULL)
 					{
 						if(devices == NULL)

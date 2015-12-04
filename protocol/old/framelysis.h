@@ -18,6 +18,7 @@
 #define __FRAMELYSIS_H__
 
 #include <services/globals.h>
+#include <protocol/common/fieldlysis.h>
 
 //command method
 #define FR_CMD_BROCAST_REFRESH	"/BR/"		//broadcast
@@ -60,31 +61,6 @@
 #define FR_DEV_ROUTER	'0'
 #define FR_DEV_ENDDEV	'1'
 
-//app device type
-#define FR_APP_CONNECTOR			"00"
-#define FR_APP_ENDNODE				"00"
-#define FR_APP_LIGHTSWITCH_ONE		"01"
-#define FR_APP_LIGHTSWITCH_TWO		"02"
-#define FR_APP_LIGHTSWITCH_THREE	"03"
-#define FR_APP_LIGHTSWITCH_FOUR		"04"
-#define FR_APP_HUELIGHT				"05"
-#define FR_APP_ALARM				"11"
-#define FR_APP_IR_DETECTION			"12"
-#define FR_APP_DOOR_SENSOR			"13"
-#define FR_APP_ENVDETECTION			"14"
-#define FR_APP_IR_RELAY				"21"
-#define FR_APP_AIRCONTROLLER		"F0"
-#define FR_APP_RELAYSOCKET			"F1"
-#define FR_APP_LIGHTDETECT			"F2"
-#define FR_APP_HUMITURE_DETECTION	"A1"
-#define FR_APP_SOLENOID_VALVE		"A2"
-
-//type for smartlab device
-#define FR_APP_LAMPSWITCH		"31"
-#define FR_APP_PROJECTOR		"32"
-#define FR_APP_AIRCONDITION		"33"
-#define FR_APP_CURTAIN			"34"
-#define FR_APP_DOORLOCK			"35"
 
 #define FR_TAIL ":O\r\n"
 
@@ -97,35 +73,6 @@ typedef enum
 	HEAD_DE,
 	HEAD_NONE,
 }fr_head_type_t;
-
-typedef enum
-{
-	FRAPP_CONNECTOR = 0,
-	FRAPP_LIGHTSWITCH_ONE = 1,
-	FRAPP_LIGHTSWITCH_TWO = 2,
-	FRAPP_LIGHTSWITCH_THREE = 3,
-	FRAPP_LIGHTSWITCH_FOUR = 4,
-	FRAPP_HUELIGHT = 5,
-	FRAPP_ALARM = 11,
-	FRAPP_IR_DETECTION = 12,
-	FRAPP_DOOR_SENSOR = 13,
-	FRAPP_ENVDETECTION = 14,
-	FRAPP_IR_RELAY = 21,
-	FRAPP_AIRCONTROLLER = 0xF0,
-	FRAPP_RELAYSOCKET = 0xF1,
-	FRAPP_LIGHTDETECT = 0xF2,
-	FRAPP_HUMITURE_DETECTION = 0xA1,
-	FRAPP_SOLENOID_VALVE = 0xA2,
-
-	//type for smartlab device
-	FRAPP_LAMPSWITCH = 31,
-	FRAPP_PROJECTOR = 32,
-	FRAPP_AIRCONDITION = 33,
-	FRAPP_CURTAIN = 34,
-	FRAPP_DOORLOCK = 35,
-	
-	FRAPP_NONE = 0xFF,
-}fr_app_type_t;
 
 typedef enum
 {
@@ -243,9 +190,6 @@ char *get_mix_name(fr_app_type_t type, uint8 s1, uint8 s2);
 
 fr_head_type_t get_frhead_from_str(char *head);
 int get_frhead_to_str(char *dst, fr_head_type_t head_type);
-
-fr_app_type_t get_frapp_type_from_str(char *app_type);
-int get_frapp_type_to_str(char *dst, fr_app_type_t app_type);
 
 fr_net_type_t get_frnet_type_from_str(char net_type);
 char get_frnet_type_to_ch(fr_net_type_t net_type);

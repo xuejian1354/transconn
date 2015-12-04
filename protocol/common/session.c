@@ -15,14 +15,18 @@
  * GNU General Public License for more details.
  */
 #include "session.h"
+#ifdef DB_API_WITH_SQLITE
 #include <sqlite3.h>
+#endif
 #include <protocol/request.h>
 #include <protocol/common/mevent.h>
 #include <module/netapi.h>
 #include <module/dbopt.h>
 #include <services/balancer.h>
 
+#ifdef DB_API_WITH_SQLITE
 extern char cmdline[CMDLINE_SIZE];
+#endif
 
 static sessionsta_t session_status;
 static transtocol_t transtocol;
@@ -126,6 +130,7 @@ transtocol_t get_trans_protocol()
 #endif
 }
 
+#ifdef COMM_CLIENT
 void set_syncdata_checkcode(char *code)
 {
 	bzero(checkcode, sizeof(checkcode));
@@ -230,6 +235,7 @@ char *gen_current_checkcode(zidentify_no_t gw_sn)
 
 	return checkcode;
 }
+#endif
 
 void session_handler()
 {
