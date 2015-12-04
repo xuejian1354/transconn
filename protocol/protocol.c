@@ -135,7 +135,7 @@ void analysis_zdev_frame(void *ptr)
 					p_dev = p_dev->next;
 				}
 			}
-			sync_zdev_info(dev_info);
+			sync_zdev_info(1, dev_info);
 		}
 UO_Free:
 		get_frame_free(HEAD_UO, uo);
@@ -201,7 +201,7 @@ UO_Free:
 
 				if(ret != 1)
 				{
-					sync_zdev_info(dev_info);
+					sync_zdev_info(0, dev_info);
 				}
 			}
 		}

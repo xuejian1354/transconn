@@ -160,6 +160,7 @@ void zdev_watch(void *p)
 							1);
 
 	del_zdevice_info(znet_addr);
+	upload_data(0, NULL);
 }
 
 void set_cli_check(cli_info_t *p_cli)

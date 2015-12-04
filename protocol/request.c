@@ -445,13 +445,152 @@ void trans_check_handler(frhandler_arg_t *arg, trfr_check_t *check)
 }
 
 void trans_respond_handler(frhandler_arg_t *arg, trfr_respond_t *respond)
-{}
+{
+	if(respond == NULL)
+	{
+		return;
+	}
+
+	if(!(get_trans_protocol() & arg->transtocol))
+	{
+		return;
+	}
+
+	if(respond->action == ACTION_RESPOND)
+	{
+		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(respond->action, respond->random);
+		trans_send_tocolres_request(arg, tocolres);
+		get_trfr_tocolres_free(tocolres);
+	}
+}
 
 void trans_send_refresh_request(frhandler_arg_t *arg, trfr_refresh_t *refresh)
-{}
+{
+	if(refresh == NULL)
+	{
+		return;
+	}
+
+	char *frame = NULL;
+	cJSON *pRoot = cJSON_CreateObject();
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(refresh->action));
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, refresh->gw_sn);
+
+	int i = 0;
+	cJSON *pDevSNs = NULL;
+	if(refresh->sn_size > 0 && refresh->dev_sns != NULL)
+	{
+		pDevSNs = cJSON_CreateArray();
+		cJSON_AddItemToObject(pRoot, JSON_FIELD_DEVSNS, pDevSNs);
+	}
+
+	while(i < refresh->sn_size)
+	{
+		cJSON *pDevSN = cJSON_CreateString(*(refresh->dev_sns+i));
+		cJSON_AddItemToArray(pDevSNs, pDevSN);
+
+		i++;
+	}
+
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, refresh->random);
+
+	switch(arg->transtocol)
+	{
+	case TOCOL_UDP:
+#ifdef TRANS_UDP_SERVICE
+		frame = cJSON_Print(pRoot);
+		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
+#endif
+		break;
+
+	case TOCOL_TCP:
+#if defined(TRANS_TCP_SERVER)
+		frame = cJSON_Print(pRoot);
+		socket_tcp_server_send(arg, frame, strlen(frame));
+#endif
+		break;
+
+	case TOCOL_HTTP:
+		break;
+	}
+
+	cJSON_Delete(pRoot);
+}
 
 void trans_send_control_request(frhandler_arg_t *arg, trfr_control_t *control)
-{}
+{
+	if(control == NULL)
+	{
+		return;
+	}
+
+	char *frame = NULL;
+	cJSON *pRoot = cJSON_CreateObject();
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(control->action));
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, control->gw_sn);
+
+	int i = 0;
+	cJSON *pCtrls = NULL;
+	if(control->ctrl_size > 0 && control->ctrls != NULL)
+	{
+		pCtrls = cJSON_CreateArray();
+		cJSON_AddItemToObject(pRoot, JSON_FIELD_CTRLS, pCtrls);
+	}
+
+	while(i < control->ctrl_size)
+	{
+		trfield_ctrl_t *ctrl = *(control->ctrls+i);
+		if(ctrl != NULL)
+		{
+			cJSON *pCtrl = cJSON_CreateObject();
+			cJSON_AddItemToArray(pCtrls, pCtrl);
+
+			int j = 0;
+			cJSON *pDevSNs = NULL;
+			if(ctrl->sn_size > 0 && ctrl->dev_sns != NULL)
+			{
+				pDevSNs = cJSON_CreateArray();
+				cJSON_AddItemToObject(pCtrl, JSON_FIELD_DEVSNS, pDevSNs);
+			}
+
+			while(j < ctrl->sn_size)
+			{
+				cJSON *pDevSN = cJSON_CreateString(*(ctrl->dev_sns+j));
+				cJSON_AddItemToArray(pDevSNs, pDevSN);
+
+				j++;
+			}
+
+			cJSON_AddStringToObject(pCtrl, JSON_FIELD_CMD, ctrl->cmd);
+		}
+
+		i++;
+	}
+
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, control->random);
+
+	switch(arg->transtocol)
+	{
+	case TOCOL_UDP:
+#ifdef TRANS_UDP_SERVICE
+		frame = cJSON_Print(pRoot);
+		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
+#endif
+		break;
+
+	case TOCOL_TCP:
+#if defined(TRANS_TCP_SERVER)
+		frame = cJSON_Print(pRoot);
+		socket_tcp_server_send(arg, frame, strlen(frame));
+#endif
+		break;
+
+	case TOCOL_HTTP:
+		break;
+	}
+
+	cJSON_Delete(pRoot);
+}
 
 void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 {
@@ -496,7 +635,7 @@ void sync_gateway_info(gw_info_t *pgw_info)
 	sql_add_gateway(pgw_info);
 }
 
-void sync_zdev_info(dev_info_t *pdev_info)
+void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info)
 {
 	if(pdev_info == NULL)
 	{
@@ -549,7 +688,7 @@ void sync_zdev_info(dev_info_t *pdev_info)
 
 	if(pdev_info->isdata_change)
 	{
-		upload_data(0, NULL);
+		upload_data(isrefresh, NULL);
 	}
 }
 
