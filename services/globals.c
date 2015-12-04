@@ -51,6 +51,9 @@ static global_conf_t g_conf =
 #ifdef SERIAL_SUPPORT
 	TRANS_SERIAL_DEV,
 #endif
+#ifdef COMM_CLIENT
+	{0},
+#endif
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	TRANS_TCP_PORT,
 #endif
@@ -747,7 +750,23 @@ void set_conf_val(char *cmd, char *val)
 		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_SERIAL;
 	}
 #endif
-
+#ifdef COMM_CLIENT
+	if(!strcmp(cmd, GLOBAL_CONF_MAIN_IP))
+	{
+		confval_list *pval = get_confval_alloc_from_str(val);
+		if(pval != NULL)
+		{
+			strcpy(g_conf.main_ip, get_val_from_name(pval->val));
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_IP;
+			get_confval_free(pval);
+		}
+		else
+		{
+			strcpy(g_conf.main_ip, val);
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_IP;
+		}
+	}
+#endif
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	if(!strcmp(cmd, GLOBAL_CONF_TCP_PORT))
 	{
@@ -841,6 +860,9 @@ int get_conf_setval()
 #ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_ISSETVAL_SERIAL,
 #endif
+#ifdef COMM_CLIENT
+					GLOBAL_CONF_ISSETVAL_IP,
+#endif
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 					GLOBAL_CONF_ISSETVAL_TCP,
 #endif
@@ -868,6 +890,9 @@ int get_conf_setval()
 					GLOBAL_CONF_COMM_PROTOCOL,
 #ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_SERIAL_PORT,
+#endif
+#ifdef COMM_CLIENT
+					GLOBAL_CONF_MAIN_IP,
 #endif
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 					GLOBAL_CONF_TCP_PORT,

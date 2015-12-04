@@ -244,6 +244,12 @@ line_data_t *serlist_linehandle(char *buf, int len)
 
 char *get_server_ip(void)
 {
+	global_conf_t *g_conf = get_global_conf();
+	if(g_conf->isset_flag & GLOBAL_CONF_ISSETVAL_IP)
+	{
+		return g_conf->main_ip;
+	}
+
 	if(p_serlist != NULL)
 	{
 		return p_serlist->p_ser->ipaddr;

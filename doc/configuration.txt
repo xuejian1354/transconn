@@ -24,6 +24,12 @@ left has more higher priority.
   serial_port = /dev/ttyS1
   Configurate serial device. This is support only for client.
 
+  main_ip = {$server_ip}
+  Configurate main server ip by TCP or UDP protocols. This is
+support only for client. The '{$val}' pattern can get val from
+system default. Using '{$[Server Name]_ip}' can get ip from
+/etc/balance_serlist.
+
   tcp_port = 11565
   Configurate TCP comm port. Using '{$default_tcp_port}' can get
 system default tcp port.
