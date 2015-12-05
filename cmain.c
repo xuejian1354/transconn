@@ -16,6 +16,9 @@
  */
 #include <services/globals.h>
 #include <module/netapi.h>
+#ifdef DB_API_SUPPORT
+#include <module/dbclient.h>
+#endif
 
 int main(int argc, char **argv)
 {
@@ -51,12 +54,12 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef DB_API_SUPPORT
-	if(sql_init() < 0)
+	if(sqlclient_init() < 0)
 	{
-		sql_release();
+		sqlclient_release();
 		return -1;
 	}
-	//sql_release();
+	//sqlclient_release();
 #endif
 
 #ifdef THREAD_POOL_SUPPORT

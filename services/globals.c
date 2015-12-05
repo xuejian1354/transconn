@@ -23,6 +23,8 @@
 #include <protocol/protocol.h>
 #include <services/balancer.h>
 
+char cmdline[CMDLINE_SIZE];
+
 static char current_time[64];
 static char curcode[64];
 static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};

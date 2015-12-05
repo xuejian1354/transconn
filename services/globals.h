@@ -131,6 +131,15 @@ st(															\
 )
 #endif
 
+#define CMDLINE_SIZE	0x4000
+#define GET_CMD_LINE()	cmdline
+
+#define SET_CMD_LINE(format, args...)  	\
+st(  									\
+	bzero(cmdline, sizeof(cmdline));  	\
+	sprintf(cmdline, format, ##args);  	\
+)
+
 typedef byte zidentify_no_t[8];
 typedef byte cidentify_no_t[8];
 

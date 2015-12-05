@@ -83,7 +83,7 @@ void analysis_zdev_frame(void *ptr)
 		dev_info->zdev_opt = 
 			get_devopt_fromstr(dev_info->zapp_type, uo->data, uo->data_len);
 		dev_info->isdata_change = 1;
-		sql_set_datachange_zdev(dev_info->zidentity_no, 1);
+		sqlclient_set_datachange_zdev(dev_info->zidentity_no, 1);
 
 		set_zdev_check(dev_info->znet_addr);
 		uint16 znet_addr = dev_info->znet_addr;
@@ -196,7 +196,7 @@ UO_Free:
 				if(ret == 2 && !dev_info->isdata_change)
 				{
 					dev_info->isdata_change = 1;
-					sql_set_datachange_zdev(dev_info->zidentity_no, 1);
+					sqlclient_set_datachange_zdev(dev_info->zidentity_no, 1);
 				}
 
 				if(ret != 1)

@@ -17,17 +17,12 @@
 #include "request.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#ifdef DB_API_WITH_SQLITE
-#include <sqlite3.h>
-#endif
 #include <cJSON.h>
 #include <protocol/old/devices.h>
 #include <protocol/common/mevent.h>
 #include <services/balancer.h>
-#include <module/dbopt.h>
-
-#ifdef DB_API_WITH_SQLITE
-extern char cmdline[CMDLINE_SIZE];
+#ifdef COMM_CLIENT
+#include <module/dbclient.h>
 #endif
 
 #ifdef COMM_CLIENT
@@ -299,12 +294,12 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 		{
 			zidentify_no_t dev_no;
 			incode_ctoxs(dev_no, refresh->dev_sns+i, 16);
-			sql_set_datachange_zdev(dev_no, 1);
+			sqlclient_set_datachange_zdev(dev_no, 1);
 		}
 	}
 	else
 	{
-		sql_set_datachange_zdev(get_gateway_info()->gw_no, 1);
+		sqlclient_set_datachange_zdev(get_gateway_info()->gw_no, 1);
 	}
 
 	upload_data(1, refresh->random);
@@ -383,7 +378,7 @@ void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 			p_dev = p_dev->next;
 		}
 
-		sql_set_datachange_zdev(get_gateway_info()->gw_no, 0);
+		sqlclient_set_datachange_zdev(get_gateway_info()->gw_no, 0);
 	}
 		break;
 	}
@@ -638,7 +633,7 @@ void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres
 #ifdef COMM_CLIENT
 void sync_gateway_info(gw_info_t *pgw_info)
 {
-	sql_add_gateway(pgw_info);
+	sqlclient_add_gateway(pgw_info);
 }
 
 void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info)
@@ -648,7 +643,7 @@ void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info)
 		return;
 	}
 
-	sql_add_zdev(get_gateway_info(), pdev_info);
+	sqlclient_add_zdev(get_gateway_info(), pdev_info);
 
 	sn_t dev_sn = {0};
 	incode_xtocs(dev_sn, pdev_info->zidentity_no, sizeof(zidentify_no_t));
@@ -711,7 +706,7 @@ void upload_data(uint8 isrefresh, char *random)
 		arg.addr.sin_port = htons(get_udp_port());
 		arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
 
-		char gwno_str[20] = {0};
+		sn_t gwno_str = {0};
 		incode_xtocs(gwno_str,
 						get_gateway_info()->gw_no,
 						sizeof(zidentify_no_t));
@@ -724,51 +719,7 @@ void upload_data(uint8 isrefresh, char *random)
 			trfield_device_t **devices = NULL;
 			int dev_size = 0;
 #ifdef DB_API_WITH_SQLITE
-			char gwsn[20] = {0};
-			incode_xtocs(gwsn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-			SET_CMD_LINE("%s%s%s",
-							"SELECT * FROM devices WHERE gwsn=\'",
-							gwsn,
-							"\' AND ischange=\'1\'");
-
-		 	sqlite3_stmt *stmt;
-		    if(sqlite3_prepare_v2(get_sqlite_db(), GET_CMD_LINE(), -1, &stmt, NULL) == SQLITE_OK)
-		    {
-		        while(sqlite3_step(stmt) == SQLITE_ROW)
-				{
-					if(sqlite3_column_count(stmt) > 17)
-					{
-						const char *name = sqlite3_column_text(stmt, 7);
-						const char *dev_sn = sqlite3_column_text(stmt, 1);
-						const char *dev_type = sqlite3_column_text(stmt, 2);
-						int isonline = sqlite3_column_int(stmt, 10);
-						const char *dev_data = sqlite3_column_text(stmt, 15);
-						
-						trfield_device_t *device = 
-							get_trfield_device_alloc((char *)name,
-														(char *)dev_sn,
-														(char *)dev_type,
-														isonline,
-														(char *)dev_data);
-						if(device != NULL)
-						{
-							if(devices == NULL)
-							{
-								devices = calloc(1, sizeof(trfield_device_t *));
-								*devices = device;
-							}
-							else
-							{
-								devices = realloc(devices, (dev_size+1)*sizeof(trfield_device_t *));
-								*(devices+dev_size) = device;
-							}
-
-							dev_size++;
-						}
-					}
-				}
-		    }
-			sqlite3_finalize(stmt);
+			sqlclient_get_zdevices(&devices, &dev_size);
 #else
 			dev_info_t *p_dev = get_gateway_info()->p_dev;
 			while(p_dev != NULL)

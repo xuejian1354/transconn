@@ -16,16 +16,11 @@
  */
 
 #include "mevent.h"
-#ifdef DB_API_WITH_SQLITE
-#include <sqlite3.h>
-#endif
 #include <protocol/protocol.h>
 #include <protocol/request.h>
+#ifdef COMM_CLIENT
 #include <services/balancer.h>
-#include <module/dbopt.h>
-
-#ifdef DB_API_WITH_SQLITE
-extern char cmdline[CMDLINE_SIZE];
+#include <module/dbclient.h>
 #endif
 
 #ifdef TIMER_SUPPORT
@@ -158,7 +153,7 @@ void zdev_watch(void *p)
 	uint16 znet_addr = (uint16)((int)p);
 	DE_PRINTF(1, "del zdevice from list, zdev no:%04X\n\n", znet_addr);
 
-	sql_uponline_zdev(get_gateway_info(),
+	sqlclient_uponline_zdev(get_gateway_info(),
 							0,
 							&znet_addr,
 							1);
