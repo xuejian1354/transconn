@@ -21,8 +21,11 @@
 #include <protocol/old/devices.h>
 #include <protocol/common/mevent.h>
 #include <services/balancer.h>
-#ifdef COMM_CLIENT
+#ifdef DB_API_WITH_SQLITE
 #include <module/dbclient.h>
+#endif
+#ifdef DB_API_WITH_MYSQL
+#include <module/dbserver.h>
 #endif
 
 #ifdef COMM_CLIENT
@@ -112,7 +115,6 @@ void trans_send_report_request(frhandler_arg_t *arg, trfr_report_t *report)
 		return;
 	}
 
-	char *frame;
 	cJSON *pRoot = cJSON_CreateObject();
 
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(report->action));
@@ -150,31 +152,7 @@ void trans_send_report_request(frhandler_arg_t *arg, trfr_report_t *report)
 
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, report->random);
 
-	switch(get_trans_protocol())
-	{
-	case TOCOL_DISABLE:
-		break;
-	case TOCOL_ENABLE:
-		break;
-#ifdef TRANS_UDP_SERVICE
-	case TOCOL_UDP:
-		frame = cJSON_Print(pRoot);
-		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
-		break;
-#endif
-#ifdef TRANS_TCP_CLIENT
-	case TOCOL_TCP:
-		frame = cJSON_Print(pRoot);
-		socket_tcp_client_send(frame, strlen(frame));
-		break;
-#endif
-#ifdef TRANS_HTTP_REQUEST
-	case TOCOL_HTTP:
-		frame = cJSON_Print(pRoot);
-		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
-		break;
-#endif
-	}
+	trans_send_frame_request(arg, cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
@@ -186,7 +164,6 @@ void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check)
 		return;
 	}
 
-	char *frame;
 	cJSON *pRoot = cJSON_CreateObject();
 
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(check->action));
@@ -199,31 +176,7 @@ void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check)
 	cJSON_AddStringToObject(pCode, JSON_FIELD_CODEDATA, check->code.code_data);
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, check->random);
 
-	switch(get_trans_protocol())
-	{
-	case TOCOL_DISABLE:
-		break;
-	case TOCOL_ENABLE:
-		break;
-#ifdef TRANS_UDP_SERVICE
-	case TOCOL_UDP:
-		frame = cJSON_Print(pRoot);
-		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
-		break;
-#endif
-#ifdef TRANS_TCP_CLIENT
-	case TOCOL_TCP:
-		frame = cJSON_Print(pRoot);
-		socket_tcp_client_send(frame, strlen(frame));
-		break;
-#endif
-#ifdef TRANS_HTTP_REQUEST
-	case TOCOL_HTTP:
-		frame = cJSON_Print(pRoot);
-		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
-		break;
-#endif
-	}
+	trans_send_frame_request(arg, cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
@@ -235,7 +188,6 @@ void trans_send_respond_request(frhandler_arg_t *arg, trfr_respond_t *respond)
 		return;
 	}
 
-	char *frame;
 	cJSON *pRoot = cJSON_CreateObject();
 
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(respond->action));
@@ -244,31 +196,7 @@ void trans_send_respond_request(frhandler_arg_t *arg, trfr_respond_t *respond)
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_DEVDATA, respond->dev_data);
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, respond->random);
 
-	switch(get_trans_protocol())
-	{
-	case TOCOL_DISABLE:
-		break;
-	case TOCOL_ENABLE:
-		break;
-#ifdef TRANS_UDP_SERVICE
-	case TOCOL_UDP:
-		frame = cJSON_Print(pRoot);
-		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
-		break;
-#endif
-#ifdef TRANS_TCP_CLIENT
-	case TOCOL_TCP:
-		frame = cJSON_Print(pRoot);
-		socket_tcp_client_send(frame, strlen(frame));
-		break;
-#endif
-#ifdef TRANS_HTTP_REQUEST
-	case TOCOL_HTTP:
-		frame = cJSON_Print(pRoot);
-		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
-		break;
-#endif
-	}
+	trans_send_frame_request(arg, cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
@@ -408,7 +336,9 @@ void trans_report_handler(frhandler_arg_t *arg, trfr_report_t *report)
 		return;
 	}
 
-	//sql_add_zdevices(arg, report);
+#ifdef DB_API_WITH_MYSQL
+	sqlserver_add_zdevices(arg, report);
+#endif
 
 	if(!(get_trans_protocol() & arg->transtocol))
 	{
@@ -450,7 +380,9 @@ void trans_respond_handler(frhandler_arg_t *arg, trfr_respond_t *respond)
 		return;
 	}
 
-	//sql_update_zdevice(arg, respond);
+#ifdef DB_API_WITH_MYSQL
+	sqlserver_update_zdevice(arg, respond);
+#endif
 
 	if(!(get_trans_protocol() & arg->transtocol))
 	{
@@ -472,7 +404,6 @@ void trans_send_refresh_request(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 		return;
 	}
 
-	char *frame = NULL;
 	cJSON *pRoot = cJSON_CreateObject();
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(refresh->action));
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, refresh->gw_sn);
@@ -495,25 +426,7 @@ void trans_send_refresh_request(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, refresh->random);
 
-	switch(arg->transtocol)
-	{
-	case TOCOL_UDP:
-#ifdef TRANS_UDP_SERVICE
-		frame = cJSON_Print(pRoot);
-		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
-#endif
-		break;
-
-	case TOCOL_TCP:
-#if defined(TRANS_TCP_SERVER)
-		frame = cJSON_Print(pRoot);
-		socket_tcp_server_send(arg, frame, strlen(frame));
-#endif
-		break;
-
-	case TOCOL_HTTP:
-		break;
-	}
+	trans_send_frame_request(arg, cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
@@ -525,7 +438,6 @@ void trans_send_control_request(frhandler_arg_t *arg, trfr_control_t *control)
 		return;
 	}
 
-	char *frame = NULL;
 	cJSON *pRoot = cJSON_CreateObject();
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(control->action));
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, control->gw_sn);
@@ -570,25 +482,7 @@ void trans_send_control_request(frhandler_arg_t *arg, trfr_control_t *control)
 
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, control->random);
 
-	switch(arg->transtocol)
-	{
-	case TOCOL_UDP:
-#ifdef TRANS_UDP_SERVICE
-		frame = cJSON_Print(pRoot);
-		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
-#endif
-		break;
-
-	case TOCOL_TCP:
-#if defined(TRANS_TCP_SERVER)
-		frame = cJSON_Print(pRoot);
-		socket_tcp_server_send(arg, frame, strlen(frame));
-#endif
-		break;
-
-	case TOCOL_HTTP:
-		break;
-	}
+	trans_send_frame_request(arg, cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
@@ -781,7 +675,6 @@ void upload_data(uint8 isrefresh, char *random)
 			trans_send_check_request(&arg, t_check);
 			get_trfr_check_free(t_check);
 		}
-		set_heartbeat_check(30);
 	}
 }
 
@@ -824,7 +717,7 @@ void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback)
 	}
 
 	timer_event_param_t param;
-	param.interval = 3;
+	param.interval = 3000;
 	param.count = 1;
 	param.immediate = 0;
 	param.arg = mrespond_data;
@@ -852,4 +745,41 @@ void device_ctrl_timer_callback(void *p)
 	}
 }
 #endif
+
+void trans_send_frame_request(frhandler_arg_t *arg, char *frame)
+{
+	switch(get_trans_protocol())
+	{
+	case TOCOL_DISABLE:
+		break;
+
+	case TOCOL_ENABLE:
+		break;
+
+	case TOCOL_UDP:
+#ifdef TRANS_UDP_SERVICE
+		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
+#ifdef COMM_CLIENT
+		set_heartbeat_check(get_global_conf()->udp_timeout);
+#endif
+#endif
+		break;
+
+	case TOCOL_TCP:
+#ifdef TRANS_TCP_SERVER
+		socket_tcp_server_send(arg, frame, strlen(frame));
+#elif defined(TRANS_TCP_CLIENT)
+		socket_tcp_client_send(frame, strlen(frame));
+		set_heartbeat_check(get_global_conf()->tcp_timeout);
+#endif
+		break;
+
+	case TOCOL_HTTP:
+#ifdef TRANS_HTTP_REQUEST
+		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
+		set_heartbeat_check(get_global_conf()->http_timeout);
+#endif
+		break;
+	}
+}
 

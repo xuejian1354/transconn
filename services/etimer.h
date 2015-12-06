@@ -25,7 +25,7 @@ typedef void (*timer_callback_t)(void *);
 
 typedef struct
 {
-	int interval;
+	unsigned long interval;
 	int count;
 	int resident;
 	int immediate;
@@ -35,7 +35,7 @@ typedef struct
 typedef struct Timer_Event
 {
 	int timer_id;
-	int interval_count;
+	unsigned long interval_count;
 	timer_event_param_t param;
 	timer_callback_t timer_callback;
 	struct Timer_Event *next;

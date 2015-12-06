@@ -65,4 +65,7 @@ void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info);
 void upload_data(uint8 isrefresh, char *random);
 void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback);
 #endif
+
+void trans_send_frame_request(frhandler_arg_t *arg, char *frame);
+
 #endif  //__REQUEST_H__

@@ -39,13 +39,6 @@
 #define FRAME_BUFFER_SIZE 	256
 #define MAX_OPTDATA_SIZE	FRAME_DATA_SIZE
 
-#define ZH_TYPE_NAME
-
-#ifdef ZH_TYPE_NAME
-#define NO_AREA		"未设置"
-#else
-#define NO_AREA		"NotSetting"
-#endif
 
 //frame head
 #define FR_HEAD_UC	"UC:"	//coord up data
@@ -76,42 +69,10 @@ typedef enum
 
 typedef enum
 {
-    TN_GW,
-    TN_SW1,
-    TN_SW2,
-    TN_SW3,
-    TN_SW4,
-    TN_HUE,
-    TN_ALARM,
-    TN_IRDECT,
-    TN_DOORS,
-    TN_PM25,
-    TN_IRRELAY,
-    TN_AIRCON,
-    TN_RELAY,
-    TN_HT,
-    TN_VALVE,
-    TN_LAMPSW,
-	TN_PJECTOR,
-	TN_AIRCONDITION,
-	TN_CURTAIN,
-	TN_DOORLOCK,
-    TN_NUMS
-}type_name_t;
-
-
-typedef enum
-{
 	FRNET_ROUTER = 0,
 	FRNET_ENDDEV = 1,
 	FRNET_NONE,
 }fr_net_type_t;
-
-typedef struct
-{
-    fr_app_type_t type;
-    char *val;
-}zh_el_t;
 
 
 //Coordinator info frame

@@ -77,12 +77,20 @@
 #define DE_UDP_PORT		13688
 #endif
 
+#define TRANS_UDP_TIMEOUT	30
+#define TRANS_TCP_TIMEOUT	10
+#define TRANS_HTTP_TIMEOUT	1
+
 #define GLOBAL_CONF_COMM_PROTOCOL	"comm_protocol"
-#define GLOBAL_CONF_SERIAL_PORT		"serial_port"
+#define GLOBAL_CONF_SERIAL_PORT		"serial_dev"
 #define GLOBAL_CONF_MAIN_IP			"main_ip"
 #define GLOBAL_CONF_TCP_PORT		"tcp_port"
 #define GLOBAL_CONF_UDP_PORT		"udp_port"
 #define GLOBAL_CONF_HTTP_URL		"http_url"
+
+#define GLOBAL_CONF_TCP_TIMEOUT		"tcp_timeout"
+#define GLOBAL_CONF_UDP_TIMEOUT		"udp_timeout"
+#define GLOBAL_CONF_HTTP_TIMEOUT	"http_timeout"
 
 #define GLOBAL_CONF_UPAPK_DIR		"apk_update_dir"
 
@@ -90,16 +98,19 @@
 #define GLOBAL_CONF_DBUSER			"db_username"
 #define GLOBAL_CONF_DBPASS			"db_password"
 
-#define GLOBAL_CONF_ISSETVAL_PROTOCOL	0x00000001
-#define GLOBAL_CONF_ISSETVAL_SERIAL		0x00000002
-#define GLOBAL_CONF_ISSETVAL_IP			0x00000004
-#define GLOBAL_CONF_ISSETVAL_TCP		0x00000008
-#define GLOBAL_CONF_ISSETVAL_UDP		0x00000010
-#define GLOBAL_CONF_ISSETVAL_HTTPURL	0x00000020
-#define GLOBAL_CONF_ISSETVAL_UPAPK		0x00000040
-#define GLOBAL_CONF_ISSETVAL_DB			0x00000080
-#define GLOBAL_CONF_ISSETVAL_DBUSER		0x00000100
-#define GLOBAL_CONF_ISSETVAL_DBPASS		0x00000200
+#define GLOBAL_CONF_ISSETVAL_PROTOCOL		0x00000001
+#define GLOBAL_CONF_ISSETVAL_SERIAL			0x00000002
+#define GLOBAL_CONF_ISSETVAL_IP				0x00000004
+#define GLOBAL_CONF_ISSETVAL_TCP			0x00000008
+#define GLOBAL_CONF_ISSETVAL_TCP_TIMEOUT	0x00000010
+#define GLOBAL_CONF_ISSETVAL_UDP			0x00000020
+#define GLOBAL_CONF_ISSETVAL_UDP_TIMEOUT	0x00000040
+#define GLOBAL_CONF_ISSETVAL_HTTPURL		0x00000080
+#define GLOBAL_CONF_ISSETVAL_HTTP_TIMEOUT	0x00000100
+#define GLOBAL_CONF_ISSETVAL_UPAPK			0x00000200
+#define GLOBAL_CONF_ISSETVAL_DB				0x00000400
+#define GLOBAL_CONF_ISSETVAL_DBUSER			0x00000800
+#define GLOBAL_CONF_ISSETVAL_DBPASS			0x00001000
 
 #define GLOBAL_TRANSTOCOL_SIZE		4
 
@@ -148,22 +159,34 @@ typedef struct
 	uint32 isset_flag;
 	uint32 protocols[GLOBAL_TRANSTOCOL_SIZE];
 	int tocol_len;
+
 #ifdef SERIAL_SUPPORT
-	char serial_port[16];
+	char serial_dev[16];
 #endif
+
 #ifdef COMM_CLIENT
 	char main_ip[IP_ADDR_MAX_SIZE];
 #endif
+
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	int tcp_port;
+#ifdef COMM_CLIENT
+	int tcp_timeout;
+#endif
 #endif
 
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	int udp_port;
+#ifdef COMM_CLIENT
+	int udp_timeout;
+#endif
 #endif
 
 #ifdef TRANS_HTTP_REQUEST
 	char http_url[1024];
+#ifdef COMM_CLIENT
+	int http_timeout;
+#endif
 #endif
 
 #ifdef REMOTE_UPDATE_APK
@@ -193,8 +216,8 @@ char *get_de_buf();
 #endif
 
 #ifdef COMM_CLIENT
-char *get_serial_port();
-void set_serial_port(char *name);
+char *get_serial_dev();
+void set_serial_dev(char *name);
 #endif
 
 #if defined(COMM_CLIENT) || defined(COMM_SERVER)

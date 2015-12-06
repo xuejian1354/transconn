@@ -28,7 +28,7 @@
 
 int main(int argc, char **argv)
 {
-	char serial_port[16] = "/dev/ttyS1";
+	char serial_dev[16] = "/dev/ttyS1";
 	char *test_no = "1234567890ABCDEF";
 	char cmd[8] = ZDEVICE_CMD_PERMIT;
 	char zaddr[5] = "0000";
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 		if(!strncmp(argv[1], "transadd", 8))
 		{
 #ifdef SERIAL_SUPPORT
-			if(serial_init(serial_port) < 0)			//initial serial port
+			if(serial_init(serial_dev) < 0)			//initial serial port
 			{
 				WARNS();
 				return -1;
@@ -48,8 +48,8 @@ int main(int argc, char **argv)
 			goto transadd;
 		}
 		
-		memset(serial_port, 0, sizeof(serial_port));
-		sprintf(serial_port, "%s", argv[1]);
+		memset(serial_dev, 0, sizeof(serial_dev));
+		sprintf(serial_dev, "%s", argv[1]);
 	}
 
 	if(argc >2)
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 	}
 	
 #ifdef SERIAL_SUPPORT
-	if(serial_init(serial_port) < 0)			//initial serial port
+	if(serial_init(serial_dev) < 0)			//initial serial port
 	{
 		WARNS();
 		return -1;

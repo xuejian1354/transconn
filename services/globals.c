@@ -30,7 +30,7 @@ static char curcode[64];
 static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 static char port_buf[16];
 #ifdef COMM_CLIENT
-static char serial_port[16] = TRANS_SERIAL_DEV;
+static char serial_dev[16] = TRANS_SERIAL_DEV;
 static int tcp_port = TRANS_TCP_PORT;
 static int udp_port = TRANS_UDP_REMOTE_PORT;
 #endif
@@ -58,12 +58,21 @@ static global_conf_t g_conf =
 #endif
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	TRANS_TCP_PORT,
+#ifdef COMM_CLIENT
+	TRANS_TCP_TIMEOUT,
+#endif
 #endif
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	TRANS_UDP_PORT,
+#ifdef COMM_CLIENT
+	TRANS_UDP_TIMEOUT,
+#endif
 #endif
 #ifdef TRANS_HTTP_REQUEST
 	{0},
+#ifdef COMM_CLIENT
+	TRANS_HTTP_TIMEOUT,
+#endif
 #endif
 #ifdef REMOTE_UPDATE_APK
 	TRANS_UPDATE_DIR,
@@ -96,15 +105,15 @@ char *get_de_buf()
 #endif
 
 #ifdef COMM_CLIENT
-char *get_serial_port()
+char *get_serial_dev()
 {
-	return serial_port;
+	return serial_dev;
 }
 
-void set_serial_port(char *name)
+void set_serial_dev(char *name)
 {
-	memset(serial_port, 0, sizeof(serial_port));
-	strcpy(serial_port, name);
+	memset(serial_dev, 0, sizeof(serial_dev));
+	strcpy(serial_dev, name);
 }
 #endif
 
@@ -221,7 +230,7 @@ int start_params(int argc, char **argv)
 
 #ifdef SERIAL_SUPPORT
 		case 's':
-			sprintf(t_conf.serial_port, "%s", optarg);
+			sprintf(t_conf.serial_dev, "%s", optarg);
 			t_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_SERIAL;
 			break;
 #endif
@@ -243,14 +252,14 @@ int start_params(int argc, char **argv)
 #ifdef SERIAL_SUPPORT
 	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_SERIAL)
 	{
-		set_serial_port(t_conf.serial_port);
+		set_serial_dev(t_conf.serial_dev);
 	}
 	else
 	{
   #ifdef READ_CONF_FILE
-		set_serial_port(g_conf.serial_port);
+		set_serial_dev(g_conf.serial_dev);
   #else
-		set_serial_port(TRANS_SERIAL_DEV);
+		set_serial_dev(TRANS_SERIAL_DEV);
   #endif
 	}
 	
@@ -357,7 +366,7 @@ int start_params(int argc, char **argv)
 #endif
 
 #ifdef SERIAL_SUPPORT
-	DE_PRINTF(1, "Serial port device: \"%s\"\n", get_serial_port());
+	DE_PRINTF(1, "Serial device: \"%s\"\n", get_serial_dev());
 #endif
 
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
@@ -735,7 +744,7 @@ void set_conf_val(char *cmd, char *val)
 #ifdef SERIAL_SUPPORT
 	if(!strcmp(cmd, GLOBAL_CONF_SERIAL_PORT))
 	{
-		strcpy(g_conf.serial_port, val);
+		strcpy(g_conf.serial_dev, val);
 		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_SERIAL;
 	}
 #endif
@@ -775,6 +784,16 @@ void set_conf_val(char *cmd, char *val)
 			}
 		}
 	}
+#ifdef COMM_CLIENT
+	if(!strcmp(cmd, GLOBAL_CONF_TCP_TIMEOUT))
+	{
+		g_conf.tcp_timeout = atoi(val);
+		if(g_conf.tcp_timeout > 0)
+		{
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_TCP_TIMEOUT;
+		}
+	}
+#endif
 #endif
 
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
@@ -796,6 +815,16 @@ void set_conf_val(char *cmd, char *val)
 			}
 		}
 	}
+#ifdef COMM_CLIENT
+	if(!strcmp(cmd, GLOBAL_CONF_UDP_TIMEOUT))
+	{
+		g_conf.udp_timeout = atoi(val);
+		if(g_conf.udp_timeout > 0)
+		{
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UDP_TIMEOUT;
+		}
+	}
+#endif
 #endif
 
 #ifdef TRANS_HTTP_REQUEST
@@ -808,6 +837,16 @@ void set_conf_val(char *cmd, char *val)
 			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_HTTPURL;
 		}
 	}
+#ifdef COMM_CLIENT
+	if(!strcmp(cmd, GLOBAL_CONF_HTTP_TIMEOUT))
+	{
+		g_conf.http_timeout = atoi(val);
+		if(g_conf.http_timeout > 0)
+		{
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_HTTP_TIMEOUT;
+		}
+	}
+#endif
 #endif
 
 #ifdef REMOTE_UPDATE_APK
@@ -854,12 +893,21 @@ int get_conf_setval()
 #endif
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 					GLOBAL_CONF_ISSETVAL_TCP,
+#ifdef COMM_CLIENT
+					GLOBAL_CONF_ISSETVAL_TCP_TIMEOUT,
+#endif
 #endif
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 					GLOBAL_CONF_ISSETVAL_UDP,
+#ifdef COMM_CLIENT
+					GLOBAL_CONF_ISSETVAL_UDP_TIMEOUT,
+#endif
 #endif
 #ifdef TRANS_HTTP_REQUEST
 					GLOBAL_CONF_ISSETVAL_HTTPURL,
+#ifdef COMM_CLIENT
+					GLOBAL_CONF_ISSETVAL_HTTP_TIMEOUT,
+#endif
 #endif
 #ifdef REMOTE_UPDATE_APK
 					GLOBAL_CONF_ISSETVAL_UPAPK,
@@ -885,15 +933,24 @@ int get_conf_setval()
 #endif
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 					GLOBAL_CONF_TCP_PORT,
+#ifdef COMM_CLIENT
+					GLOBAL_CONF_TCP_TIMEOUT,
+#endif
 #endif
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 					GLOBAL_CONF_UDP_PORT,
+#ifdef COMM_CLIENT
+					GLOBAL_CONF_UDP_TIMEOUT,
 #endif
-#ifdef REMOTE_UPDATE_APK
-					GLOBAL_CONF_UPAPK_DIR,
 #endif
 #ifdef TRANS_HTTP_REQUEST
 					GLOBAL_CONF_HTTP_URL,
+#ifdef COMM_CLIENT
+					GLOBAL_CONF_HTTP_TIMEOUT,
+#endif
+#endif
+#ifdef REMOTE_UPDATE_APK
+					GLOBAL_CONF_UPAPK_DIR,
 #endif
 #ifdef DB_API_SUPPORT
 #if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)

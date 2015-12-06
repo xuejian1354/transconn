@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef SERIAL_SUPPORT
-	if(serial_init(get_serial_port()) < 0)			//init serial port
+	if(serial_init(get_serial_dev()) < 0)			//init serial device
 	{
 		return -1;
 	}

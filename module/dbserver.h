@@ -19,6 +19,8 @@
 
 #include <services/globals.h>
 #include <protocol/protocol.h>
+#include <protocol/common/fieldlysis.h>
+#include <module/netapi.h>
 #include <strings_t.h>
 #include <mysql/mysql.h>
 #ifdef DB_API_WITH_MYSQL
@@ -27,10 +29,11 @@ int sqlserver_init();
 int sqlserver_reconnect();
  void sqlserver_release();
  int sqlserver_isuse();
+
  int sqlserver_add_zdevices(frhandler_arg_t *arg, trfr_report_t *report);
  int sqlserver_update_zdevice(frhandler_arg_t *arg, trfr_respond_t *respond);
- int sqlserver_query_zdevice(gw_info_t *p_gw, zidentify_no_t zidentity_no);
- int sqlserver_del_zdevice(gw_info_t *p_gw, zidentify_no_t zidentity_no);
+ int sqlserver_query_zdevice(sn_t serno);
+ int sqlserver_del_zdevice(sn_t serno);
 
 int get_user_info_from_sql(char *email, cli_user_t *user_info);
 void sync_user_info_to_sql(char *data);

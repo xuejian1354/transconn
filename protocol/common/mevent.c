@@ -36,14 +36,14 @@ void gateway_init()
 {
 	timer_event_param_t timer_param;
 	timer_param.resident = 0;
-	timer_param.interval = 1;
+	timer_param.interval = 100;
 	timer_param.count = 1;
-	timer_param.immediate = 1;
+	timer_param.immediate = 0;
 	timer_param.arg = NULL;
 	
 	set_mevent(GATEWAY_INIT_EVENT, gateway_refresh, &timer_param);
 
-	set_heartbeat_check(5);
+	set_heartbeat_check(5000);
 	set_refresh_check();
 }
 
@@ -64,7 +64,7 @@ void set_refresh_check()
 	timer_event_param_t timer_param;
 	
 	timer_param.resident = 1;
-	timer_param.interval = 2*heartbeat_interval+2;
+	timer_param.interval = 2*heartbeat_interval+2000;
 	timer_param.count = 1;
 	timer_param.immediate = 0;
 	timer_param.arg = NULL;
@@ -78,26 +78,31 @@ void heartbeat_request(void *p)
 	{
 	case SESS_INIT:
 		//Restart daemon
+		//DE_PRINTF(1, "Session Init ....\n");
 		break;
 
 	case SESS_READY:
 		//Refresh service
+		//DE_PRINTF(1, "Session Ready ....\n");
 		gateway_refresh(NULL);
 		break;
 
 	case SESS_WORKING:
 	{
+		//DE_PRINTF(1, "Session Working ....\n");
 		upload_data(0, NULL);
 	}
 		break;
 
 	case SESS_UNWORK:
 		//Reset to ready status
+		//DE_PRINTF(1, "Session UnWork ....\n");
 		set_session_status(SESS_READY);
 		break;
 
 	case SESS_CONFIGRING:
 		//Waiting cmd configuration
+		//DE_PRINTF(1, "Session Configurating ....\n");
 		break;
 
 	case SESS_REALESING:
@@ -110,7 +115,7 @@ void gateway_refresh(void *p)
 {
 	serial_write("D:/BR/0000:O\r\n", 14);
 	set_trans_protocol(TOCOL_NONE);
-	heartbeat_interval = 1;
+	heartbeat_interval = 2000;
 	set_refresh_check();
 
 #ifdef TRANS_UDP_SERVICE
@@ -140,7 +145,7 @@ void set_zdev_check(uint16 net_addr)
 	timer_event_param_t timer_param;
 
 	timer_param.resident = 0;
-	timer_param.interval = 40;
+	timer_param.interval = 40000;
 	timer_param.count = 1;
 	timer_param.immediate = 0;
 	timer_param.arg = (void *)((int)net_addr);
@@ -172,7 +177,7 @@ void set_cli_check(cli_info_t *p_cli)
 	timer_event_param_t timer_param;
 
 	timer_param.resident = 0;
-	timer_param.interval = 17;
+	timer_param.interval = 17000;
 	timer_param.count = 1;
 	timer_param.immediate = 0;
 	timer_param.arg = (void *)p_cli;

@@ -15,12 +15,15 @@
  * GNU General Public License for more details.
  */
 #include "dbserver.h"
+#include <module/dballoc.h>
 #include <cJSON.h>
 
 #ifdef DB_API_WITH_MYSQL
 
 #define DB_SERVER	"localhost"
 #define DB_PORT		3306
+
+extern char cmdline[CMDLINE_SIZE];
 
 static MYSQL mysql_conn;
 static MYSQL_RES *mysql_res;
@@ -43,8 +46,7 @@ static void del_scenes_from_user_sql(char *email, scenes_t *scenes);
 int sqlserver_init()
 {
 	global_conf_t *m_conf = get_global_conf();
-
-	if (sqlserver_init(&mysql_conn) == NULL)
+	if (mysql_init(&mysql_conn) == NULL)
 	{
 		DE_PRINTF(1, "%s()%d: mysql init failed\n", __FUNCTION__, __LINE__);
 		return -1;
@@ -146,96 +148,99 @@ int sqlserver_isuse()
 
 int sqlserver_add_zdevices(frhandler_arg_t *arg, trfr_report_t *report)
 {
-	char serno[24] = {0};
-	incode_xtocs(serno, m_dev->zidentity_no, sizeof(zidentify_no_t));
-
-	char gwno[24] = {0};
-	incode_xtocs(gwno, p_gw->gw_no, sizeof(zidentify_no_t));
-
-	fr_buffer_t *frbuffer = get_devopt_data_tostr(m_dev->zdev_opt);
-	char data[24] = {0};
-	if(frbuffer != NULL)
+	if(arg == NULL || report == NULL
+		|| report->devices == NULL || report->dev_size <= 0)
 	{
-		memcpy(data, frbuffer->data, frbuffer->size);
-		get_buffer_free(frbuffer);
+		return -1;
 	}
 
-	if(sqlserver_query_zdev(p_gw, m_dev->zidentity_no) == 0)
+	int i;
+	for(i=0; i<report->dev_size; i++)
 	{
-		SET_CMD_LINE("%s%04X%s%s%s%d%s%s%s%s%s%s%s%s%s%s%s%s%s", 
-				"UPDATE devices SET shortaddr=\'",
-				m_dev->znet_addr,
-				"\', apptype=\'",
-				apptype_str,
-				"\', isonline=\'1\', ischange=\'",
-				m_dev->isdata_change,
-				"\', updatetime=\'",
-				get_current_time(),
-				"\', data=\'",
-				data,
-				"\', ipaddr=\'",
-				p_gw->ipaddr,
-				"\', updated_at=\'",
-				get_current_time(),
-				"\', gwsn=\'",
-				gwno,
-				"\' WHERE serialnum=\'",
-				serno,
-				"\'");
+		trfield_device_t *device = *(report->devices+i);
+		int ret = sqlserver_query_zdevice(device->dev_sn);
+		if(ret == 0)
+		{
+			SET_CMD_LINE("%s%s%s%d%s%s%s%s%s%s%s%s%s", 
+					"UPDATE devices SET dev_type=\'",
+					get_frapp_type_to_str(device->dev_type),
+					"\', znet_status=\'",
+					device->znet_status,
+					"\', dev_data=\'",
+					device->dev_data,
+					"\', gw_sn=\'",
+					report->gw_sn,
+					"\', updatetime=\'",
+					get_current_time(),
+					"\' WHERE dev_sn=\'",
+					device->dev_sn,
+					"\'");
 
-		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			sqlserver_excute_cmdline(GET_CMD_LINE());
+		}
+		else if(ret > 0)
+		{
+			uint8 rannum[2];
+			incode_ctoxs(rannum, report->gw_sn+14, 2);
+			incode_ctoxs(rannum+1, device->dev_sn+14, 2);
 
-		return sqlserver_excute_cmdline(GET_CMD_LINE());
+			SET_CMD_LINE("%s%s%s%s%s%s%s%s%d%s%s%s%s%s%s%s%s%s", 
+				"INSERT INTO devices (id, dev_sn, name, dev_type, znet_status, ",
+				"dev_data, gw_sn, area, ispublic, updatetime) VALUES (NULL, \'",
+				device->dev_sn,
+				"\', \'",
+				get_mix_name(device->dev_type, rannum[0], rannum[1]),
+				"\', \'",
+				get_frapp_type_to_str(device->dev_type),
+				"\', \'",
+				device->znet_status,
+				"\', \'",
+				device->dev_data,
+				"\', \'",
+				report->gw_sn,
+				"\', \'",
+				NO_AREA,
+				"\', \'0\', \'",
+				get_current_time(),
+				"\')");
+
+			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			sqlserver_excute_cmdline(GET_CMD_LINE());
+		}
 	}
-
-	SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s%s%s%s%s%d%s%s%s%s%s%s%s", 
-		"INSERT INTO devices (id, serialnum, apptype, shortaddr, ipaddr, ",
-		"commtocol, gwsn, name, area, updatetime, isonline, iscollect, ",
-		"ispublic, ischange, users, data, created_at, updated_at) VALUES (NULL, \'",
-		serno,
-		"\', \'",
-		apptype_str,
-		"\', \'",
-		m_dev->znet_addr,
-		"\', \'",
-		p_gw->ipaddr,
-		"\', \'01\', \'",
-		gwno,
-		"\', \'",
-		get_mix_name(m_dev->zapp_type, 
-			p_gw->gw_no[sizeof(zidentify_no_t)-1], 
-			m_dev->zidentity_no[sizeof(zidentify_no_t)-1]),
-		"\', \'",
-		NO_AREA,
-		"\', \'",
-		get_current_time(),
-		"\', \'1\', \'0\', \'0\', \'",
-		m_dev->isdata_change,
-		"\', \'\', \'",
-		data,
-		"\', \'",
-		get_current_time(),
-		"\', \'",
-		get_current_time(),
-		"\')");
-
-	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-
-	return sqlserver_excute_cmdline(GET_CMD_LINE());
 }
 
 int sqlserver_update_zdevice(frhandler_arg_t *arg, trfr_respond_t *respond)
 {
-	
+	if(arg == NULL || respond == NULL)
+	{
+		return -1;
+	}
+
+	if(sqlserver_query_zdevice(respond->dev_sn) == 0)
+	{
+		SET_CMD_LINE("%s%s%s%d%s%s%s%s%s%s%s%s%s", 
+				"UPDATE devices SET dev_data=\'",
+				respond->dev_data,
+				"\', updatetime=\'",
+				get_current_time(),
+				"\' WHERE dev_sn=\'",
+				respond->dev_sn,
+				"\'");
+
+		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+		return sqlserver_excute_cmdline(GET_CMD_LINE());
+	}
+
+	return 1;
 }
 
-int sqlserver_query_zdevice(gw_info_t *p_gw, zidentify_no_t zidentity_no)
+int sqlserver_query_zdevice(sn_t serno)
 {
-	char serstr[24] = {0};
-	incode_xtocs(serstr, zidentity_no, sizeof(zidentify_no_t));
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT * FROM devices WHERE serialnum=\'", 
-		serstr, 
+		"SELECT * FROM devices WHERE dev_sn=\'", 
+		serno, 
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
@@ -264,12 +269,9 @@ int sqlserver_query_zdevice(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 	return 1;
 }
 
-int sqlserver_del_zdevice(gw_info_t *p_gw, zidentify_no_t zidentity_no)
+int sqlserver_del_zdevice(sn_t serno)
 {
-	char serno[24] = {0};
-	incode_xtocs(serno, zidentity_no, sizeof(zidentify_no_t));
-
-	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE serialnum=\'",
+	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE dev_sn=\'",
 		serno,
 		"\'");
 

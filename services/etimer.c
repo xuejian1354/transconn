@@ -21,7 +21,7 @@
 
 #ifdef TIMER_SUPPORT
 
-#define TIMER_MIN_INTERVAL	1
+#define TIMER_MIN_INTERVAL	1000
 
 static timer_event_t *p_event;
 static pthread_mutex_t timer_lock;
@@ -32,24 +32,20 @@ void timer_func(int sig)
 	
 	while(t_event != NULL)
 	{
-		if(t_event->param.immediate != 0)
+		if(t_event->param.immediate)
 		{
-			if(t_event->interval_count-- == t_event->param.interval)
-			{
-				tpool_add_work(t_event->timer_callback, 
-							t_event->param.arg, TPOOL_NONE);
-			}
+			t_event->interval_count = 0;
+			t_event->param.immediate = 0;
 		}
 		else
 		{
-			t_event->param.count++;
 			t_event->interval_count--;
-			t_event->param.immediate = 1;
 		}
 		
 		if(t_event->interval_count <= 0)
 		{
 			t_event->interval_count = t_event->param.interval;
+			tpool_add_work(t_event->timer_callback, t_event->param.arg, TPOOL_NONE);
 		}
 		
 		if(!t_event->param.resident 
@@ -78,10 +74,10 @@ int timer_init()
 	struct itimerval tv, oldtv;
 	signal(SIGALRM, timer_func);
 
-    tv.it_interval.tv_sec = TIMER_MIN_INTERVAL;  
-    tv.it_interval.tv_usec = 0;  
-    tv.it_value.tv_sec = TIMER_MIN_INTERVAL;  
-    tv.it_value.tv_usec = 0;  
+    tv.it_interval.tv_sec = 0;  
+    tv.it_interval.tv_usec = TIMER_MIN_INTERVAL;  
+    tv.it_value.tv_sec = 0;  
+    tv.it_value.tv_usec = TIMER_MIN_INTERVAL;  
     if(setitimer(ITIMER_REAL, &tv, &oldtv) < 0)
     {
 		perror("timer initial");
