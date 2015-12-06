@@ -28,15 +28,21 @@ include mconfig/server_config
 include mconfig/client_config
 export SERVER_DMACRO CLIENT_DMACRO
 
-define dependsrcs
+define server_dependsrcs
+SERVER_OBJS +=$(DIR)$(1)/built-s.o
 $(DIR)$(1)/built-s.o:$(addprefix $(DIR),$(patsubst %.c,%-s.o,$(2)))
 	$(call echocmd,LD, $$@, \
 	  $(STARGET_LD) -r -o $$@ $$^)
-$(DIR)$(1)/built-c.o:$(addprefix $(DIR),$(patsubst %.c,%-c.o,$(3)))
+endef
+
+define client_dependsrcs
+CLIENT_OBJS +=$(DIR)$(1)/built-c.o
+$(DIR)$(1)/built-c.o:$(addprefix $(DIR),$(patsubst %.c,%-c.o,$(2)))
 	$(call echocmd,LD, $$@, \
           $(CTARGET_LD) -r -o $$@ $$^)
 endef
 
+SERVER_SOURCES:=smain.c
 SERVER_SOURCES:=smain.c
 CLIENT_SOURCES:=cmain.c
 SUB_DIRS:=$(strip $(patsubst $(TOPDIR)/%/,%, \
@@ -44,17 +50,20 @@ SUB_DIRS:=$(strip $(patsubst $(TOPDIR)/%/,%, \
 SUB_MODULES:=debug $(SUB_DIRS)
 export SUB_MODULES
 
+SERVER_OBJS:=$(addprefix $(DIR),$(patsubst %.c,%-s.o,$(SERVER_SOURCES)))
+CLIENT_OBJS:=$(addprefix $(DIR),$(patsubst %.c,%-c.o,$(CLIENT_SOURCES)))
+
 $(foreach d, $(SUB_DIRS), \
     $(eval include $(d)/transconn.mk) \
-    $(eval SERVER_SRCS:=$(patsubst %,$(d)/%,$(SERVER_SRCS))) \
-    $(eval CLIENT_SRCS:=$(patsubst %,$(d)/%,$(CLIENT_SRCS))) \
-    $(eval $(call dependsrcs,$(d),$(SERVER_SRCS),$(CLIENT_SRCS))) \
+    $(if $(SERVER_SRCS), \
+	$(eval $(call server_dependsrcs,$(d),$(patsubst %,$(d)/%,$(SERVER_SRCS)))) \
+    )  \
+    $(if $(CLIENT_SRCS), \
+    	$(eval $(call client_dependsrcs,$(d),$(patsubst %,$(d)/%,$(CLIENT_SRCS)))) \
+    )  \
 )
 
 ALL_HEARDS:=$(shell find -L $(patsubst %,$(TOPDIR)/%,$(SUB_MODULES)) -name *.h)
-
-SERVER_OBJS:=$(addprefix $(DIR),$(patsubst %.c,%-s.o,$(SERVER_SOURCES)) $(patsubst %,%/built-s.o,$(SUB_DIRS)))
-CLIENT_OBJS:=$(addprefix $(DIR),$(patsubst %.c,%-c.o,$(CLIENT_SOURCES)) $(patsubst %,%/built-c.o,$(SUB_DIRS)))
 
 .PHONY:all alls tests distclean clean cclean sclean help
 

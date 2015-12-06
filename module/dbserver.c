@@ -1,5 +1,5 @@
 /*
- * dbopt.c
+ * dbserver.c
  *
  * Copyright (C) 2013 loongsky development.
  *
@@ -14,33 +14,27 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#ifdef DB_API_SUPPORT
-#include "dbopt.h"
+#include "dbserver.h"
 #include <module/dballoc.h>
 #include <cJSON.h>
+
+#ifdef DB_API_WITH_MYSQL
 
 #define DB_SERVER	"localhost"
 #define DB_PORT		3306
 
+extern char cmdline[CMDLINE_SIZE];
 
-#ifdef DB_API_WITH_MYSQL
 static MYSQL mysql_conn;
 static MYSQL_RES *mysql_res;
 static MYSQL_ROW mysql_row;
-#endif
 
-#ifdef DB_API_WITH_SQLITE
-static sqlite3 *sqlite_db;
-static char *errmsg;
-#endif
-
-static pthread_mutex_t sql_lock;
+static pthread_mutex_t sqlserver_lock;
 
 static char is_userful = 0;
-char cmdline[CMDLINE_SIZE];
 
-static int sql_excute_cmdline(char *cmdline);
-#ifdef DB_API_WITH_MYSQL
+static int sqlserver_excute_cmdline(char *cmdline);
+
 static void sync_devices_with_user_sql(char *email, devices_t *devs);
 static void sync_areas_with_user_sql(char *email, areas_t *areas);
 static void sync_scenes_with_user_sql(char *email, scenes_t *scenes);
@@ -48,20 +42,10 @@ static void sync_scenes_with_user_sql(char *email, scenes_t *scenes);
 static void del_devices_from_user_sql(char *email, devices_t *devs);
 static void del_areas_from_user_sql(char *email, areas_t *areas);
 static void del_scenes_from_user_sql(char *email, scenes_t *scenes);
-#endif
 
-#ifdef DB_API_WITH_SQLITE
-sqlite3 *get_sqlite_db()
+int sqlserver_init()
 {
-	return sqlite_db;
-}
-#endif
-
-int sql_init()
-{
-#ifdef DB_API_WITH_MYSQL
 	global_conf_t *m_conf = get_global_conf();
-
 	if (mysql_init(&mysql_conn) == NULL)
 	{
 		DE_PRINTF(1, "%s()%d: mysql init failed\n", __FUNCTION__, __LINE__);
@@ -86,72 +70,9 @@ int sql_init()
 	{
 		DE_PRINTF(1, "%s()%d : mysql character set failed\n", __FUNCTION__, __LINE__);
 		return -1;
-	} 
-#endif
-
-#ifdef DB_API_WITH_SQLITE
-	global_conf_t *m_conf = get_global_conf();
-	char db_path[64] = {0};
-
-	sprintf(db_path, "/mnt/%s.db", m_conf->db_name);
-	if(sqlite3_open(db_path, &sqlite_db) != SQLITE_OK)
-	{
-		DE_PRINTF(1, "%s()%d : sqlite connection failed.\n", __FUNCTION__, __LINE__);
-		DE_PRINTF(1, "%s\n", sqlite3_errmsg(sqlite_db));
-		sqlite3_close(sqlite_db);
-		return -1;
 	}
 
-	DE_PRINTF(1, "sqlite connect \"%s\"\n\n", m_conf->db_name);
-
-	SET_CMD_LINE("CREATE TABLE gateways (%s%s%s%s%s%s%s%s)",
-					"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
-					"gwsn VARCHAR(32), ",
-					"apptype VARCHAR(8), ",
-					"ipaddr VARCHAR(24), ",
-					"name VARCHAR(255), ",
-					"data TEXT, ",
-					"created_at VARCHAR(64), ",
-					"updated_at VARCHAR(64)");
-
-	if(sqlite3_exec(sqlite_db, GET_CMD_LINE(), NULL, NULL, &errmsg) != SQLITE_OK)
-	{
-		/*DE_PRINTF(1, "%s()%d : sqlite create table \"gateways\" failed\n", __FUNCTION__, __LINE__);
-		DE_PRINTF(1, "%s()%d : %s\n",  __FUNCTION__, __LINE__, sqlite3_errmsg(sqlite_db));
-		sqlite3_close(sqlite_db);
-		return -1;*/
-	}
-
-	SET_CMD_LINE("CREATE TABLE devices (%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s)",
-					"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
-					"serialnum VARCHAR(32), ",
-					"apptype VARCHAR(8), ",
-					"shortaddr VARCHAR(8), ",
-					"ipaddr VARCHAR(24), ",
-					"commtocol VARCHAR(4), ",
-					"gwsn VARCHAR(32), ",
-					"name VARCHAR(64), ",
-					"area VARCHAR(64), ",
-					"updatetime VARCHAR(64), ",
-					"isonline TINYINT(1), ",
-					"iscollect TINYINT(1), ",
-					"ispublic TINYINT(1), ",
-					"ischange TINYINT(1), ",
-					"users TEXT, ",
-					"data TEXT, ",
-					"created_at VARCHAR(64), ",
-					"updated_at VARCHAR(64)");
-
-	if(sqlite3_exec(sqlite_db, GET_CMD_LINE(), NULL, NULL, &errmsg) != SQLITE_OK)
-	{
-		/*DE_PRINTF(1, "%s()%d : sqlite create table \"devicess\" failed\n", __FUNCTION__, __LINE__);
-		DE_PRINTF(1, "%s()%d : %s\n",  __FUNCTION__, __LINE__, sqlite3_errmsg(sqlite_db));
-		sqlite3_close(sqlite_db);
-		return -1;*/
-	}
-#endif
-
-	if(pthread_mutex_init(&sql_lock, NULL) != 0)
+	if(pthread_mutex_init(&sqlserver_lock, NULL) != 0)
 	{
 		DE_PRINTF(1, "%s()%d : pthread_mutext_init failed\n", __FUNCTION__, __LINE__);
         return -1;
@@ -160,9 +81,8 @@ int sql_init()
 	return 0;
 }
 
-int sql_reconnect()
+int sqlserver_reconnect()
 {
-#ifdef DB_API_WITH_MYSQL
 	global_conf_t *m_conf = get_global_conf();
 
 	if(mysql_ping(&mysql_conn))
@@ -189,160 +109,142 @@ int sql_reconnect()
 		is_userful = 1;
 		return 1;
 	}
-#endif
 
 	return 0;
 }
 
- int sql_excute_cmdline(char *cmdline)
+ int sqlserver_excute_cmdline(char *cmdline)
  {
-	pthread_mutex_lock(&sql_lock);
-	if(sql_reconnect() < 0)
+	pthread_mutex_lock(&sqlserver_lock);
+	if(sqlserver_reconnect() < 0)
 	{
-		pthread_mutex_unlock(&sql_lock);
+		pthread_mutex_unlock(&sqlserver_lock);
 	   	return -1;
 	}
 
-#ifdef DB_API_WITH_MYSQL
 	if( mysql_query(&mysql_conn, cmdline))
     {
-		pthread_mutex_unlock(&sql_lock);
+		pthread_mutex_unlock(&sqlserver_lock);
        	DE_PRINTF(1, "%s()%d : mysql query failed\n\n", __FUNCTION__, __LINE__);
 	   	return -1;
     }
-#endif
 
-#ifdef DB_API_WITH_SQLITE
-	char *errmsg;
-	if(sqlite3_exec(sqlite_db, cmdline, NULL, NULL, &errmsg) != SQLITE_OK)
-	{
-		pthread_mutex_unlock(&sql_lock);
-		DE_PRINTF(1, "%s()%d : sqlite exec failed\n", __FUNCTION__, __LINE__);
-		DE_PRINTF(1, "%s()%d : %s\n\n",  __FUNCTION__, __LINE__, sqlite3_errmsg(sqlite_db));
-		return -1;
-	}
-#endif
-
-	pthread_mutex_unlock(&sql_lock);
+	pthread_mutex_unlock(&sqlserver_lock);
 	return 0;
  }
 
-void sql_release()
+void sqlserver_release()
 {
 	is_userful = 0;
-#ifdef DB_API_WITH_MYSQL
 	DE_PRINTF(1, "%s()%d : mysql close \"%s\"\n",
 	 			__FUNCTION__, __LINE__, get_global_conf()->db_name);
 	mysql_close(&mysql_conn);
-#endif
-
-#ifdef DB_API_WITH_SQLITE
-	DE_PRINTF(1, "%s()%d : sqlite close \"%s\"\n",
-				__FUNCTION__, __LINE__, get_global_conf()->db_name);
-	sqlite3_close(sqlite_db);
-#endif
 }
 
-int sql_isuse()
+int sqlserver_isuse()
 {
 	return is_userful;
 }
 
-int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
+int sqlserver_add_zdevices(frhandler_arg_t *arg, trfr_report_t *report)
 {
-	char apptype_str[4] = {0};
-	get_frapp_type_to_str(apptype_str, m_dev->zapp_type);
-
-	char serno[24] = {0};
-	incode_xtocs(serno, m_dev->zidentity_no, sizeof(zidentify_no_t));
-
-	char gwno[24] = {0};
-	incode_xtocs(gwno, p_gw->gw_no, sizeof(zidentify_no_t));
-
-	fr_buffer_t *frbuffer = get_devopt_data_tostr(m_dev->zdev_opt);
-	char data[24] = {0};
-	if(frbuffer != NULL)
+	if(arg == NULL || report == NULL
+		|| report->devices == NULL || report->dev_size <= 0)
 	{
-		memcpy(data, frbuffer->data, frbuffer->size);
-		get_buffer_free(frbuffer);
+		return -1;
 	}
 
-	if(sql_query_zdev(p_gw, m_dev->zidentity_no) == 0)
+	int i;
+	for(i=0; i<report->dev_size; i++)
 	{
-		SET_CMD_LINE("%s%04X%s%s%s%d%s%s%s%s%s%s%s%s%s%s%s%s%s", 
-				"UPDATE devices SET shortaddr=\'",
-				m_dev->znet_addr,
-				"\', apptype=\'",
-				apptype_str,
-				"\', isonline=\'1\', ischange=\'",
-				m_dev->isdata_change,
+		trfield_device_t *device = *(report->devices+i);
+		int ret = sqlserver_query_zdevice(device->dev_sn);
+		if(ret == 0)
+		{
+			SET_CMD_LINE("%s%s%s%d%s%s%s%s%s%s%s%s%s", 
+					"UPDATE devices SET dev_type=\'",
+					get_frapp_type_to_str(device->dev_type),
+					"\', znet_status=\'",
+					device->znet_status,
+					"\', dev_data=\'",
+					device->dev_data,
+					"\', gw_sn=\'",
+					report->gw_sn,
+					"\', updatetime=\'",
+					get_current_time(),
+					"\' WHERE dev_sn=\'",
+					device->dev_sn,
+					"\'");
+
+			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			sqlserver_excute_cmdline(GET_CMD_LINE());
+		}
+		else if(ret > 0)
+		{
+			uint8 rannum[2];
+			incode_ctoxs(rannum, report->gw_sn+14, 2);
+			incode_ctoxs(rannum+1, device->dev_sn+14, 2);
+
+			SET_CMD_LINE("%s%s%s%s%s%s%s%s%d%s%s%s%s%s%s%s%s%s", 
+				"INSERT INTO devices (id, dev_sn, name, dev_type, znet_status, ",
+				"dev_data, gw_sn, area, ispublic, updatetime) VALUES (NULL, \'",
+				device->dev_sn,
+				"\', \'",
+				get_mix_name(device->dev_type, rannum[0], rannum[1]),
+				"\', \'",
+				get_frapp_type_to_str(device->dev_type),
+				"\', \'",
+				device->znet_status,
+				"\', \'",
+				device->dev_data,
+				"\', \'",
+				report->gw_sn,
+				"\', \'",
+				NO_AREA,
+				"\', \'0\', \'",
+				get_current_time(),
+				"\')");
+
+			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+			sqlserver_excute_cmdline(GET_CMD_LINE());
+		}
+	}
+}
+
+int sqlserver_update_zdevice(frhandler_arg_t *arg, trfr_respond_t *respond)
+{
+	if(arg == NULL || respond == NULL)
+	{
+		return -1;
+	}
+
+	if(sqlserver_query_zdevice(respond->dev_sn) == 0)
+	{
+		SET_CMD_LINE("%s%s%s%d%s%s%s%s%s%s%s%s%s", 
+				"UPDATE devices SET dev_data=\'",
+				respond->dev_data,
 				"\', updatetime=\'",
 				get_current_time(),
-				"\', data=\'",
-				data,
-				"\', ipaddr=\'",
-				p_gw->ipaddr,
-				"\', updated_at=\'",
-				get_current_time(),
-				"\', gwsn=\'",
-				gwno,
-				"\' WHERE serialnum=\'",
-				serno,
+				"\' WHERE dev_sn=\'",
+				respond->dev_sn,
 				"\'");
 
 		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-
-		return sql_excute_cmdline(GET_CMD_LINE());
+		return sqlserver_excute_cmdline(GET_CMD_LINE());
 	}
 
-	SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s%s%s%s%s%d%s%s%s%s%s%s%s", 
-		"INSERT INTO devices (id, serialnum, apptype, shortaddr, ipaddr, ",
-		"commtocol, gwsn, name, area, updatetime, isonline, iscollect, ",
-		"ispublic, ischange, users, data, created_at, updated_at) VALUES (NULL, \'",
-		serno,
-		"\', \'",
-		apptype_str,
-		"\', \'",
-		m_dev->znet_addr,
-		"\', \'",
-		p_gw->ipaddr,
-		"\', \'01\', \'",
-		gwno,
-		"\', \'",
-		get_mix_name(m_dev->zapp_type, 
-			p_gw->gw_no[sizeof(zidentify_no_t)-1], 
-			m_dev->zidentity_no[sizeof(zidentify_no_t)-1]),
-		"\', \'",
-		NO_AREA,
-		"\', \'",
-		get_current_time(),
-		"\', \'1\', \'0\', \'0\', \'",
-		m_dev->isdata_change,
-		"\', \'\', \'",
-		data,
-		"\', \'",
-		get_current_time(),
-		"\', \'",
-		get_current_time(),
-		"\')");
-
-	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-
-	return sql_excute_cmdline(GET_CMD_LINE());
+	return 1;
 }
 
-int sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
+int sqlserver_query_zdevice(sn_t serno)
 {
-	char serstr[24] = {0};
-	incode_xtocs(serstr, zidentity_no, sizeof(zidentify_no_t));
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT * FROM devices WHERE serialnum=\'", 
-		serstr, 
+		"SELECT * FROM devices WHERE dev_sn=\'", 
+		serno, 
 		"\'");
 
-#ifdef DB_API_WITH_MYSQL
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
 	{
 		return -1;
 	}
@@ -363,256 +265,21 @@ int sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 		}
 	}
 	mysql_free_result(mysql_res);
-#endif
-
-#ifdef DB_API_WITH_SQLITE
- 	sqlite3_stmt *stmt;
-    if(sqlite3_prepare_v2(sqlite_db,
-			GET_CMD_LINE(), -1, &stmt, NULL) != SQLITE_OK)
-    {
-		sqlite3_finalize(stmt);
-        DE_PRINTF(1, "%s()%d : sqlite prepare failed\n", __FUNCTION__, __LINE__);
-		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__, errmsg);
-        return -1;
-    }
-
-	while(sqlite3_step(stmt) == SQLITE_ROW)
-	{
-		int counts = sqlite3_column_count(stmt);
-		if(counts > 0)
-		{
-			sqlite3_finalize(stmt);
-			return 0;
-		}
-	}
-	sqlite3_finalize(stmt);
-#endif
 
 	return 1;
 }
 
-int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
+int sqlserver_del_zdevice(sn_t serno)
 {
-	char serno[24] = {0};
-	incode_xtocs(serno, zidentity_no, sizeof(zidentify_no_t));
-
-	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE serialnum=\'",
+	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE dev_sn=\'",
 		serno,
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	return sql_excute_cmdline(GET_CMD_LINE());
+	return sqlserver_excute_cmdline(GET_CMD_LINE());
 }
 
-int sql_uponline_zdev(gw_info_t *p_gw, 
-			uint8 isonline , uint16* znet_addrs, int addrs_len)
-{
-	int i = 0;
-	char gwno[24] = {0};
-	char addrs_str[512] = {0};
 
-	if(p_gw == NULL || addrs_len <= 0)
-	{
-		return -1;
-	}
-
-	sprintf(addrs_str, "\'%04X\'", znet_addrs[i++]);
-	while( i < addrs_len )
-	{
-		sprintf(addrs_str+strlen(addrs_str), ", \'%04X\'", znet_addrs[i++]);
-	}
-
-	incode_xtocs(gwno, p_gw->gw_no, sizeof(zidentify_no_t));
-
-	SET_CMD_LINE("%s%d%s%s%s%s%s%s", 
-				"UPDATE devices SET isonline=\'",
-				isonline,
-				"\', ischange=\'1\' ",
-				"WHERE shortaddr IN (",
-				addrs_str,
-				") AND gwsn=\'",
-				gwno,
-				"\'");
-
-	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	return sql_excute_cmdline(GET_CMD_LINE());
-}
-
-#ifdef COMM_CLIENT
-int sql_set_datachange_zdev(zidentify_no_t dev_no, uint8 ischange)
-{
-	char devno_str[24] = {0};
-
-	if(dev_no == NULL )
-	{
-		return -1;
-	}
-
-	incode_xtocs(devno_str, dev_no, sizeof(zidentify_no_t));
-	if(!memcmp(dev_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t)))
-	{
-		SET_CMD_LINE("%s%d%s%s%s", 
-						"UPDATE devices SET ischange=\'",
-						ischange,
-						"\' WHERE gwsn=\'",
-						devno_str,
-						"\'");
-	}
-	else
-	{
-		SET_CMD_LINE("%s%d%s%s%s", 
-						"UPDATE devices SET ischange=\'",
-						ischange,
-						"\' WHERE serialnum=\'",
-						devno_str,
-						"\'");
-	}
-
-	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	return sql_excute_cmdline(GET_CMD_LINE());
-}
-#endif
-
-int sql_add_gateway(gw_info_t *m_gw)
-{
-	char apptype_str[4] = {0};
-	get_frapp_type_to_str(apptype_str, m_gw->zapp_type);
-
-	char gwno_str[24] = {0};
-	incode_xtocs(gwno_str, m_gw->gw_no, sizeof(zidentify_no_t));
-
-	fr_buffer_t *frbuffer = get_devopt_data_tostr(m_gw->zgw_opt);
-	char data[24] = {0};
-	if(frbuffer != NULL)
-	{
-		memcpy(data, frbuffer->data, frbuffer->size);
-		get_buffer_free(frbuffer);
-	}
-
-	int ret = sql_query_gateway(m_gw->gw_no);
-	if(ret > 0)
-	{
-		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
-			"INSERT INTO gateways (id, gwsn, apptype, ipaddr, ",
-			"name, data, created_at, updated_at) VALUES (NULL, \'",
-			gwno_str,
-			"\', \'",
-			apptype_str,
-			"\', \'",
-			m_gw->ipaddr,
-			"\', \'",
-			get_mix_name(m_gw->zapp_type, 
-				m_gw->gw_no[sizeof(zidentify_no_t)-2], 
-				m_gw->gw_no[sizeof(zidentify_no_t)-1]),
-			"\', \'",
-			data,
-			"\', \'",
-			get_current_time(),
-			"\', \'",
-			get_current_time(),
-			"\')");
-
-		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-		return sql_excute_cmdline(GET_CMD_LINE());
-	}
-	else if(ret == 0)
-	{
-		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s", 
-				"UPDATE gateways SET apptype=\'",
-				apptype_str,
-				"\', data=\'",
-				data,
-				"\', ipaddr=\'",
-				m_gw->ipaddr,
-				"\', updated_at=\'",
-				get_current_time(),
-				"\' WHERE gwsn=\'",
-				gwno_str,
-				"\'");
-
-		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-		return sql_excute_cmdline(GET_CMD_LINE());
-	}
-
-	return -1;
-}
-
-int sql_query_gateway(zidentify_no_t gw_no)
-{
-	char gwno_str[24] = {0};
-	incode_xtocs(gwno_str, gw_no, sizeof(zidentify_no_t));
-	SET_CMD_LINE("%s%s%s", 
-		"SELECT * FROM gateways WHERE gwsn=\'", 
-		gwno_str, 
-		"\'");
-
-	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-
-#ifdef DB_API_WITH_MYSQL
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
-	{
-		return -1;
-	}
-
-	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
-	{
-		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
-		return -1;
-	}
-
-    while((mysql_row = mysql_fetch_row(mysql_res)))
-    {
-		int nums = mysql_num_fields(mysql_res);
-		if(nums > 1 && !memcmp(mysql_row[1], gwno_str, sizeof(zidentify_no_t)))
-		{
-			mysql_free_result(mysql_res);
-			return 0;
-		}
-	}
-
-    mysql_free_result(mysql_res);
-#endif
-
-#ifdef DB_API_WITH_SQLITE
- 	sqlite3_stmt *stmt;
-    if(sqlite3_prepare_v2(sqlite_db,
-			GET_CMD_LINE(), -1, &stmt, NULL) != SQLITE_OK)
-    {
-		sqlite3_finalize(stmt);
-        DE_PRINTF(1, "%s()%d : sqlite prepare failed\n", __FUNCTION__, __LINE__);
-		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__, errmsg);
-        return -1;
-    }
-
-	while(sqlite3_step(stmt) == SQLITE_ROW)
-	{
-		int counts = sqlite3_column_count(stmt);
-		if(counts > 0)
-		{
-			sqlite3_finalize(stmt);
-			return 0;
-		}
-	}
-	sqlite3_finalize(stmt);
-#endif
-
-	return 1;
-}
-
-int sql_del_gateway(zidentify_no_t gw_no)
-{
-	char gwno_str[24] = {0};
-	incode_xtocs(gwno_str, gw_no, sizeof(zidentify_no_t));
-
-	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE serialnum=\'",
-		gwno_str,
-		"\'");
-
-	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	return sql_excute_cmdline(GET_CMD_LINE());
-}
-
-#ifdef DB_API_WITH_MYSQL
 int get_user_info_from_sql(char *email, cli_user_t *user_info)
 {
 	if(email == NULL || user_info == NULL)
@@ -627,7 +294,7 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 		"\'");
 
 	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
 	{
 		return -1;
 	}
@@ -845,7 +512,7 @@ void sync_devices_with_user_sql(char *email, devices_t *devs)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
 	{
 		return;
 	}
@@ -920,7 +587,7 @@ void sync_devices_with_user_sql(char *email, devices_t *devs)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			sqlserver_excute_cmdline(GET_CMD_LINE());
 
 			cJSON_Delete(pRoot);
 			free(devices);
@@ -944,7 +611,7 @@ void sync_areas_with_user_sql(char *email, areas_t *areas)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
 	{
 		return;
 	}
@@ -1007,7 +674,7 @@ void sync_areas_with_user_sql(char *email, areas_t *areas)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			sqlserver_excute_cmdline(GET_CMD_LINE());
 
 			cJSON_Delete(pRoot);
 			free(areas);
@@ -1031,7 +698,7 @@ void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
 	{
 		return;
 	}
@@ -1139,7 +806,7 @@ void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			sqlserver_excute_cmdline(GET_CMD_LINE());
 
 			cJSON_Delete(pRoot);
 			free(devices);
@@ -1298,7 +965,7 @@ void del_devices_from_user_sql(char *email, devices_t *devs)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
 	{
 		return;
 	}
@@ -1356,7 +1023,7 @@ void del_devices_from_user_sql(char *email, devices_t *devs)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			sqlserver_excute_cmdline(GET_CMD_LINE());
 
 			cJSON_Delete(pRoot);
 			free(devices);
@@ -1380,7 +1047,7 @@ void del_areas_from_user_sql(char *email, areas_t *areas)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
 	{
 		return;
 	}
@@ -1437,7 +1104,7 @@ void del_areas_from_user_sql(char *email, areas_t *areas)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			sqlserver_excute_cmdline(GET_CMD_LINE());
 
 			cJSON_Delete(pRoot);
 			free(areas);
@@ -1461,7 +1128,7 @@ void del_scenes_from_user_sql(char *email, scenes_t *scenes)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
 	{
 		return;
 	}
@@ -1519,7 +1186,7 @@ void del_scenes_from_user_sql(char *email, scenes_t *scenes)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			sqlserver_excute_cmdline(GET_CMD_LINE());
 
 			cJSON_Delete(pRoot);
 			free(devices);
@@ -1543,7 +1210,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 		"\'");
 
 	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	if(sql_excute_cmdline(GET_CMD_LINE()) < 0)
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
 	{
 		return -1;
 	}
@@ -1604,7 +1271,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 						"\'");
 
 			DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-			sql_excute_cmdline(GET_CMD_LINE());
+			sqlserver_excute_cmdline(GET_CMD_LINE());
 
 			cJSON_Delete(pRoot);
 			free(devices);
@@ -1636,60 +1303,13 @@ int set_device_to_user_sql(char *email, char *dev_str)
 				"\'");
 
 	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-	sql_excute_cmdline(GET_CMD_LINE());
+	sqlserver_excute_cmdline(GET_CMD_LINE());
 
 	cJSON_Delete(pRoot);
 	free(devices);
 
     mysql_free_result(mysql_res);
 	return 1;
-}
-#endif
-
-void sql_test()
-{
-#ifdef DB_API_WITH_MYSQL
-     MYSQL mysql_conn;
-	 global_conf_t *m_conf = get_global_conf();
-
-     if (mysql_init(&mysql_conn) != NULL)
-     {
-         if (mysql_real_connect(&mysql_conn, DB_SERVER, m_conf->db_user, 
-		 		m_conf->db_password, m_conf->db_name, 0, NULL, 0) != NULL)
-		 {
-		 	DE_PRINTF(1, "%s()%d : mysql connection OK!\n", __FUNCTION__, __LINE__);
-         }
-		 else 
-		 {
-		 	DE_PRINTF(1, "%s()%d : mysql connection failed.\n", __FUNCTION__, __LINE__);
-		 }
-      }
-	 else
-	 {
-	 	DE_PRINTF(1, "%s()%d : mysql initialization failed.\n", __FUNCTION__, __LINE__);
-	 }
-
-     mysql_close(&mysql_conn);
-#endif
-
-#ifdef DB_API_WITH_SQLITE
-	global_conf_t *m_conf = get_global_conf();
-
-	sqlite3 *sqlite_db = NULL;
-
-	char dbpath[64] = {0};
-	sprintf(dbpath, "/mnt/%s.db", m_conf->db_name);
-
-	if(sqlite3_open(dbpath, &sqlite_db) != SQLITE_OK)
-	{
-		DE_PRINTF(1, "%s()%d : sqlite connection failed.\n", __FUNCTION__, __LINE__);
-		DE_PRINTF(1, "%s", sqlite3_errmsg(sqlite_db));
-		return;
-	}
-
-	DE_PRINTF(1, "%s()%d : sqlite connection OK!\n", __FUNCTION__, __LINE__);
-	sqlite3_close(sqlite_db);
-#endif
 }
 #endif
 

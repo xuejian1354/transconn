@@ -18,7 +18,7 @@
 #include <services/balancer.h>
 #include <module/netapi.h>
 #ifdef DB_API_SUPPORT
-#include <module/dbopt.h>
+#include <module/dbserver.h>
 #endif
 
 int main(int argc, char **argv)
@@ -44,12 +44,12 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef DB_API_SUPPORT
-	if(sql_init() < 0)
+	if(sqlserver_init() < 0)
 	{
-		sql_release();
+		sqlserver_release();
 		return -1;
 	}
-	//sql_release();
+	//sqlserver_release();
 #endif
 
 #ifdef THREAD_POOL_SUPPORT

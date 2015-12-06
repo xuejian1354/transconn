@@ -21,21 +21,33 @@ There is the configurations and contents as follow:
 http. Use ',' separate it. And the protocols have priority. The
 left has more higher priority.
 
-  serial_port = /dev/ttyS1
+  serial_dev = /dev/ttyS1
   Configurate serial device. This is support only for client.
 
-  tcp_port = 11565
-  Configurate TCP comm port. Using '{$default_tcp_port}' can get
-system default tcp port.
+  main_ip = {$server_ip}
+  Configurate main server ip by TCP or UDP protocols. This is
+support only for client. The '{$val}' pattern can get val from
+system default. Using '{$[Server Name]_ip}' can get ip from
+/etc/balance_serlist.
 
   udp_port = 11578
   Configurate UDP comm port. Using '{$default_udp_port}' can get
 system default udp port.
 
+  tcp_port = 11565
+  Configurate TCP comm port. Using '{$default_tcp_port}' can get
+system default tcp port.
+
   http_url = http://{$server_ip}/request
   Configurate HTTP URL. This is support only for client. The '{$val}'
 pattern can get val from system default. Using '{$[Server Name]_ip}'
 can get ip from /etc/balance_serlist.
+
+  udp_timeout = 30000
+  tcp_timeout = 10000
+  http_timeout = 1000
+  Configurate protocols heartbeat timeout. The time unit is 'ms'. These
+are support only for client. The protocols support UDP, TCP & HTTP.
 
   apk_update_dir = /mnt/android_apk
   Configurate update android apk locates. This is support only for
@@ -44,6 +56,6 @@ server.
   db_database = loongsmart
   db_username = root
   db_password = 123
-  Configurate database name, user & password. There is support mysql &
+  Configurate database name, user & password. There are support mysql or
 sqlite. The sqlite does not use 'db_username' & 'db_password'.
 

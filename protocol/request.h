@@ -19,7 +19,7 @@
 #define __REQUEST_H__
 
 #include <services/globals.h>
-#include <protocol/devalloc.h>
+#include <protocol/old/devalloc.h>
 #include <module/netapi.h>
 #include <protocol/common/fieldlysis.h>
 
@@ -61,8 +61,11 @@ void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres
 
 #ifdef COMM_CLIENT
 void sync_gateway_info(gw_info_t *pgw_info);
-void sync_zdev_info(dev_info_t *pdev_info);
+void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info);
 void upload_data(uint8 isrefresh, char *random);
 void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback);
 #endif
+
+void trans_send_frame_request(frhandler_arg_t *arg, char *frame);
+
 #endif  //__REQUEST_H__

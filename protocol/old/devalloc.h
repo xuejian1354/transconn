@@ -20,9 +20,9 @@
 #include <services/globals.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <protocol/framelysis.h>
-#include <protocol/devopt.h>
-#include <protocol/users.h>
+#include <protocol/old/framelysis.h>
+#include <protocol/old/devopt.h>
+#include <protocol/old/users.h>
 
 #define GATEWAY_BUFFER_FIX_SIZE		34
 #define ZDEVICE_BUFFER_SIZE		23

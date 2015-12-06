@@ -18,7 +18,7 @@
 #define __PROTOCOL_H__
 
 #include <services/globals.h>
-#include <protocol/devices.h>
+#include <protocol/old/devices.h>
 
 #ifdef COMM_CLIENT
 void analysis_zdev_frame(void *ptr);

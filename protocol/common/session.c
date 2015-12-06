@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  */
 #include "session.h"
-#include <sqlite3.h>
 #include <protocol/request.h>
 #include <protocol/common/mevent.h>
 #include <module/netapi.h>
-#include <module/dbopt.h>
+#ifdef COMM_CLIENT
 #include <services/balancer.h>
-
-extern char cmdline[CMDLINE_SIZE];
+#include <module/dbclient.h>
+#endif
 
 static sessionsta_t session_status;
 static transtocol_t transtocol;
@@ -126,6 +125,7 @@ transtocol_t get_trans_protocol()
 #endif
 }
 
+#ifdef COMM_CLIENT
 void set_syncdata_checkcode(char *code)
 {
 	bzero(checkcode, sizeof(checkcode));
@@ -152,47 +152,7 @@ char *gen_current_checkcode(zidentify_no_t gw_sn)
 	if(p_gw != NULL)
 	{
 #ifdef DB_API_WITH_SQLITE
-		char gwsn[20] = {0};
-		incode_xtocs(gwsn, p_gw->gw_no, sizeof(zidentify_no_t));
-		SET_CMD_LINE("%s%s%s",
-						"SELECT data,isonline FROM devices WHERE gwsn=\'",
-						gwsn,
-						"\'");
-
-	 	sqlite3_stmt *stmt;
-	    if(sqlite3_prepare_v2(get_sqlite_db(), GET_CMD_LINE(), -1, &stmt, NULL) == SQLITE_OK)
-	    {		
-	        while(sqlite3_step(stmt) == SQLITE_ROW)
-			{
-				if(sqlite3_column_count(stmt) > 1)
-				{
-					const char *data = sqlite3_column_text(stmt, 0);
-					const char *isonline = sqlite3_column_text(stmt, 1);
-					if(data == NULL || isonline == NULL)
-					{
-						continue;
-					}
-
-					int data_len = strlen(data);
-
-					if(text == NULL)
-					{
-						text = calloc(1, data_len+2);
-						text_len = data_len + 2;
-					}
-					else
-					{
-						text = realloc(text, text_len+data_len+1);
-						text_len += data_len+1;
-					}
-
-					memcpy(text+text_len-data_len-2, data, data_len);
-					*(text+text_len-2) = *isonline;
-					*(text+text_len-1) = '\0';
-				}
-			}
-	    }
-		sqlite3_finalize(stmt);
+		sqlclient_get_devdatas(&text, &text_len);
 #else
 		dev_info_t *p_dev = p_gw->p_dev;
 		while(p_dev != NULL)
@@ -230,6 +190,7 @@ char *gen_current_checkcode(zidentify_no_t gw_sn)
 
 	return checkcode;
 }
+#endif
 
 void session_handler()
 {
