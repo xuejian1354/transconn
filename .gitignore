@@ -1,6 +1,8 @@
 *.[oa]
 transconn
 connect_listen
+smartplat
+smartlab
 *.swp
 
 include/*

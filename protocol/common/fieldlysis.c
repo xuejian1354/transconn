@@ -249,22 +249,36 @@ trfield_device_t *get_trfield_device_alloc(char *name,
 	return device;
 }
 
-trfield_ctrl_t *get_trfield_ctrl_alloc(sn_t* dev_sns, int dev_size, char *cmd)
+trfield_ctrl_t *get_trfield_ctrl_alloc(sn_t dev_sn, char *cmd)
 {
-	if(dev_sns == NULL || dev_size<=0 || cmd == NULL)
+	if(dev_sn == NULL || cmd == NULL)
 	{
 		return NULL;
 	}
 	
 	trfield_ctrl_t *ctrl = calloc(1, sizeof(trfield_ctrl_t));
-	ctrl->dev_sns = dev_sns;
-	ctrl->sn_size = dev_size;
+
+	STRS_MEMCPY(ctrl->dev_sn, dev_sn, sizeof(ctrl->dev_sn), strlen(dev_sn));
 	STRS_MEMCPY(ctrl->cmd, cmd, sizeof(ctrl->cmd), strlen(cmd));
 
 	return ctrl;
 }
 
-trfr_tocolreq_t *get_trfr_tocolreq_alloc(char *protocol, char *random)
+trfield_obj_t *get_trfield_obj_alloc(char *owner, char *custom)
+{
+	if(owner == NULL || custom == NULL)
+	{
+		return NULL;
+	}
+
+	trfield_obj_t *obj = calloc(1, sizeof(trfield_obj_t));
+	STRS_MEMCPY(obj->owner, owner, sizeof(obj->owner), strlen(owner));
+	STRS_MEMCPY(obj->custom, custom, sizeof(obj->custom), strlen(custom));
+
+	return obj;
+}
+
+trfr_tocolreq_t *get_trfr_tocolreq_alloc(trfield_obj_t *obj, sn_t gw_sn, char *protocol, char *random)
 {
 	if(protocol == NULL)
 	{
@@ -273,6 +287,8 @@ trfr_tocolreq_t *get_trfr_tocolreq_alloc(char *protocol, char *random)
 
 	trfr_tocolreq_t *tocolreq = calloc(1, sizeof(trfr_tocolreq_t));
 	tocolreq->action = ACTION_TOCOLREQ;
+	tocolreq->obj = obj;
+	STRS_MEMCPY(tocolreq->gw_sn, gw_sn, sizeof(tocolreq->gw_sn), strlen(gw_sn));
 	STRS_MEMCPY(tocolreq->protocol, 
 		protocol, sizeof(tocolreq->protocol), strlen(protocol));
 
@@ -292,19 +308,23 @@ trfr_tocolreq_t *get_trfr_tocolreq_alloc(char *protocol, char *random)
 
 void get_trfr_tocolreq_free(trfr_tocolreq_t *tocolreq)
 {
+	if(tocolreq != NULL)
+	{
+		free(tocolreq->obj);
+	}
 	free(tocolreq);
 }
 
-trfr_report_t *get_trfr_report_alloc(sn_t gw_sn, trfield_device_t **devices, int dev_size, char *random)
+trfr_report_t *get_trfr_report_alloc(trfield_obj_t *obj, sn_t gw_sn, trfield_device_t **devices, int dev_size, char *random)
 {
 	if(gw_sn == NULL || devices == NULL || dev_size <= 0)
 	{
 		return NULL;
 	}
 
-	int i;
 	trfr_report_t *report = calloc(1, sizeof(trfr_report_t));
 	report->action = ACTION_REPORT;
+	report->obj = obj;
 	STRS_MEMCPY(report->gw_sn, gw_sn, sizeof(report->gw_sn), strlen(gw_sn));
 	report->devices = devices;
 	report->dev_size = dev_size;
@@ -327,6 +347,8 @@ void get_trfr_report_free(trfr_report_t *report)
 {
 	if(report != NULL)
 	{
+		free(report->obj);
+
 		if(report->devices != NULL && report->dev_size > 0)
 		{
 			int i = report->dev_size;
@@ -341,7 +363,7 @@ void get_trfr_report_free(trfr_report_t *report)
 	}
 }
 
-trfr_check_t *get_trfr_check_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *code_check, char *code_data, char *random)
+trfr_check_t *get_trfr_check_alloc(trfield_obj_t *obj, sn_t gw_sn, sn_t dev_sns[], int sn_size, char *code_check, char *code_data, char *random)
 {
 	if(gw_sn == NULL ||  code_check == NULL || code_data == NULL)
 	{
@@ -351,6 +373,7 @@ trfr_check_t *get_trfr_check_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char
 	int i;
 	trfr_check_t *check = calloc(1, sizeof(trfr_check_t));
 	check->action = ACTION_CHECK;
+	check->obj = obj;
 	STRS_MEMCPY(check->gw_sn, gw_sn, sizeof(check->gw_sn), strlen(gw_sn));
 	check->dev_sns = dev_sns;
 	check->sn_size = sn_size;
@@ -378,6 +401,8 @@ void get_trfr_check_free(trfr_check_t *check)
 {
 	if(check != NULL)
 	{
+		free(check->obj);
+
 		if(check->dev_sns!= NULL)
 		{
 			free(check->dev_sns);
@@ -387,7 +412,7 @@ void get_trfr_check_free(trfr_check_t *check)
 	}
 }
 
-trfr_respond_t *get_trfr_respond_alloc(sn_t gw_sn, sn_t dev_sn, char *dev_data, char *random)
+trfr_respond_t *get_trfr_respond_alloc(trfield_obj_t *obj, sn_t gw_sn, sn_t dev_sn, char *dev_data, char *random)
 {
 	if(gw_sn == NULL || dev_sn == NULL || dev_data == NULL)
 	{
@@ -396,6 +421,7 @@ trfr_respond_t *get_trfr_respond_alloc(sn_t gw_sn, sn_t dev_sn, char *dev_data, 
 
 	trfr_respond_t *respond = calloc(1, sizeof(trfr_respond_t));
 	respond->action = ACTION_RESPOND;
+	respond->obj = obj;
 	STRS_MEMCPY(respond->gw_sn, gw_sn, sizeof(respond->gw_sn), strlen(gw_sn));
 	STRS_MEMCPY(respond->dev_sn, dev_sn, sizeof(respond->dev_sn), strlen(dev_sn));
 	STRS_MEMCPY(respond->dev_data, 
@@ -418,10 +444,14 @@ trfr_respond_t *get_trfr_respond_alloc(sn_t gw_sn, sn_t dev_sn, char *dev_data, 
 
 void get_trfr_respond_free(trfr_respond_t *respond)
 {
+	if(respond != NULL)
+	{
+		free(respond->obj);
+	}
 	free(respond);
 }
 
-trfr_refresh_t *get_trfr_refresh_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, char *random)
+trfr_refresh_t *get_trfr_refresh_alloc(trfield_obj_t *obj, sn_t gw_sn, sn_t dev_sns[], int sn_size, char *random)
 {
 	if(gw_sn == NULL || dev_sns == NULL || sn_size <=0)
 	{
@@ -431,6 +461,7 @@ trfr_refresh_t *get_trfr_refresh_alloc(sn_t gw_sn, sn_t dev_sns[], int sn_size, 
 	int i;
 	trfr_refresh_t *refresh = calloc(1, sizeof(trfr_refresh_t));
 	refresh->action = ACTION_REFRESH;
+	refresh->obj = obj;
 	STRS_MEMCPY(refresh->gw_sn, gw_sn, sizeof(refresh->gw_sn), strlen(gw_sn));
 	refresh->dev_sns = dev_sns;
 	refresh->sn_size = sn_size;
@@ -454,6 +485,7 @@ void get_trfr_refresh_free(trfr_refresh_t *refresh)
 {
 	if(refresh != NULL)
 	{
+		free(refresh->obj);
 		if(refresh->dev_sns!= NULL)
 		{
 			free(refresh->dev_sns);
@@ -463,7 +495,7 @@ void get_trfr_refresh_free(trfr_refresh_t *refresh)
 	}
 }
 
-trfr_control_t *get_trfr_control_alloc(sn_t gw_sn, trfield_ctrl_t **ctrls, int ctrl_size, char *random)
+trfr_control_t *get_trfr_control_alloc(trfield_obj_t *obj, sn_t gw_sn, trfield_ctrl_t **ctrls, int ctrl_size, char *random)
 {
 	if(gw_sn == NULL || ctrls == NULL || ctrl_size <= 0)
 	{
@@ -473,6 +505,7 @@ trfr_control_t *get_trfr_control_alloc(sn_t gw_sn, trfield_ctrl_t **ctrls, int c
 	int i;
 	trfr_control_t *control = calloc(1, sizeof(trfr_control_t));
 	control->action = ACTION_CONTROL;
+	control->obj = obj;
 	STRS_MEMCPY(control->gw_sn, gw_sn, sizeof(control->gw_sn), strlen(gw_sn));
 	control->ctrls= ctrls;
 	control->ctrl_size= ctrl_size;
@@ -496,16 +529,13 @@ void get_trfr_control_free(trfr_control_t *control)
 {
 	if(control != NULL)
 	{
+		free(control->obj);
 		if(control->ctrls != NULL && control->ctrl_size > 0)
 		{
 			int i=0;
 			while(i < control->ctrl_size)
 			{
 				trfield_ctrl_t *ctrl = *(control->ctrls+i);
-				if(ctrl != NULL)
-				{
-					free(ctrl->dev_sns);
-				}
 				free(ctrl);
 
 				i++;
@@ -516,11 +546,17 @@ void get_trfr_control_free(trfr_control_t *control)
 	}
 }
 
-trfr_tocolres_t *get_trfr_tocolres_alloc(trans_action_t req_action, char *random)
+trfr_tocolres_t *get_trfr_tocolres_alloc(trfield_obj_t *obj, trans_action_t req_action, char *info, char *random)
 {
 	trfr_tocolres_t *tocolres = calloc(1, sizeof(trfr_tocolres_t));
 	tocolres->action = ACTION_TOCOLRES;
+	tocolres->obj = obj;
 	tocolres->req_action = req_action;
+
+	if(info != NULL)
+	{
+		STRS_MEMCPY(tocolres->info, info, sizeof(tocolres->info), strlen(info));
+	}
 
 	char *gen_md;
 	if(random == NULL)
@@ -539,6 +575,10 @@ trfr_tocolres_t *get_trfr_tocolres_alloc(trans_action_t req_action, char *random
 
 void get_trfr_tocolres_free(trfr_tocolres_t *tocolres)
 {
+	if(tocolres != NULL)
+	{
+		free(tocolres->obj);
+	}
 	free(tocolres);
 }
 

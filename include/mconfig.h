@@ -34,6 +34,7 @@
 //#define READ_CONF_FILE
 //#define DB_API_SUPPORT
 //#define DE_TRANS_UDP_STREAM_LOG
+//#define DE_TRANS_UDP_CONTROL
 
 #ifdef DB_API_SUPPORT
 #ifdef COMM_SERVER

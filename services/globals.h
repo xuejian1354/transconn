@@ -51,10 +51,10 @@
 #define TRANS_SERIAL_DEV	"/dev/ttyS1"
 
 //tcp protocol using port
-#define TRANS_TCP_PORT	11565
+#define TRANS_TCP_PORT	11665
 
 //udp protocol using port
-#define TRANS_UDP_PORT	11578
+#define TRANS_UDP_PORT	11678
 
 //path for android apk path
 #define TRANS_UPDATE_DIR	"/mnt/android_apk"
@@ -66,15 +66,16 @@
 
 #ifdef COMM_CLIENT
 //udp protocol using port
-#define TRANS_UDP_SELF_PORT	11578
-#define TRANS_UDP_REMOTE_PORT	11578
+#define TRANS_UDP_SELF_PORT	11678
+#define TRANS_UDP_REMOTE_PORT	11678
 #endif
 
-#ifdef DE_TRANS_UDP_STREAM_LOG
-#define DEU_UDP_CMD		"deudp"
-#define DEU_TCP_CMD		"detcp"
-#define DEU_UART_CMD	"deuart"
-#define DE_UDP_PORT		13688
+#if defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
+#define DEU_UDP_CMD			"deudp"
+#define DEU_TCP_CMD			"detcp"
+#define DEU_UART_CMD		"deuart"
+#define DE_UDP_PORT			13688
+#define DE_UDP_CTRL_PORT	13689
 #endif
 
 #define TRANS_UDP_TIMEOUT	30
@@ -175,7 +176,7 @@ typedef struct
 #endif
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	int udp_port;
 #ifdef COMM_CLIENT
 	int udp_timeout;

@@ -45,8 +45,12 @@ static uint8 deuart_flag = 1;
 #ifdef DE_TRANS_UDP_STREAM_LOG
 static struct sockaddr_in ulog_addr;
 #endif
+#ifdef DE_TRANS_UDP_CONTROL
+static struct sockaddr_in uctrl_addr;
+#endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
+static frhandler_arg_t t_arg;
 static int udpfd;
 static struct sockaddr_in m_addr;
 #endif
@@ -102,6 +106,18 @@ void get_frhandler_arg_free(frhandler_arg_t *arg)
 		free(arg);
 	}
 }
+
+#ifdef COMM_CLIENT
+frhandler_arg_t *get_transtocol_frhandler_arg()
+{
+	t_arg.transtocol = get_trans_protocol();
+	t_arg.addr.sin_family = PF_INET;
+	t_arg.addr.sin_port = htons(get_udp_port());
+	t_arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
+
+	return &t_arg;
+}
+#endif
 
 #ifdef TRANS_TCP_SERVER
 int get_stcp_fd()
@@ -318,7 +334,7 @@ void socket_tcp_client_close()
 }
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 int get_udp_fd()
 {
 	return udpfd;
@@ -340,6 +356,12 @@ int socket_udp_service_init(int port)
 	ulog_addr.sin_family = PF_INET;
 	ulog_addr.sin_port = htons(DE_UDP_PORT);
 	ulog_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+#endif
+
+#ifdef DE_TRANS_UDP_CONTROL
+	uctrl_addr.sin_family = PF_INET;
+	uctrl_addr.sin_port = htons(DE_UDP_CTRL_PORT);
+	uctrl_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 #endif
 	
 	if (bind(udpfd, (struct sockaddr *)&m_addr, sizeof(struct sockaddr)) < 0)
@@ -375,7 +397,7 @@ void socket_udp_recvfrom()
 	trans_data_show(DE_UDP_RECV, &client_addr, buf, nbytes);
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	frhandler_arg_t *frarg = 
 		get_frhandler_arg_alloc(udpfd, TOCOL_UDP, &client_addr, buf, nbytes);
 #ifdef THREAD_POOL_SUPPORT
@@ -472,6 +494,25 @@ void delog_udp_sendto(char *data, int len)
 
 	sendto(udpfd, data, len, 0, 
 		(struct sockaddr *)&ulog_addr, sizeof(struct sockaddr));
+}
+#endif
+
+#ifdef DE_TRANS_UDP_CONTROL
+void dectrl_udp_sendto(char *data, int len)
+{
+#ifdef DAEMON_PROCESS_CREATE
+	if(!get_daemon_cmdline())
+	{
+		char *pdata = calloc(1, len+1);
+		memcpy(pdata, data, len);
+		printf("%s", pdata);
+		free(pdata);
+		return;
+	}
+#endif
+
+	sendto(udpfd, data, len, 0, 
+		(struct sockaddr *)&uctrl_addr, sizeof(struct sockaddr));
 }
 #endif
 

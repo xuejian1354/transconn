@@ -32,6 +32,7 @@ void timer_func(int sig)
 	
 	while(t_event != NULL)
 	{
+		pthread_mutex_lock(&timer_lock);
 		if(t_event->param.immediate)
 		{
 			t_event->interval_count = 0;
@@ -54,6 +55,7 @@ void timer_func(int sig)
 		{
 			del_timer_event(t_event->timer_id);
 		}
+		pthread_mutex_unlock(&timer_lock);
 		
 		t_event = t_event->next;
 	}
@@ -170,9 +172,9 @@ int del_timer_event(int timer_id)
 			{
 				p_event = p_event->next;
 			}
+			free(t_event);
 			pthread_mutex_unlock(&timer_lock);
 
-			free(t_event);
 			return 0;
 		}
 		pre_event = t_event;

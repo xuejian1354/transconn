@@ -72,7 +72,7 @@ void select_wtclr(int fd)
 int select_listen()
 {
 	int i, ret;
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	int udpfd = get_udp_fd();
 #endif
 	
@@ -81,7 +81,7 @@ int select_listen()
 	ret = pselect(maxfd+1, &current_rdfs, &current_wtfs, NULL, NULL, &sigmask);
 	if(ret > 0)
 	{
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 		if(FD_ISSET(udpfd, &current_rdfs))
 		{
 			socket_udp_recvfrom();

@@ -125,6 +125,18 @@ transtocol_t get_trans_protocol()
 #endif
 }
 
+char *get_trans_protocol_to_str(transtocol_t tocol)
+{
+	switch(tocol)
+	{
+	case TOCOL_UDP: return "udp";
+	case TOCOL_TCP: return "tcp";
+	case TOCOL_HTTP: return "http";
+	}
+
+	return "";
+}
+
 #ifdef COMM_CLIENT
 void set_syncdata_checkcode(char *code)
 {

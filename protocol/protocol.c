@@ -351,6 +351,24 @@ void analysis_capps_frame(void *ptr)
 #ifdef COMM_SERVER
 	case ACTION_TOCOLREQ:
 	{
+		trfield_obj_t *obj = NULL;
+		cJSON *pObj = cJSON_GetObjectItem(pRoot, JSON_FIELD_OBJECT);
+		if(pObj != NULL)
+		{
+			cJSON *pOwner = cJSON_GetObjectItem(pRoot, JSON_FIELD_OWNER);
+			cJSON *pCustom = cJSON_GetObjectItem(pRoot, JSON_FIELD_CUSTOM);
+			if(pOwner != NULL && pCustom != NULL)
+			{
+				obj = get_trfield_obj_alloc(pOwner->valuestring, pCustom->valuestring);
+			}
+		}
+
+		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
+		if(pGateway == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
 		cJSON *pProtocol = cJSON_GetObjectItem(pRoot, JSON_FIELD_PROTOCOL);
 		if(pProtocol == NULL)
 		{
@@ -364,7 +382,10 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_tocolreq_t *tocolreq =
-			get_trfr_tocolreq_alloc(pProtocol->valuestring, pRandom->valuestring);
+			get_trfr_tocolreq_alloc(obj,
+										pGateway->valuestring,
+										pProtocol->valuestring,
+										pRandom->valuestring);
 		trans_tocolreq_handler(arg, tocolreq);
 		get_trfr_tocolreq_free(tocolreq);
 	}
@@ -372,6 +393,18 @@ void analysis_capps_frame(void *ptr)
 
 	case ACTION_REPORT:
 	{
+		trfield_obj_t *obj = NULL;
+		cJSON *pObj = cJSON_GetObjectItem(pRoot, JSON_FIELD_OBJECT);
+		if(pObj != NULL)
+		{
+			cJSON *pOwner = cJSON_GetObjectItem(pRoot, JSON_FIELD_OWNER);
+			cJSON *pCustom = cJSON_GetObjectItem(pRoot, JSON_FIELD_CUSTOM);
+			if(pOwner != NULL && pCustom != NULL)
+			{
+				obj = get_trfield_obj_alloc(pOwner->valuestring, pCustom->valuestring);
+			}
+		}
+
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
 		{
@@ -432,7 +465,8 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_report_t *report = 
-			get_trfr_report_alloc(pGateway->valuestring,
+			get_trfr_report_alloc(obj,
+									pGateway->valuestring,
 									devices,
 									dev_size,
 									pRandom->valuestring);
@@ -444,6 +478,17 @@ void analysis_capps_frame(void *ptr)
 
 	case ACTION_CHECK:
 	{
+		trfield_obj_t *obj = NULL;
+		cJSON *pObj = cJSON_GetObjectItem(pRoot, JSON_FIELD_OBJECT);
+		if(pObj != NULL)
+		{
+			cJSON *pOwner = cJSON_GetObjectItem(pRoot, JSON_FIELD_OWNER);
+			cJSON *pCustom = cJSON_GetObjectItem(pRoot, JSON_FIELD_CUSTOM);
+			if(pOwner != NULL && pCustom != NULL)
+			{
+				obj = get_trfield_obj_alloc(pOwner->valuestring, pCustom->valuestring);
+			}
+		}
 
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
@@ -501,7 +546,8 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_check_t *check = 
-			get_trfr_check_alloc(pGateway->valuestring, 
+			get_trfr_check_alloc(obj,
+									pGateway->valuestring, 
 									dev_sns, 
 									devsn_size, 
 									pCodeCheck->valuestring, 
@@ -515,6 +561,18 @@ void analysis_capps_frame(void *ptr)
 
 	case ACTION_RESPOND:
 	{
+		trfield_obj_t *obj = NULL;
+		cJSON *pObj = cJSON_GetObjectItem(pRoot, JSON_FIELD_OBJECT);
+		if(pObj != NULL)
+		{
+			cJSON *pOwner = cJSON_GetObjectItem(pRoot, JSON_FIELD_OWNER);
+			cJSON *pCustom = cJSON_GetObjectItem(pRoot, JSON_FIELD_CUSTOM);
+			if(pOwner != NULL && pCustom != NULL)
+			{
+				obj = get_trfield_obj_alloc(pOwner->valuestring, pCustom->valuestring);
+			}
+		}
+
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
 		{
@@ -540,19 +598,32 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_respond_t *respond = 
-			get_trfr_respond_alloc(pGateway->valuestring, 
-										pDevSN->valuestring, 
-										pDevData->valuestring,
-										pRandom->valuestring);
+			get_trfr_respond_alloc(obj,
+									pGateway->valuestring, 
+									pDevSN->valuestring, 
+									pDevData->valuestring,
+									pRandom->valuestring);
 
 		trans_respond_handler(arg, respond);
 		get_trfr_respond_free(respond);
 	}
 		break;
 #endif
-#ifdef COMM_CLIENT
+#if defined(COMM_CLIENT) || defined(DE_TRANS_UDP_CONTROL)
 	case ACTION_REFRESH:
 	{
+		trfield_obj_t *obj = NULL;
+		cJSON *pObj = cJSON_GetObjectItem(pRoot, JSON_FIELD_OBJECT);
+		if(pObj != NULL)
+		{
+			cJSON *pOwner = cJSON_GetObjectItem(pRoot, JSON_FIELD_OWNER);
+			cJSON *pCustom = cJSON_GetObjectItem(pRoot, JSON_FIELD_CUSTOM);
+			if(pOwner != NULL && pCustom != NULL)
+			{
+				obj = get_trfield_obj_alloc(pOwner->valuestring, pCustom->valuestring);
+			}
+		}
+
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
 		{
@@ -586,7 +657,8 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_refresh_t *refresh = 
-			get_trfr_refresh_alloc(pGateway->valuestring, 
+			get_trfr_refresh_alloc(obj,
+									pGateway->valuestring, 
 									dev_sns, 
 									devsn_size,
 									pRandom->valuestring);
@@ -598,6 +670,18 @@ void analysis_capps_frame(void *ptr)
 
 	case ACTION_CONTROL:
 	{
+		trfield_obj_t *obj = NULL;
+		cJSON *pObj = cJSON_GetObjectItem(pRoot, JSON_FIELD_OBJECT);
+		if(pObj != NULL)
+		{
+			cJSON *pOwner = cJSON_GetObjectItem(pRoot, JSON_FIELD_OWNER);
+			cJSON *pCustom = cJSON_GetObjectItem(pRoot, JSON_FIELD_CUSTOM);
+			if(pOwner != NULL && pCustom != NULL)
+			{
+				obj = get_trfield_obj_alloc(pOwner->valuestring, pCustom->valuestring);
+			}
+		}
+
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
 		if(pGateway == NULL)
 		{
@@ -639,39 +723,20 @@ void analysis_capps_frame(void *ptr)
 			cJSON *pCmd = cJSON_GetObjectItem(pCtrl, JSON_FIELD_CMD);
 			if(pCmd == NULL) continue;
 
-			cJSON *pDevSNs = cJSON_GetObjectItem(pCtrl, JSON_FIELD_DEVSNS);
-			int devsn_size;
-			sn_t *dev_sns;
-			if(pDevSNs == NULL)
+			cJSON *pDevSN = cJSON_GetObjectItem(pCtrl, JSON_FIELD_DEVSN);
+			if(pDevSN == NULL)
 			{
-				devsn_size = 0;
-				dev_sns = NULL;
-			}
-			else
-			{
-				devsn_size = cJSON_GetArraySize(pDevSNs);
-				dev_sns = calloc(devsn_size, sizeof(sn_t));
-			}
-			
-
-			int j = 0;
-			while(j < devsn_size)
-			{
-				cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
-				j++;
-				if(pDevSN == NULL) continue;
-
-				STRS_MEMCPY(dev_sns+j-1, pDevSN->valuestring, 
-						sizeof(sn_t), strlen(pDevSN->valuestring));
+				continue;
 			}
 
 			*(ctrls + i - 1) = 
-				get_trfield_ctrl_alloc(dev_sns, devsn_size, pCmd->valuestring);
+				get_trfield_ctrl_alloc(pDevSN->valuestring, pCmd->valuestring);
 		}
 
 		trfr_control_t *control = 
-			get_trfr_control_alloc(pGateway->valuestring, 
-									ctrls, 
+			get_trfr_control_alloc(obj,
+									pGateway->valuestring,
+									ctrls,
 									ctrl_size,
 									pRandom->valuestring);
 
@@ -679,13 +744,32 @@ void analysis_capps_frame(void *ptr)
 		get_trfr_control_free(control);
 	}
 		break;
-
+#endif
 	case ACTION_TOCOLRES:
 	{
+		trfield_obj_t *obj = NULL;
+		cJSON *pObj = cJSON_GetObjectItem(pRoot, JSON_FIELD_OBJECT);
+		if(pObj != NULL)
+		{
+			cJSON *pOwner = cJSON_GetObjectItem(pRoot, JSON_FIELD_OWNER);
+			cJSON *pCustom = cJSON_GetObjectItem(pRoot, JSON_FIELD_CUSTOM);
+			if(pOwner != NULL && pCustom != NULL)
+			{
+				obj = get_trfield_obj_alloc(pOwner->valuestring, pCustom->valuestring);
+			}
+		}
+
 		cJSON *pReqAction = cJSON_GetObjectItem(pRoot, JSON_FIELD_REQACTION);
 		if(pReqAction == NULL)
 		{
 			goto capps_cjson_end;
+		}
+
+		char *info_str = NULL;
+		cJSON *pInfo = cJSON_GetObjectItem(pRoot, JSON_FIELD_INFO);
+		if(pInfo != NULL)
+		{
+			info_str = pInfo->valuestring;
 		}
 
 		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
@@ -695,12 +779,14 @@ void analysis_capps_frame(void *ptr)
 		}
 
 		trfr_tocolres_t *tocolres =
-			get_trfr_tocolres_alloc(atoi(pReqAction->valuestring), pRandom->valuestring);
+			get_trfr_tocolres_alloc(obj,
+										atoi(pReqAction->valuestring),
+										info_str,
+										pRandom->valuestring);
 		trans_tocolres_handler(arg, tocolres);
 		get_trfr_tocolres_free(tocolres);
 	}
 		break;
-#endif
 	}
 
 capps_cjson_end:

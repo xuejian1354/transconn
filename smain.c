@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	select_init();
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) ||  defined(DE_TRANS_UDP_CONTROL)
 	if (socket_udp_service_init(get_udp_port()) < 0)
 	{
 		return -1;

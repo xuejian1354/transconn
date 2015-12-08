@@ -29,6 +29,8 @@ static MYSQL mysql_conn;
 static MYSQL_RES *mysql_res;
 static MYSQL_ROW mysql_row;
 
+static char tcolumn[128];
+
 static pthread_mutex_t sqlserver_lock;
 
 static char is_userful = 0;
@@ -144,6 +146,151 @@ void sqlserver_release()
 int sqlserver_isuse()
 {
 	return is_userful;
+}
+
+int sqlserver_add_gateway(frhandler_arg_t *arg, sn_t gwsn)
+{
+	if(arg == NULL || gwsn == NULL)
+	{
+		return -1;
+	}
+
+	int udp_port = 0;
+	int tcp_port = 0;
+
+	switch(arg->transtocol)
+	{
+	case TOCOL_UDP:
+		udp_port = ntohs(arg->addr.sin_port);
+		break;
+
+	case TOCOL_TCP:
+		tcp_port = ntohs(arg->addr.sin_port);
+		break;
+	}
+
+	int ret = sqlserver_query_gateway(gwsn);
+	if(ret == 0)
+	{
+		SET_CMD_LINE("%s%s%s%s%s%d%s%d%s%s%s%s%s",
+				"UPDATE gateways SET transtocol=\'",
+				get_trans_protocol_to_str(arg->transtocol),
+				"\', ip=\'",
+				inet_ntoa(arg->addr.sin_addr),
+				"\', udp_port=\'",
+				udp_port,
+				"\', tcp_port=\'",
+				tcp_port,
+				"\', http_url=\'0\', updatetime=\'",
+				get_current_time(),
+				"\' WHERE gw_sn=\'",
+				gwsn,
+				"\'");
+
+		//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+		return sqlserver_excute_cmdline(GET_CMD_LINE());
+	}
+	else if(ret > 0)
+	{
+		uint8 rannum[2];
+		incode_ctoxs(rannum, gwsn+12, 2);
+		incode_ctoxs(rannum+1, gwsn+14, 2);
+
+		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s%d%s%d%s%s%s%s%s", 
+			"INSERT INTO gateways (id, name, gw_sn, transtocol, ",
+			"ip, udp_port, tcp_port, http_url, area, updatetime) ",
+			"VALUES (NULL, \'",
+			get_mix_name(FRAPP_CONNECTOR, rannum[0], rannum[1]),
+			"\', \'",
+			gwsn,
+			"\', \'",
+			get_trans_protocol_to_str(arg->transtocol),
+			"\', \'",
+			inet_ntoa(arg->addr.sin_addr),
+			"\', \'",
+			udp_port,
+			"\', \'",
+			tcp_port,
+			"\', \'0\', \'",
+			NO_AREA,
+			"\', \'",
+			get_current_time(),
+			"\')");
+
+		//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+		return sqlserver_excute_cmdline(GET_CMD_LINE());
+	}
+
+	return -1;
+}
+
+int sqlserver_query_gateway(sn_t gwsn)
+{
+	SET_CMD_LINE("%s%s%s", 
+		"SELECT * FROM gateways WHERE gw_sn=\'", 
+		gwsn, 
+		"\'");
+
+	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
+	{
+		return -1;
+	}
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
+		return -1;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums > 0)
+		{
+			mysql_free_result(mysql_res);
+			return 0;
+		}
+	}
+	mysql_free_result(mysql_res);
+
+	return 1;
+}
+
+char *sqlserver_get_colum_from_gwsn(char *field, sn_t gwsn)
+{
+	SET_CMD_LINE("%s%s%s%s%s",
+		"SELECT ",
+		field,
+		" FROM gateways WHERE gw_sn=\'",
+		gwsn, 
+		"\'");
+
+	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
+	{
+		return NULL;
+	}
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
+		return NULL;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums > 0)
+		{
+			STRS_MEMCPY(tcolumn, mysql_row[0], sizeof(tcolumn), strlen(mysql_row[0]));
+			mysql_free_result(mysql_res);
+			return tcolumn;
+		}
+	}
+	mysql_free_result(mysql_res);
+
+	return NULL;
 }
 
 int sqlserver_add_zdevices(frhandler_arg_t *arg, trfr_report_t *report)

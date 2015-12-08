@@ -359,7 +359,6 @@ serial_update:
 #endif
 #endif
 
-#if defined(COMM_SERVER) || defined(COMM_CLIENT)
 				frhandler_arg_t *frarg = 
 					get_frhandler_arg_alloc(serial_id, TOCOL_NONE, NULL, tmpFrame, dataLen);
 
@@ -367,7 +366,6 @@ serial_update:
 				tpool_add_work(analysis_zdev_frame, frarg, TPOOL_LOCK);
 #else
 				analysis_zdev_frame(frarg);
-#endif
 #endif
 				memset(tmpFrame, 0, sizeof(tmpFrame));
             }

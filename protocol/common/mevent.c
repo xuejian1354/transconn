@@ -25,36 +25,66 @@
 
 #ifdef TIMER_SUPPORT
 #ifdef COMM_CLIENT
-static int heartbeat_interval;
+static int heartbeat_interval = 500;
 
 static void heartbeat_request(void *p);
 static void gateway_refresh(void *p);
+static void upload_refresh(void *p);
 static void zdev_watch(void *p);
 static void cli_watch(void *p);
 
 void gateway_init()
 {
-	timer_event_param_t timer_param;
-	timer_param.resident = 0;
-	timer_param.interval = 100;
-	timer_param.count = 1;
-	timer_param.immediate = 0;
-	timer_param.arg = NULL;
-	
-	set_mevent(GATEWAY_INIT_EVENT, gateway_refresh, &timer_param);
-
-	set_heartbeat_check(5000);
 	set_refresh_check();
+	set_heartbeat_check(1, 4000);
 }
 
-void set_heartbeat_check(int interval)
+void gateway_refresh(void *p)
+{
+	serial_write("D:/BR/0000:O\r\n", 14);
+
+	set_trans_protocol(TOCOL_NONE);
+}
+
+void upload_refresh(void *p)
+{
+	sn_t gw_sn = {0};
+	incode_xtocs(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+	if(!strcmp(gw_sn, "0000000000000000"))
+	{
+		serial_write("D:/BR/0000:O\r\n", 14);
+		return;
+	}
+
+#ifdef TRANS_UDP_SERVICE
+	frhandler_arg_t arg;
+	arg.addr.sin_family = PF_INET;
+	arg.addr.sin_port = htons(get_udp_port());
+	arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
+	trfr_tocolreq_t *utocolreq = get_trfr_tocolreq_alloc(NULL, gw_sn, TRANSTOCOL_UDP, NULL);
+	trans_send_tocolreq_request(&arg, utocolreq);
+	get_trfr_tocolreq_free(utocolreq);
+#endif
+#ifdef TRANS_TCP_CLIENT
+	trfr_tocolreq_t *ttocolreq = get_trfr_tocolreq_alloc(NULL, gw_sn, TRANSTOCOL_TCP, NULL);
+	trans_send_tocolreq_request(NULL, ttocolreq);
+	get_trfr_tocolreq_free(ttocolreq);
+#endif
+#ifdef TRANS_HTTP_REQUEST
+	trfr_tocolreq_t *htocolreq = get_trfr_tocolreq_alloc(NULL, gw_sn, TRANSTOCOL_HTTP, NULL);
+	trans_send_tocolreq_request(NULL, htocolreq);
+	get_trfr_tocolreq_free(htocolreq);
+#endif
+}
+
+void set_heartbeat_check(int immediate, int interval)
 {
 	timer_event_param_t timer_param;
 	heartbeat_interval = interval;
 	timer_param.resident = 1;
 	timer_param.interval = heartbeat_interval;
 	timer_param.count = 1;
-	timer_param.immediate = 0;
+	timer_param.immediate = immediate;
 
 	set_mevent(GATEWAY_HEARTBEAT_EVENT, heartbeat_request, &timer_param);
 }
@@ -64,12 +94,12 @@ void set_refresh_check()
 	timer_event_param_t timer_param;
 	
 	timer_param.resident = 1;
-	timer_param.interval = 2*heartbeat_interval+2000;
+	timer_param.interval = 2*heartbeat_interval+1000;
 	timer_param.count = 1;
 	timer_param.immediate = 0;
 	timer_param.arg = NULL;
 
-	set_mevent(TIMER_REFRESH_EVENT, gateway_refresh, &timer_param);
+	set_mevent(TIMER_REFRESH_EVENT, upload_refresh, &timer_param);
 }
 
 void heartbeat_request(void *p)
@@ -109,35 +139,6 @@ void heartbeat_request(void *p)
 		//Sorry, I forgot
 		break;
 	}
-}
-
-void gateway_refresh(void *p)
-{
-	serial_write("D:/BR/0000:O\r\n", 14);
-	set_trans_protocol(TOCOL_NONE);
-	heartbeat_interval = 2000;
-	set_refresh_check();
-
-#ifdef TRANS_UDP_SERVICE
-	frhandler_arg_t arg;
-	arg.addr.sin_family = PF_INET;
-	arg.addr.sin_port = htons(get_udp_port());
-	arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
-
-	trfr_tocolreq_t *utocolreq = get_trfr_tocolreq_alloc(TRANSTOCOL_UDP, NULL);
-	trans_send_tocolreq_request(&arg, utocolreq);
-	get_trfr_tocolreq_free(utocolreq);
-#endif
-#ifdef TRANS_TCP_CLIENT
-	trfr_tocolreq_t *ttocolreq = get_trfr_tocolreq_alloc(TRANSTOCOL_TCP, NULL);
-	trans_send_tocolreq_request(NULL, ttocolreq);
-	get_trfr_tocolreq_free(ttocolreq);
-#endif
-#ifdef TRANS_HTTP_REQUEST
-	trfr_tocolreq_t *htocolreq = get_trfr_tocolreq_alloc(TRANSTOCOL_HTTP, NULL);
-	trans_send_tocolreq_request(NULL, htocolreq);
-	get_trfr_tocolreq_free(htocolreq);
-#endif
 }
 
 void set_zdev_check(uint16 net_addr)

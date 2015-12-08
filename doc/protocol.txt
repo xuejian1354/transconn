@@ -27,10 +27,20 @@ making it easily to understand.
   Curtain		34
   Doorlock		35
 
+[obj]
+  This field will be exsit & used in some situations. The 'owner' is sender,
+and 'customer' is receiver. There are val is:
+  device, devices, gateway, server, client, clients, debug, etc
+
 [Data format(json)]
 Protocol Request/Respond
 {
 	action:		"1",
+	obj:	{
+		owner:	"gateway",
+		custom:	"server"
+	},
+	gw_sn:		"00124B000712ACC1",
 	protocol:	"http",
 	random:		"ba1f"
 }
@@ -38,6 +48,10 @@ Protocol Request/Respond
 Report Data
 {
 	action:		"2",
+	obj:	{
+		owner:	"gateway",
+		custom:	"server"
+	},
 	gw_sn:		"00124B000712ACC1",
 	devices:	[
 		{
@@ -68,6 +82,10 @@ Report Data
 Check Data
 {
 	action:		"3",
+	obj:	{
+		owner:	"gateway",
+		custom:	"server"
+	},
 	gw_sn:		"00124B000712ACC1",
 	dev_sns:	[
 		"00124B000712155C",
@@ -84,6 +102,10 @@ Check Data
 Data Respond
 {
 	action:		"4",
+	obj:	{
+		owner:	"gateway",
+		custom:	"server"
+	},
 	gw_sn:		"00124B000712ACC1",
 	dev_sn:		"00124B000712155C",
 	dev_data:	"",
@@ -93,6 +115,10 @@ Data Respond
 Refresh Request
 {
 	action:		"5",
+	obj:	{
+		owner:	"server",
+		custom:	"gateway"
+	},
 	gw_sn:		"00124B000712ACC1",
 	dev_sns:	[
 		"00124B000712155C",
@@ -105,20 +131,18 @@ Refresh Request
 Control Cmd
 {
 	action:		"6",
+	obj:	{
+		owner:	"server",
+		custom:	"gateway"
+	},
 	gw_sn:		"00124B000712ACC1",
 	ctrls:		[
 		{
-			dev_sns:	[
-				"00124B000712155C",
-				"00124B000712047A",
-				"00124B0007125274"
-			],
+			dev_sn:	"00124B000712155C",
 			cmd:	"01"
 		},
 		{
-			dev_sns:	[
-				"00124B0007128952",
-			],
+			dev_sn: "00124B0007128952",
 			cmd:	"FF"
 		}
 	],
@@ -128,7 +152,12 @@ Control Cmd
 TocolReq Returns
 {
 	action:		"7",
+	obj:	{
+		owner:	"server",
+		custom:	"gateway"
+	},
 	req_action:	"1",
+	info:		"",
 	random:		"7467"
 }
 

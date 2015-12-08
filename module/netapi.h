@@ -59,6 +59,10 @@ frhandler_arg_t *get_frhandler_arg_alloc(int fd,
 			transtocol_t transtocol, struct sockaddr_in *addr, char *buf, int len);
 void get_frhandler_arg_free(frhandler_arg_t *arg);
 
+#ifdef COMM_CLIENT
+frhandler_arg_t *get_transtocol_frhandler_arg();
+#endif
+
 #ifdef TRANS_TCP_SERVER
 int get_stcp_fd();
 int socket_tcp_server_init(int port);
@@ -74,7 +78,7 @@ void socket_tcp_client_send(char *data, int len);
 void socket_tcp_client_close();
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 int get_udp_fd();
 int socket_udp_service_init(int port);
 void socket_udp_sendto_with_ipaddr(char *ipaddr, char *data, int len);
@@ -86,6 +90,9 @@ void set_deuart_flag(uint8 flag);
 int get_deuart_flag();
 #ifdef DE_TRANS_UDP_STREAM_LOG
 void delog_udp_sendto(char *data, int len);
+#endif
+#ifdef DE_TRANS_UDP_CONTROL
+void dectrl_udp_sendto(char *data, int len);
 #endif
 
 #ifdef TRANS_HTTP_REQUEST
