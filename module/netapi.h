@@ -91,9 +91,6 @@ int get_deuart_flag();
 #ifdef DE_TRANS_UDP_STREAM_LOG
 void delog_udp_sendto(char *data, int len);
 #endif
-#ifdef DE_TRANS_UDP_CONTROL
-void dectrl_udp_sendto(char *data, int len);
-#endif
 
 #ifdef TRANS_HTTP_REQUEST
 size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp);

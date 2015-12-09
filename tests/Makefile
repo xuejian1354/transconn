@@ -29,7 +29,7 @@ LDFLAGS:=-lpthread
 DMACRO:=-DTARGET_NAME=\"$(TARGET)\" -DCLIENT_TEST -DTHREAD_POOL_SUPPORT -DTIMER_SUPPORT -DTRANS_UDP_SERVICE -DSELECT_SUPPORT
 
 .PHONY: all clean
-all:perznet deulog
+all:perznet deulog clar
 
 perznet:perznet.c $(TESTTOP)module/serial.c
 	$(TARGET_CC) -o $@ $^ -DSERIAL_SUPPORT $(INCLUDE) -w $(LDFLAGS)
@@ -39,5 +39,9 @@ deulog:deulog.c
 	$(TARGET_CC) -o $@ $^ $(INCLUDE) -DDE_TRANS_UDP_STREAM_LOG $(LDFLAGS)
 	@$(TARGET_STRIP) $@
 
+clar:clar.c
+	$(TARGET_CC) -o $@ $^ $(INCLUDE) -DDE_TRANS_UDP_CONTROL $(LDFLAGS)
+	@$(TARGET_STRIP) $@
+
 clean:
-	$(RM) *.o $(TARGET) perznet deulog
+	$(RM) *.o $(TARGET) perznet deulog clar

@@ -346,7 +346,7 @@ serial_update:
 					 tmpFrame[dataLen] = 0;
 					 dataLen--;
 				}
-			
+#if defined(COMM_SERVER) || defined(COMM_CLIENT)
 #ifdef DE_PRINT_SERIAL_PORT
 #ifdef DE_TRANS_UDP_STREAM_LOG
 				if(get_deuart_flag())
@@ -368,6 +368,7 @@ serial_update:
 				analysis_zdev_frame(frarg);
 #endif
 				memset(tmpFrame, 0, sizeof(tmpFrame));
+#endif
             }
             i++;
         }

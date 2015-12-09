@@ -245,7 +245,7 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 		&& !strcmp(refresh->obj->owner, INFO_OBJECT_DEBUG))
 	{
 		frhandler_arg_t *t_arg = NULL;
-		char *protocol = sqlserver_get_colum_from_gwsn("transtocol", refresh->gw_sn);
+		char *protocol = sqlserver_get_column_from_gwsn("transtocol", refresh->gw_sn);
 #ifdef TRANS_UDP_SERVICE
 		if(!strcmp(protocol, "udp"))
 		{
@@ -254,18 +254,18 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 			t_arg->transtocol = TOCOL_UDP;
 			t_arg->addr.sin_family = PF_INET;
 			t_arg->addr.sin_port =
-				htons(atoi(sqlserver_get_colum_from_gwsn("udp_port", refresh->gw_sn)));
+				htons(atoi(sqlserver_get_column_from_gwsn("udp_port", refresh->gw_sn)));
 			t_arg->addr.sin_addr.s_addr =
-				inet_addr(sqlserver_get_colum_from_gwsn("ip", refresh->gw_sn));
+				inet_addr(sqlserver_get_column_from_gwsn("ip", refresh->gw_sn));
 		}
 #endif
 #ifdef TRANS_TCP_SERVER
 		if(!strcmp(protocol, "tcp"))
 		{
 			char ipaddr[24] = {0};
-			int port = atoi(sqlserver_get_colum_from_gwsn("tcp_port", refresh->gw_sn));
+			int port = atoi(sqlserver_get_column_from_gwsn("tcp_port", refresh->gw_sn));
 			sprintf(ipaddr, "%s:%u",
-				sqlserver_get_colum_from_gwsn("ip", refresh->gw_sn), 
+				sqlserver_get_column_from_gwsn("ip", refresh->gw_sn), 
 				port);
 
 			tcp_conn_t *tconn = queryfrom_tcpconn_list_with_ipaddr(ipaddr);
@@ -278,7 +278,10 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 			}
 		}
 #endif
-		trans_send_frame_request(t_arg, arg->buf);
+		if(!strcmp(refresh->obj->owner, INFO_OBJECT_DEBUG))
+		{
+			trans_send_frame_request(t_arg, arg->buf);
+		}
 		free(t_arg);
 	}
 #endif
@@ -328,7 +331,7 @@ void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
 		&& !strcmp(control->obj->owner, INFO_OBJECT_DEBUG))
 	{
 		frhandler_arg_t *t_arg = NULL;
-		char *protocol = sqlserver_get_colum_from_gwsn("transtocol", control->gw_sn);
+		char *protocol = sqlserver_get_column_from_gwsn("transtocol", control->gw_sn);
 #ifdef TRANS_UDP_SERVICE
 		if(!strcmp(protocol, "udp"))
 		{
@@ -337,18 +340,18 @@ void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
 			t_arg->transtocol = TOCOL_UDP;
 			t_arg->addr.sin_family = PF_INET;
 			t_arg->addr.sin_port =
-				htons(atoi(sqlserver_get_colum_from_gwsn("udp_port", control->gw_sn)));
+				htons(atoi(sqlserver_get_column_from_gwsn("udp_port", control->gw_sn)));
 			t_arg->addr.sin_addr.s_addr =
-				inet_addr(sqlserver_get_colum_from_gwsn("ip", control->gw_sn));
+				inet_addr(sqlserver_get_column_from_gwsn("ip", control->gw_sn));
 		}
 #endif
 #ifdef TRANS_TCP_SERVER
 		else if(!strcmp(protocol, "tcp"))
 		{
 			char ipaddr[24] = {0};
-			int port = atoi(sqlserver_get_colum_from_gwsn("tcp_port", control->gw_sn));
+			int port = atoi(sqlserver_get_column_from_gwsn("tcp_port", control->gw_sn));
 			sprintf(ipaddr, "%s:%u",
-				sqlserver_get_colum_from_gwsn("ip", control->gw_sn), 
+				sqlserver_get_column_from_gwsn("ip", control->gw_sn), 
 				port);
 
 			tcp_conn_t *tconn = queryfrom_tcpconn_list_with_ipaddr(ipaddr);
@@ -360,7 +363,10 @@ void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
 			}
 		}
 #endif
-		trans_send_frame_request(t_arg, arg->buf);
+		if(!strcmp(control->obj->owner, INFO_OBJECT_DEBUG))
+		{
+			trans_send_frame_request(t_arg, arg->buf);
+		}
 		free(t_arg);
 	}
 #endif
@@ -522,9 +528,18 @@ void trans_send_refresh_request(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 
 	cJSON *pRoot = cJSON_CreateObject();
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(refresh->action));
+
+	if(refresh->obj != NULL)
+	{
+		cJSON *pObj = cJSON_CreateObject();
+		cJSON_AddItemToObject(pRoot, JSON_FIELD_OBJECT, pObj);
+
+		cJSON_AddStringToObject(pObj, JSON_FIELD_OWNER, refresh->obj->owner);
+		cJSON_AddStringToObject(pObj, JSON_FIELD_CUSTOM, refresh->obj->custom);
+	}
+
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, refresh->gw_sn);
 
-	int i = 0;
 	cJSON *pDevSNs = NULL;
 	if(refresh->sn_size > 0 && refresh->dev_sns != NULL)
 	{
@@ -532,6 +547,7 @@ void trans_send_refresh_request(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 		cJSON_AddItemToObject(pRoot, JSON_FIELD_DEVSNS, pDevSNs);
 	}
 
+	int i = 0;
 	while(i < refresh->sn_size)
 	{
 		cJSON *pDevSN = cJSON_CreateString(*(refresh->dev_sns+i));
@@ -556,6 +572,16 @@ void trans_send_control_request(frhandler_arg_t *arg, trfr_control_t *control)
 
 	cJSON *pRoot = cJSON_CreateObject();
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(control->action));
+
+	if(control->obj != NULL)
+	{
+		cJSON *pObj = cJSON_CreateObject();
+		cJSON_AddItemToObject(pRoot, JSON_FIELD_OBJECT, pObj);
+
+		cJSON_AddStringToObject(pObj, JSON_FIELD_OWNER, control->obj->owner);
+		cJSON_AddStringToObject(pObj, JSON_FIELD_CUSTOM, control->obj->custom);
+	}
+
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, control->gw_sn);
 
 	int i = 0;
@@ -783,7 +809,7 @@ void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback)
 	}
 
 	uint16 znet_addr = get_znet_addr_with_sn(sn);
-	int timer_id = (ZDEVICE_RESPOND_EVENT<<16)+znet_addr;
+	int timer_id = (ZDEVICE_RESPOND_EVENT<<16)+atoi(get_md5(get_system_time(), 2));
 
 	respond_data_t *mrespond_data = calloc(1, sizeof(respond_data_t));
 
@@ -808,23 +834,27 @@ void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback)
 	}
 
 	timer_event_param_t param;
+	param.resident = 0;
 	param.interval = 3000;
 	param.count = 1;
 	param.immediate = 0;
 	param.arg = mrespond_data;
 	set_mevent(timer_id, device_ctrl_timer_callback, &param);
 
-	int size = FR_DE_DATA_FIX_LEN + cmd_len;
-	uint8 *buffer = (uint8 *)calloc(size, sizeof(uint8));
+	if(znet_addr)
+	{
+		int size = FR_DE_DATA_FIX_LEN + cmd_len;
+		uint8 *buffer = (uint8 *)calloc(size, sizeof(uint8));
 
-	memcpy(buffer, FR_HEAD_DE, 2);
-	memcpy(buffer+2, FR_CMD_SINGLE_EXCUTE, 4);
-	sprintf(buffer+6, "%04X", znet_addr);
-	memcpy(buffer+10, cmd, cmd_len);
-	memcpy(buffer+10+cmd_len, FR_TAIL, 4);
+		memcpy(buffer, FR_HEAD_DE, 2);
+		memcpy(buffer+2, FR_CMD_SINGLE_EXCUTE, 4);
+		sprintf(buffer+6, "%04X", znet_addr);
+		memcpy(buffer+10, cmd, cmd_len);
+		memcpy(buffer+10+cmd_len, FR_TAIL, 4);
 
-	serial_write(buffer, size);
-	free(buffer);
+		serial_write(buffer, size);
+		free(buffer);
+	}
 }
 
 void device_ctrl_timer_callback(void *p)
@@ -842,6 +872,149 @@ void device_ctrl_timer_callback(void *p)
 
 		del_respond_data_with_sn(mrespond_data->sn);
 	}
+}
+#endif
+
+#ifdef DE_TRANS_UDP_CONTROL
+void detrans_send_refresh(sn_t devsn)
+{
+	frhandler_arg_t *arg = NULL;
+
+	sn_t gwsn = {0};
+	char *pgwsn = sqlserver_get_column_from_zdevice("gw_sn", devsn);
+	STRS_MEMCPY(gwsn, pgwsn, sizeof(gwsn), strlen(pgwsn));
+
+	char *protocol = sqlserver_get_column_from_gwsn("transtocol", gwsn);
+	if(protocol == NULL)
+	{
+		return;
+	}
+
+#ifdef TRANS_UDP_SERVICE
+	if(!strcmp(protocol, TRANSTOCOL_UDP))
+	{
+		arg = calloc(1, sizeof(frhandler_arg_t));
+
+		arg->transtocol = TOCOL_UDP;
+		arg->addr.sin_family = PF_INET;
+		arg->addr.sin_port =
+			htons(atoi(sqlserver_get_column_from_gwsn("udp_port", gwsn)));
+		arg->addr.sin_addr.s_addr =
+			inet_addr(sqlserver_get_column_from_gwsn("ip", gwsn));
+	}
+#endif
+#ifdef TRANS_TCP_SERVER
+	if(!strcmp(protocol, TRANSTOCOL_TCP))
+	{
+		char ipaddr[24] = {0};
+		int port = atoi(sqlserver_get_column_from_gwsn("tcp_port", gwsn));
+		sprintf(ipaddr, "%s:%u",
+			sqlserver_get_column_from_gwsn("ip", gwsn), 
+			port);
+
+		tcp_conn_t *tconn = queryfrom_tcpconn_list_with_ipaddr(ipaddr);
+
+		if(tconn != NULL)
+		{
+			arg = calloc(1, sizeof(frhandler_arg_t));
+			arg->transtocol = TOCOL_TCP;
+			arg->fd = tconn->fd;
+		}
+	}
+#endif
+
+	trfield_obj_t obj = {
+		INFO_OBJECT_DEBUG,
+		INFO_OBJECT_DEVICE,
+	};
+	
+	trfr_refresh_t refresh;
+	refresh.action = ACTION_REFRESH;
+	refresh.obj = &obj;
+	STRS_MEMCPY(refresh.gw_sn, gwsn, sizeof(sn_t), strlen(gwsn));
+	refresh.dev_sns = devsn;
+	refresh.sn_size = 1;
+	STRS_MEMCPY(refresh.random,
+					get_md5(get_system_time(), 2),
+					sizeof(refresh.random),
+					4);
+
+	trans_send_refresh_request(arg, &refresh);
+
+	free(arg);
+}
+
+void detrans_send_control(sn_t devsn, char *cmd)
+{
+	frhandler_arg_t *arg = NULL;
+
+	sn_t gwsn = {0};
+	char *pgwsn = sqlserver_get_column_from_zdevice("gw_sn", devsn);
+	STRS_MEMCPY(gwsn, pgwsn, sizeof(gwsn), strlen(pgwsn));
+
+	char *protocol = sqlserver_get_column_from_gwsn("transtocol", gwsn);
+	if(protocol == NULL)
+	{
+		return;
+	}
+#ifdef TRANS_UDP_SERVICE
+	if(!strcmp(protocol, TRANSTOCOL_UDP))
+	{
+		arg = calloc(1, sizeof(frhandler_arg_t));
+
+		arg->transtocol = TOCOL_UDP;
+		arg->addr.sin_family = PF_INET;
+		arg->addr.sin_port =
+			htons(atoi(sqlserver_get_column_from_gwsn("udp_port", gwsn)));
+		arg->addr.sin_addr.s_addr =
+			inet_addr(sqlserver_get_column_from_gwsn("ip", gwsn));
+	}
+#endif
+#ifdef TRANS_TCP_SERVER
+	if(!strcmp(protocol, TRANSTOCOL_TCP))
+	{
+		char ipaddr[24] = {0};
+		int port = atoi(sqlserver_get_column_from_gwsn("tcp_port", gwsn));
+		sprintf(ipaddr, "%s:%u",
+			sqlserver_get_column_from_gwsn("ip", gwsn), 
+			port);
+
+		tcp_conn_t *tconn = queryfrom_tcpconn_list_with_ipaddr(ipaddr);
+
+		if(tconn != NULL)
+		{
+			arg = calloc(1, sizeof(frhandler_arg_t));
+			arg->transtocol = TOCOL_TCP;
+			arg->fd = tconn->fd;
+		}
+	}
+#endif
+
+	trfield_obj_t obj = {
+		INFO_OBJECT_DEBUG,
+		INFO_OBJECT_DEVICE,
+	};
+
+	trfield_ctrl_t ctrl;
+	STRS_MEMCPY(ctrl.dev_sn, devsn, sizeof(ctrl.dev_sn), strlen(devsn));
+	STRS_MEMCPY(ctrl.cmd, cmd, sizeof(ctrl.cmd), strlen(cmd));
+
+	trfield_ctrl_t *pctrl = &ctrl;
+	
+	trfr_control_t control;
+	control.action = ACTION_CONTROL;
+	control.obj = &obj;
+	STRS_MEMCPY(control.gw_sn, gwsn, sizeof(control.gw_sn), strlen(gwsn));
+	control.ctrls = &pctrl;
+	control.ctrl_size = 1;
+	STRS_MEMCPY(control.random,
+					get_md5(get_system_time(), 2),
+					sizeof(control.random),
+					4);
+
+	trans_send_control_request(arg, &control);
+
+	free(arg);
 }
 #endif
 

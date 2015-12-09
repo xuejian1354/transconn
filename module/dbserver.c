@@ -257,7 +257,7 @@ int sqlserver_query_gateway(sn_t gwsn)
 	return 1;
 }
 
-char *sqlserver_get_colum_from_gwsn(char *field, sn_t gwsn)
+char *sqlserver_get_column_from_gwsn(char *field, sn_t gwsn)
 {
 	SET_CMD_LINE("%s%s%s%s%s",
 		"SELECT ",
@@ -367,7 +367,7 @@ int sqlserver_update_zdevice(frhandler_arg_t *arg, trfr_respond_t *respond)
 
 	if(sqlserver_query_zdevice(respond->dev_sn) == 0)
 	{
-		SET_CMD_LINE("%s%s%s%d%s%s%s%s%s%s%s%s%s", 
+		SET_CMD_LINE("%s%s%s%s%s%s%s", 
 				"UPDATE devices SET dev_data=\'",
 				respond->dev_data,
 				"\', updatetime=\'",
@@ -376,7 +376,7 @@ int sqlserver_update_zdevice(frhandler_arg_t *arg, trfr_respond_t *respond)
 				respond->dev_sn,
 				"\'");
 
-		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+		//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 		return sqlserver_excute_cmdline(GET_CMD_LINE());
 	}
 
@@ -414,6 +414,42 @@ int sqlserver_query_zdevice(sn_t serno)
 	mysql_free_result(mysql_res);
 
 	return 1;
+}
+
+char *sqlserver_get_column_from_zdevice(char *field, sn_t serno)
+{
+	SET_CMD_LINE("%s%s%s%s%s", 
+		"SELECT ",
+		field,
+		" FROM devices WHERE dev_sn=\'", 
+		serno, 
+		"\'");
+
+	//DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+	if(sqlserver_excute_cmdline(GET_CMD_LINE()) < 0)
+	{
+		return NULL;
+	}
+
+	if((mysql_res = mysql_store_result(&mysql_conn)) == NULL)
+	{
+		DE_PRINTF(1, "%s()%d : mysql store result failed\n\n", __FUNCTION__, __LINE__);
+		return NULL;
+	}
+
+    while((mysql_row = mysql_fetch_row(mysql_res)))
+    {
+		int nums = mysql_num_fields(mysql_res);
+		if(nums > 0)
+		{
+			STRS_MEMCPY(tcolumn, mysql_row[0], sizeof(tcolumn), strlen(mysql_row[0]));
+			mysql_free_result(mysql_res);
+			return tcolumn;
+		}
+	}
+	mysql_free_result(mysql_res);
+
+	return NULL;
 }
 
 int sqlserver_del_zdevice(sn_t serno)

@@ -32,10 +32,11 @@ int sqlserver_reconnect();
 
 int sqlserver_add_gateway(frhandler_arg_t *arg, sn_t gwsn);
 int sqlserver_query_gateway(sn_t gwsn);
-char *sqlserver_get_colum_from_gwsn(char *field, sn_t gwsn);
+char *sqlserver_get_column_from_gwsn(char *field, sn_t gwsn);
  int sqlserver_add_zdevices(frhandler_arg_t *arg, trfr_report_t *report);
  int sqlserver_update_zdevice(frhandler_arg_t *arg, trfr_respond_t *respond);
  int sqlserver_query_zdevice(sn_t serno);
+ char *sqlserver_get_column_from_zdevice(char *field, sn_t serno);
  int sqlserver_del_zdevice(sn_t serno);
 
 int get_user_info_from_sql(char *email, cli_user_t *user_info);
