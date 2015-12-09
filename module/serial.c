@@ -346,7 +346,7 @@ serial_update:
 					 tmpFrame[dataLen] = 0;
 					 dataLen--;
 				}
-			
+#if defined(COMM_SERVER) || defined(COMM_CLIENT)
 #ifdef DE_PRINT_SERIAL_PORT
 #ifdef DE_TRANS_UDP_STREAM_LOG
 				if(get_deuart_flag())
@@ -359,7 +359,6 @@ serial_update:
 #endif
 #endif
 
-#if defined(COMM_SERVER) || defined(COMM_CLIENT)
 				frhandler_arg_t *frarg = 
 					get_frhandler_arg_alloc(serial_id, TOCOL_NONE, NULL, tmpFrame, dataLen);
 
@@ -368,8 +367,8 @@ serial_update:
 #else
 				analysis_zdev_frame(frarg);
 #endif
-#endif
 				memset(tmpFrame, 0, sizeof(tmpFrame));
+#endif
             }
             i++;
         }

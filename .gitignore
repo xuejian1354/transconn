@@ -1,7 +1,10 @@
 *.[oa]
 transconn
 connect_listen
+smartplat
+smartlab
 *.swp
+*.patch
 
 include/*
 !include/*.mk
@@ -11,5 +14,6 @@ include/*
 tests/client
 tests/perznet
 tests/deulog
+tests/clar
 
 bin/

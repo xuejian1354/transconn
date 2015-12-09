@@ -26,6 +26,7 @@
 do{                                              \
   if(dst == NULL || src == NULL) break;          \
   int len = dstlen>srclen?srclen:(dstlen-1);     \
+  memset(dst, 0, dstlen);						 \
   memcpy(dst, src, len);                         \
 }while(0)
 

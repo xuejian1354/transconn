@@ -48,6 +48,7 @@ sessionsta_t get_session_status();
 
 void set_trans_protocol(transtocol_t tocol);
 transtocol_t get_trans_protocol();
+char *get_trans_protocol_to_str(transtocol_t tocol);
 
 void set_syncdata_checkcode(char *code);
 char *get_syncdata_checkcode();

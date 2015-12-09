@@ -46,7 +46,8 @@ static uint8 deuart_flag = 1;
 static struct sockaddr_in ulog_addr;
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
+static frhandler_arg_t t_arg;
 static int udpfd;
 static struct sockaddr_in m_addr;
 #endif
@@ -102,6 +103,18 @@ void get_frhandler_arg_free(frhandler_arg_t *arg)
 		free(arg);
 	}
 }
+
+#ifdef COMM_CLIENT
+frhandler_arg_t *get_transtocol_frhandler_arg()
+{
+	t_arg.transtocol = get_trans_protocol();
+	t_arg.addr.sin_family = PF_INET;
+	t_arg.addr.sin_port = htons(get_udp_port());
+	t_arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
+
+	return &t_arg;
+}
+#endif
 
 #ifdef TRANS_TCP_SERVER
 int get_stcp_fd()
@@ -238,6 +251,14 @@ void socket_tcp_server_send(frhandler_arg_t *arg, char *data, int len)
 	send(arg->fd, data, len, 0);
 
 #ifdef DE_PRINT_TCP_PORT
+#ifdef TRANS_TCP_CONN_LIST
+	tcp_conn_t *tconn = queryfrom_tcpconn_list(arg->fd);
+	if(tconn != NULL)
+	{
+		arg->addr = tconn->client_addr;
+	}
+#endif
+
 	trans_data_show(DE_TCP_SEND, &arg->addr, data, len);
 #endif
 }
@@ -318,7 +339,7 @@ void socket_tcp_client_close()
 }
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 int get_udp_fd()
 {
 	return udpfd;
@@ -373,6 +394,27 @@ void socket_udp_recvfrom()
 
 #ifdef DE_PRINT_UDP_PORT
 	trans_data_show(DE_UDP_RECV, &client_addr, buf, nbytes);
+#endif
+
+#ifdef DE_TRANS_UDP_CONTROL
+	if(ntohs(client_addr.sin_port) == DE_UDP_CTRL_PORT
+		&& !strcmp(inet_ntoa(client_addr.sin_addr), "127.0.0.1"))
+	{
+		if(nbytes >= 23 && !strncmp(buf, "refresh", 7))
+		{
+			sn_t devsn;
+			STRS_MEMCPY(devsn, buf+7, sizeof(devsn), 16);
+			detrans_send_refresh(devsn);
+		}
+		else if(nbytes > 20 && !strncmp(buf, "ctrl", 4))
+		{
+			sn_t devsn;
+			STRS_MEMCPY(devsn, buf+4, sizeof(devsn), 16);
+			detrans_send_control(devsn, buf+20);
+		}
+
+		return;
+	}
 #endif
 
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)

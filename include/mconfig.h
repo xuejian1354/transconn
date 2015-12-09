@@ -22,9 +22,11 @@
 //#define COMM_SERVER
 //#define COMM_CLIENT
 
+#if defined(COMM_SERVER) || defined(COMM_CLIENT)
 #define THREAD_POOL_SUPPORT
 #define TIMER_SUPPORT
 #define SELECT_SUPPORT
+#endif
 //#define TRANS_TCP_SERVER
 //#define TRANS_TCP_CLIENT
 //#define TRANS_UDP_SERVICE
@@ -34,6 +36,7 @@
 //#define READ_CONF_FILE
 //#define DB_API_SUPPORT
 //#define DE_TRANS_UDP_STREAM_LOG
+//#define DE_TRANS_UDP_CONTROL
 
 #ifdef DB_API_SUPPORT
 #ifdef COMM_SERVER

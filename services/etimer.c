@@ -45,12 +45,11 @@ void timer_func(int sig)
 		if(t_event->interval_count <= 0)
 		{
 			t_event->interval_count = t_event->param.interval;
+			t_event->param.count--;
 			tpool_add_work(t_event->timer_callback, t_event->param.arg, TPOOL_NONE);
 		}
 		
-		if(!t_event->param.resident 
-			&& t_event->interval_count == t_event->param.interval
-			&& !(--t_event->param.count))
+		if(!t_event->param.resident && !t_event->param.count)
 		{
 			del_timer_event(t_event->timer_id);
 		}
@@ -170,9 +169,9 @@ int del_timer_event(int timer_id)
 			{
 				p_event = p_event->next;
 			}
+			free(t_event);
 			pthread_mutex_unlock(&timer_lock);
 
-			free(t_event);
 			return 0;
 		}
 		pre_event = t_event;

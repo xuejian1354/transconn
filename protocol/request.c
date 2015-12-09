@@ -21,6 +21,7 @@
 #include <protocol/old/devices.h>
 #include <protocol/common/mevent.h>
 #include <services/balancer.h>
+#include <module/netlist.h>
 #ifdef DB_API_WITH_SQLITE
 #include <module/dbclient.h>
 #endif
@@ -74,6 +75,7 @@ void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq
 
 	cJSON *pRoot = cJSON_CreateObject();
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(tocolreq->action));
+	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, tocolreq->gw_sn);
 
 #ifdef TRANS_UDP_SERVICE	
 	if(!strcmp(tocolreq->protocol, TRANSTOCOL_UDP))
@@ -200,7 +202,8 @@ void trans_send_respond_request(frhandler_arg_t *arg, trfr_respond_t *respond)
 
 	cJSON_Delete(pRoot);
 }
-
+#endif
+#if defined(COMM_CLIENT) || defined(DE_TRANS_UDP_CONTROL)
 void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 {
 	if(refresh == NULL)
@@ -208,6 +211,7 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 		return;
 	}
 
+#ifdef COMM_CLIENT
 	zidentify_no_t gw_sn;
 	incode_ctoxs(gw_sn, refresh->gw_sn, 16);
 	if(memcmp(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t)))
@@ -231,6 +235,56 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 	}
 
 	upload_data(1, refresh->random);
+
+#elif defined(DE_TRANS_UDP_CONTROL)
+	if(arg == NULL || refresh->obj == NULL)
+	{
+		return;
+	}
+	if(ntohs(arg->addr.sin_port) == DE_UDP_CTRL_PORT
+		&& !strcmp(refresh->obj->owner, INFO_OBJECT_DEBUG))
+	{
+		frhandler_arg_t *t_arg = NULL;
+		char *protocol = sqlserver_get_column_from_gwsn("transtocol", refresh->gw_sn);
+#ifdef TRANS_UDP_SERVICE
+		if(!strcmp(protocol, "udp"))
+		{
+			t_arg = calloc(1, sizeof(frhandler_arg_t));
+
+			t_arg->transtocol = TOCOL_UDP;
+			t_arg->addr.sin_family = PF_INET;
+			t_arg->addr.sin_port =
+				htons(atoi(sqlserver_get_column_from_gwsn("udp_port", refresh->gw_sn)));
+			t_arg->addr.sin_addr.s_addr =
+				inet_addr(sqlserver_get_column_from_gwsn("ip", refresh->gw_sn));
+		}
+#endif
+#ifdef TRANS_TCP_SERVER
+		if(!strcmp(protocol, "tcp"))
+		{
+			char ipaddr[24] = {0};
+			int port = atoi(sqlserver_get_column_from_gwsn("tcp_port", refresh->gw_sn));
+			sprintf(ipaddr, "%s:%u",
+				sqlserver_get_column_from_gwsn("ip", refresh->gw_sn), 
+				port);
+
+			tcp_conn_t *tconn = queryfrom_tcpconn_list_with_ipaddr(ipaddr);
+
+			if(tconn != NULL)
+			{
+				t_arg = calloc(1, sizeof(frhandler_arg_t));
+				t_arg->transtocol = TOCOL_TCP;
+				t_arg->fd = tconn->fd;
+			}
+		}
+#endif
+		if(!strcmp(refresh->obj->owner, INFO_OBJECT_DEBUG))
+		{
+			trans_send_frame_request(t_arg, arg->buf);
+		}
+		free(t_arg);
+	}
+#endif
 }
 
 void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
@@ -240,6 +294,7 @@ void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
 		return;
 	}
 
+#ifdef COMM_CLIENT
 	zidentify_no_t gw_sn;
 	incode_ctoxs(gw_sn, control->gw_sn, 16);
 	if(memcmp(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t)))
@@ -259,20 +314,64 @@ void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
 		trfield_ctrl_t *ctrl = *(ctrls + i);
 		if(ctrl != NULL)
 		{
-			int j;
-			if(ctrl->dev_sns == NULL || ctrl->sn_size <= 0)
-			{
-				continue;
-			}
-
-			for(j=0; j<ctrl->sn_size; j++)
-			{
-				device_ctrl(*(ctrl->dev_sns+j), ctrl->cmd, control->random, trans_send_respond_request);
-				usleep(100);
-			}
+			device_ctrl(ctrl->dev_sn,
+							ctrl->cmd,
+							control->random,
+							trans_send_respond_request);
+			usleep(100);
 		}
 	}
+
+#elif defined(DE_TRANS_UDP_CONTROL)
+	if(arg == NULL || control->obj == NULL)
+	{
+		return;
+	}
+	if(ntohs(arg->addr.sin_port) == DE_UDP_CTRL_PORT
+		&& !strcmp(control->obj->owner, INFO_OBJECT_DEBUG))
+	{
+		frhandler_arg_t *t_arg = NULL;
+		char *protocol = sqlserver_get_column_from_gwsn("transtocol", control->gw_sn);
+#ifdef TRANS_UDP_SERVICE
+		if(!strcmp(protocol, "udp"))
+		{
+			t_arg = calloc(1, sizeof(frhandler_arg_t));
+
+			t_arg->transtocol = TOCOL_UDP;
+			t_arg->addr.sin_family = PF_INET;
+			t_arg->addr.sin_port =
+				htons(atoi(sqlserver_get_column_from_gwsn("udp_port", control->gw_sn)));
+			t_arg->addr.sin_addr.s_addr =
+				inet_addr(sqlserver_get_column_from_gwsn("ip", control->gw_sn));
+		}
+#endif
+#ifdef TRANS_TCP_SERVER
+		else if(!strcmp(protocol, "tcp"))
+		{
+			char ipaddr[24] = {0};
+			int port = atoi(sqlserver_get_column_from_gwsn("tcp_port", control->gw_sn));
+			sprintf(ipaddr, "%s:%u",
+				sqlserver_get_column_from_gwsn("ip", control->gw_sn), 
+				port);
+
+			tcp_conn_t *tconn = queryfrom_tcpconn_list_with_ipaddr(ipaddr);
+			if(tconn != NULL)
+			{
+				t_arg = calloc(1, sizeof(frhandler_arg_t));
+				t_arg->transtocol = TOCOL_TCP;
+				t_arg->fd = tconn->fd;
+			}
+		}
+#endif
+		if(!strcmp(control->obj->owner, INFO_OBJECT_DEBUG))
+		{
+			trans_send_frame_request(t_arg, arg->buf);
+		}
+		free(t_arg);
+	}
+#endif
 }
+#endif
 
 void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 {
@@ -281,6 +380,7 @@ void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 		return;
 	}
 
+#ifdef COMM_CLIENT
 	switch(arg->transtocol)
 	{
 	case TOCOL_UDP:
@@ -310,8 +410,8 @@ void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 	}
 		break;
 	}
-}
 #endif
+}
 
 #ifdef COMM_SERVER
 void trans_tocolreq_handler(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq)
@@ -321,9 +421,16 @@ void trans_tocolreq_handler(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq)
 		return;
 	}
 
+#ifdef DB_API_WITH_MYSQL
+	sqlserver_add_gateway(arg, tocolreq->gw_sn);
+#endif
+
 	if(tocolreq->action == ACTION_TOCOLREQ)
 	{
-		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(tocolreq->action, tocolreq->random);
+		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(NULL,
+															tocolreq->action,
+															NULL,
+															tocolreq->random);
 		trans_send_tocolres_request(arg, tocolres);
 		get_trfr_tocolres_free(tocolres);
 	}
@@ -337,6 +444,7 @@ void trans_report_handler(frhandler_arg_t *arg, trfr_report_t *report)
 	}
 
 #ifdef DB_API_WITH_MYSQL
+	sqlserver_add_gateway(arg, report->gw_sn);
 	sqlserver_add_zdevices(arg, report);
 #endif
 
@@ -347,7 +455,10 @@ void trans_report_handler(frhandler_arg_t *arg, trfr_report_t *report)
 
 	if(report->action == ACTION_REPORT)
 	{
-		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(report->action, report->random);
+		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(NULL,
+																report->action,
+																NULL,
+																report->random);
 		trans_send_tocolres_request(arg, tocolres);
 		get_trfr_tocolres_free(tocolres);
 	}
@@ -360,6 +471,10 @@ void trans_check_handler(frhandler_arg_t *arg, trfr_check_t *check)
 		return;
 	}
 
+#ifdef DB_API_WITH_MYSQL
+	sqlserver_add_gateway(arg, check->gw_sn);
+#endif
+
 	if(!(get_trans_protocol() & arg->transtocol))
 	{
 		return;
@@ -367,7 +482,10 @@ void trans_check_handler(frhandler_arg_t *arg, trfr_check_t *check)
 
 	if(check->action == ACTION_CHECK)
 	{
-		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(check->action, check->random);
+		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(NULL,
+																check->action,
+																NULL,
+																check->random);
 		trans_send_tocolres_request(arg, tocolres);
 		get_trfr_tocolres_free(tocolres);
 	}
@@ -381,6 +499,7 @@ void trans_respond_handler(frhandler_arg_t *arg, trfr_respond_t *respond)
 	}
 
 #ifdef DB_API_WITH_MYSQL
+	sqlserver_add_gateway(arg, respond->gw_sn);
 	sqlserver_update_zdevice(arg, respond);
 #endif
 
@@ -391,7 +510,10 @@ void trans_respond_handler(frhandler_arg_t *arg, trfr_respond_t *respond)
 
 	if(respond->action == ACTION_RESPOND)
 	{
-		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(respond->action, respond->random);
+		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(NULL,
+																respond->action,
+																NULL,
+																respond->random);
 		trans_send_tocolres_request(arg, tocolres);
 		get_trfr_tocolres_free(tocolres);
 	}
@@ -406,9 +528,18 @@ void trans_send_refresh_request(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 
 	cJSON *pRoot = cJSON_CreateObject();
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(refresh->action));
+
+	if(refresh->obj != NULL)
+	{
+		cJSON *pObj = cJSON_CreateObject();
+		cJSON_AddItemToObject(pRoot, JSON_FIELD_OBJECT, pObj);
+
+		cJSON_AddStringToObject(pObj, JSON_FIELD_OWNER, refresh->obj->owner);
+		cJSON_AddStringToObject(pObj, JSON_FIELD_CUSTOM, refresh->obj->custom);
+	}
+
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, refresh->gw_sn);
 
-	int i = 0;
 	cJSON *pDevSNs = NULL;
 	if(refresh->sn_size > 0 && refresh->dev_sns != NULL)
 	{
@@ -416,6 +547,7 @@ void trans_send_refresh_request(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 		cJSON_AddItemToObject(pRoot, JSON_FIELD_DEVSNS, pDevSNs);
 	}
 
+	int i = 0;
 	while(i < refresh->sn_size)
 	{
 		cJSON *pDevSN = cJSON_CreateString(*(refresh->dev_sns+i));
@@ -440,6 +572,16 @@ void trans_send_control_request(frhandler_arg_t *arg, trfr_control_t *control)
 
 	cJSON *pRoot = cJSON_CreateObject();
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(control->action));
+
+	if(control->obj != NULL)
+	{
+		cJSON *pObj = cJSON_CreateObject();
+		cJSON_AddItemToObject(pRoot, JSON_FIELD_OBJECT, pObj);
+
+		cJSON_AddStringToObject(pObj, JSON_FIELD_OWNER, control->obj->owner);
+		cJSON_AddStringToObject(pObj, JSON_FIELD_CUSTOM, control->obj->custom);
+	}
+
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, control->gw_sn);
 
 	int i = 0;
@@ -458,22 +600,7 @@ void trans_send_control_request(frhandler_arg_t *arg, trfr_control_t *control)
 			cJSON *pCtrl = cJSON_CreateObject();
 			cJSON_AddItemToArray(pCtrls, pCtrl);
 
-			int j = 0;
-			cJSON *pDevSNs = NULL;
-			if(ctrl->sn_size > 0 && ctrl->dev_sns != NULL)
-			{
-				pDevSNs = cJSON_CreateArray();
-				cJSON_AddItemToObject(pCtrl, JSON_FIELD_DEVSNS, pDevSNs);
-			}
-
-			while(j < ctrl->sn_size)
-			{
-				cJSON *pDevSN = cJSON_CreateString(*(ctrl->dev_sns+j));
-				cJSON_AddItemToArray(pDevSNs, pDevSN);
-
-				j++;
-			}
-
+			cJSON_AddStringToObject(pCtrl, JSON_FIELD_DEVSN, ctrl->dev_sn);
 			cJSON_AddStringToObject(pCtrl, JSON_FIELD_CMD, ctrl->cmd);
 		}
 
@@ -486,6 +613,7 @@ void trans_send_control_request(frhandler_arg_t *arg, trfr_control_t *control)
 
 	cJSON_Delete(pRoot);
 }
+#endif
 
 void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 {
@@ -497,32 +625,27 @@ void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres
 	char *frame = NULL;
 	cJSON *pRoot = cJSON_CreateObject();
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(tocolres->action));
+
+	if(tocolres->obj)
+	{
+		cJSON *pObj = cJSON_CreateObject();
+		cJSON_AddItemToObject(pRoot, JSON_FIELD_OBJECT, pObj);
+
+		cJSON_AddStringToObject(pObj, JSON_FIELD_OWNER, tocolres->obj->owner);
+		cJSON_AddStringToObject(pObj, JSON_FIELD_CUSTOM, tocolres->obj->custom);
+	}
+
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_REQACTION, get_action_to_str(tocolres->req_action));
+	if(strlen(tocolres->info))
+	{
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_INFO, tocolres->info);
+	}
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, tocolres->random);
 
-	switch(arg->transtocol)
-	{
-	case TOCOL_UDP:
-#ifdef TRANS_UDP_SERVICE
-		frame = cJSON_Print(pRoot);
-		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
-#endif
-		break;
-
-	case TOCOL_TCP:
-#if defined(TRANS_TCP_SERVER)
-		frame = cJSON_Print(pRoot);
-		socket_tcp_server_send(arg, frame, strlen(frame));
-#endif
-		break;
-
-	case TOCOL_HTTP:
-		break;
-	}
+	trans_send_frame_request(arg, cJSON_Print(pRoot));
 	
 	cJSON_Delete(pRoot);
 }
-#endif
 
 #ifdef COMM_CLIENT
 void sync_gateway_info(gw_info_t *pgw_info)
@@ -547,12 +670,6 @@ void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info)
 	{
 		if(!strcmp(trespond_data->sn, dev_sn))
 		{
-			frhandler_arg_t arg;
-			arg.transtocol = TOCOL_UDP;
-			arg.addr.sin_family = PF_INET;
-			arg.addr.sin_port = htons(get_udp_port());
-			arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
-
 			sn_t gw_sn = {0};
 			incode_xtocs(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 
@@ -565,12 +682,13 @@ void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info)
 			get_buffer_free(buffer);
 
 			trfr_respond_t *respond =
-				get_trfr_respond_alloc(gw_sn,
+				get_trfr_respond_alloc(NULL,
+										gw_sn,
 										dev_sn,
 										trespond_data->dev_data,
 										trespond_data->random);
 
-			trespond_data->respond_callback(&arg, respond);
+			trespond_data->respond_callback(get_transtocol_frhandler_arg(), respond);
 			get_trfr_respond_free(respond);
 
 			del_timer_event(trespond_data->timer_id);
@@ -594,12 +712,6 @@ void upload_data(uint8 isrefresh, char *random)
 		|| transtocol == TOCOL_TCP
 		|| transtocol == TOCOL_HTTP)
 	{
-		frhandler_arg_t arg;
-		arg.transtocol = transtocol;
-		arg.addr.sin_family = PF_INET;
-		arg.addr.sin_port = htons(get_udp_port());
-		arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
-
 		sn_t gwno_str = {0};
 		incode_xtocs(gwno_str,
 						get_gateway_info()->gw_no,
@@ -657,22 +769,27 @@ void upload_data(uint8 isrefresh, char *random)
 				p_dev = p_dev->next;
 			}
 #endif
-			trfr_report_t * report = get_trfr_report_alloc(gwno_str, devices, dev_size, random);
+			trfr_report_t * report = get_trfr_report_alloc(NULL,
+															gwno_str,
+															devices,
+															dev_size,
+															random);
 
-			trans_send_report_request(&arg, report);
+			trans_send_report_request(get_transtocol_frhandler_arg(), report);
 			get_trfr_report_free(report);
 		}
 		else
 		{
 			trfr_check_t *t_check =
-				get_trfr_check_alloc(gwno_str,
+				get_trfr_check_alloc(NULL,
+										gwno_str,
 										NULL,
 										0,
 										"md5",
 										cur_code,
 										NULL);
 
-			trans_send_check_request(&arg, t_check);
+			trans_send_check_request(get_transtocol_frhandler_arg(), t_check);
 			get_trfr_check_free(t_check);
 		}
 	}
@@ -692,7 +809,7 @@ void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback)
 	}
 
 	uint16 znet_addr = get_znet_addr_with_sn(sn);
-	int timer_id = (ZDEVICE_RESPOND_EVENT<<16)+znet_addr;
+	int timer_id = (ZDEVICE_RESPOND_EVENT<<16)+atoi(get_md5(get_system_time(), 2));
 
 	respond_data_t *mrespond_data = calloc(1, sizeof(respond_data_t));
 
@@ -717,23 +834,27 @@ void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback)
 	}
 
 	timer_event_param_t param;
+	param.resident = 0;
 	param.interval = 3000;
 	param.count = 1;
 	param.immediate = 0;
 	param.arg = mrespond_data;
 	set_mevent(timer_id, device_ctrl_timer_callback, &param);
 
-	int size = FR_DE_DATA_FIX_LEN + cmd_len;
-	uint8 *buffer = (uint8 *)calloc(size, sizeof(uint8));
+	if(znet_addr)
+	{
+		int size = FR_DE_DATA_FIX_LEN + cmd_len;
+		uint8 *buffer = (uint8 *)calloc(size, sizeof(uint8));
 
-	memcpy(buffer, FR_HEAD_DE, 2);
-	memcpy(buffer+2, FR_CMD_SINGLE_EXCUTE, 4);
-	sprintf(buffer+6, "%04X", znet_addr);
-	memcpy(buffer+10, cmd, cmd_len);
-	memcpy(buffer+10+cmd_len, FR_TAIL, 4);
+		memcpy(buffer, FR_HEAD_DE, 2);
+		memcpy(buffer+2, FR_CMD_SINGLE_EXCUTE, 4);
+		sprintf(buffer+6, "%04X", znet_addr);
+		memcpy(buffer+10, cmd, cmd_len);
+		memcpy(buffer+10+cmd_len, FR_TAIL, 4);
 
-	serial_write(buffer, size);
-	free(buffer);
+		serial_write(buffer, size);
+		free(buffer);
+	}
 }
 
 void device_ctrl_timer_callback(void *p)
@@ -741,14 +862,174 @@ void device_ctrl_timer_callback(void *p)
 	respond_data_t *mrespond_data = (respond_data_t *)p;
 	if(mrespond_data != NULL)
 	{
+		trfr_tocolres_t *tocolres = 
+			get_trfr_tocolres_alloc(NULL,
+										ACTION_CONTROL,
+										INFO_TIMEOUT,
+										mrespond_data->random);
+		trans_send_tocolres_request(get_transtocol_frhandler_arg(), tocolres);
+		get_trfr_tocolres_free(tocolres);
+
 		del_respond_data_with_sn(mrespond_data->sn);
 	}
 }
 #endif
 
+#ifdef DE_TRANS_UDP_CONTROL
+void detrans_send_refresh(sn_t devsn)
+{
+	frhandler_arg_t *arg = NULL;
+
+	sn_t gwsn = {0};
+	char *pgwsn = sqlserver_get_column_from_zdevice("gw_sn", devsn);
+	STRS_MEMCPY(gwsn, pgwsn, sizeof(gwsn), strlen(pgwsn));
+
+	char *protocol = sqlserver_get_column_from_gwsn("transtocol", gwsn);
+	if(protocol == NULL)
+	{
+		return;
+	}
+
+#ifdef TRANS_UDP_SERVICE
+	if(!strcmp(protocol, TRANSTOCOL_UDP))
+	{
+		arg = calloc(1, sizeof(frhandler_arg_t));
+
+		arg->transtocol = TOCOL_UDP;
+		arg->addr.sin_family = PF_INET;
+		arg->addr.sin_port =
+			htons(atoi(sqlserver_get_column_from_gwsn("udp_port", gwsn)));
+		arg->addr.sin_addr.s_addr =
+			inet_addr(sqlserver_get_column_from_gwsn("ip", gwsn));
+	}
+#endif
+#ifdef TRANS_TCP_SERVER
+	if(!strcmp(protocol, TRANSTOCOL_TCP))
+	{
+		char ipaddr[24] = {0};
+		int port = atoi(sqlserver_get_column_from_gwsn("tcp_port", gwsn));
+		sprintf(ipaddr, "%s:%u",
+			sqlserver_get_column_from_gwsn("ip", gwsn), 
+			port);
+
+		tcp_conn_t *tconn = queryfrom_tcpconn_list_with_ipaddr(ipaddr);
+
+		if(tconn != NULL)
+		{
+			arg = calloc(1, sizeof(frhandler_arg_t));
+			arg->transtocol = TOCOL_TCP;
+			arg->fd = tconn->fd;
+		}
+	}
+#endif
+
+	trfield_obj_t obj = {
+		INFO_OBJECT_DEBUG,
+		INFO_OBJECT_DEVICE,
+	};
+	
+	trfr_refresh_t refresh;
+	refresh.action = ACTION_REFRESH;
+	refresh.obj = &obj;
+	STRS_MEMCPY(refresh.gw_sn, gwsn, sizeof(sn_t), strlen(gwsn));
+	refresh.dev_sns = devsn;
+	refresh.sn_size = 1;
+	STRS_MEMCPY(refresh.random,
+					get_md5(get_system_time(), 2),
+					sizeof(refresh.random),
+					4);
+
+	trans_send_refresh_request(arg, &refresh);
+
+	free(arg);
+}
+
+void detrans_send_control(sn_t devsn, char *cmd)
+{
+	frhandler_arg_t *arg = NULL;
+
+	sn_t gwsn = {0};
+	char *pgwsn = sqlserver_get_column_from_zdevice("gw_sn", devsn);
+	STRS_MEMCPY(gwsn, pgwsn, sizeof(gwsn), strlen(pgwsn));
+
+	char *protocol = sqlserver_get_column_from_gwsn("transtocol", gwsn);
+	if(protocol == NULL)
+	{
+		return;
+	}
+#ifdef TRANS_UDP_SERVICE
+	if(!strcmp(protocol, TRANSTOCOL_UDP))
+	{
+		arg = calloc(1, sizeof(frhandler_arg_t));
+
+		arg->transtocol = TOCOL_UDP;
+		arg->addr.sin_family = PF_INET;
+		arg->addr.sin_port =
+			htons(atoi(sqlserver_get_column_from_gwsn("udp_port", gwsn)));
+		arg->addr.sin_addr.s_addr =
+			inet_addr(sqlserver_get_column_from_gwsn("ip", gwsn));
+	}
+#endif
+#ifdef TRANS_TCP_SERVER
+	if(!strcmp(protocol, TRANSTOCOL_TCP))
+	{
+		char ipaddr[24] = {0};
+		int port = atoi(sqlserver_get_column_from_gwsn("tcp_port", gwsn));
+		sprintf(ipaddr, "%s:%u",
+			sqlserver_get_column_from_gwsn("ip", gwsn), 
+			port);
+
+		tcp_conn_t *tconn = queryfrom_tcpconn_list_with_ipaddr(ipaddr);
+
+		if(tconn != NULL)
+		{
+			arg = calloc(1, sizeof(frhandler_arg_t));
+			arg->transtocol = TOCOL_TCP;
+			arg->fd = tconn->fd;
+		}
+	}
+#endif
+
+	trfield_obj_t obj = {
+		INFO_OBJECT_DEBUG,
+		INFO_OBJECT_DEVICE,
+	};
+
+	trfield_ctrl_t ctrl;
+	STRS_MEMCPY(ctrl.dev_sn, devsn, sizeof(ctrl.dev_sn), strlen(devsn));
+	STRS_MEMCPY(ctrl.cmd, cmd, sizeof(ctrl.cmd), strlen(cmd));
+
+	trfield_ctrl_t *pctrl = &ctrl;
+	
+	trfr_control_t control;
+	control.action = ACTION_CONTROL;
+	control.obj = &obj;
+	STRS_MEMCPY(control.gw_sn, gwsn, sizeof(control.gw_sn), strlen(gwsn));
+	control.ctrls = &pctrl;
+	control.ctrl_size = 1;
+	STRS_MEMCPY(control.random,
+					get_md5(get_system_time(), 2),
+					sizeof(control.random),
+					4);
+
+	trans_send_control_request(arg, &control);
+
+	free(arg);
+}
+#endif
+
 void trans_send_frame_request(frhandler_arg_t *arg, char *frame)
 {
+#ifdef COMM_SERVER
+	if(arg == NULL)
+	{
+		return;
+	}
+
+	switch(arg->transtocol)
+#elif defined(COMM_CLIENT)
 	switch(get_trans_protocol())
+#endif
 	{
 	case TOCOL_DISABLE:
 		break;
@@ -760,7 +1041,7 @@ void trans_send_frame_request(frhandler_arg_t *arg, char *frame)
 #ifdef TRANS_UDP_SERVICE
 		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
 #ifdef COMM_CLIENT
-		set_heartbeat_check(get_global_conf()->udp_timeout);
+		set_heartbeat_check(0, get_global_conf()->udp_timeout);
 #endif
 #endif
 		break;
@@ -770,14 +1051,14 @@ void trans_send_frame_request(frhandler_arg_t *arg, char *frame)
 		socket_tcp_server_send(arg, frame, strlen(frame));
 #elif defined(TRANS_TCP_CLIENT)
 		socket_tcp_client_send(frame, strlen(frame));
-		set_heartbeat_check(get_global_conf()->tcp_timeout);
+		set_heartbeat_check(0, get_global_conf()->tcp_timeout);
 #endif
 		break;
 
 	case TOCOL_HTTP:
 #ifdef TRANS_HTTP_REQUEST
 		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
-		set_heartbeat_check(get_global_conf()->http_timeout);
+		set_heartbeat_check(0, get_global_conf()->http_timeout);
 #endif
 		break;
 	}

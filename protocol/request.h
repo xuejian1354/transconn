@@ -41,11 +41,13 @@ void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq
 void trans_send_report_request(frhandler_arg_t *arg, trfr_report_t *report);
 void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check);
 void trans_send_respond_request(frhandler_arg_t *arg, trfr_respond_t *respond);
-
+#endif
+#if defined(COMM_CLIENT) || defined(DE_TRANS_UDP_CONTROL)
 void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh);
 void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control);
-void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres);
 #endif
+
+void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres);
 
 #ifdef COMM_SERVER
 void trans_tocolreq_handler(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq);
@@ -55,15 +57,20 @@ void trans_respond_handler(frhandler_arg_t *arg, trfr_respond_t *respond);
 
 void trans_send_refresh_request(frhandler_arg_t *arg, trfr_refresh_t *refresh);
 void trans_send_control_request(frhandler_arg_t *arg, trfr_control_t *control);
-void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres);
-
 #endif
+
+void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres);
 
 #ifdef COMM_CLIENT
 void sync_gateway_info(gw_info_t *pgw_info);
 void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info);
 void upload_data(uint8 isrefresh, char *random);
 void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback);
+#endif
+
+#ifdef DE_TRANS_UDP_CONTROL
+void detrans_send_refresh(sn_t devsn);
+void detrans_send_control(sn_t devsn, char *cmd);
 #endif
 
 void trans_send_frame_request(frhandler_arg_t *arg, char *frame);

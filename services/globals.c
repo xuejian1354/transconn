@@ -62,7 +62,7 @@ static global_conf_t g_conf =
 	TRANS_TCP_TIMEOUT,
 #endif
 #endif
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	TRANS_UDP_PORT,
 #ifdef COMM_CLIENT
 	TRANS_UDP_TIMEOUT,
@@ -161,23 +161,23 @@ int start_params(int argc, char **argv)
 
 #ifdef SERIAL_SUPPORT
   #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	char *optstrs = "s:t:u:h";
 	#else
 	char *optstrs = "s:t:h";
     #endif
-  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	char *optstrs = "s:u:h";
   #else
   	char *optstrs = "s:h";
   #endif
 #elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
   	char *optstrs = "t:u:h";
   #else
   	char *optstrs = "t:h";
   #endif
-#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	char *optstrs = "u:h";
 #else
 	char *optstrs = "h";
@@ -190,7 +190,7 @@ int start_params(int argc, char **argv)
 		case 'h':
 #ifdef SERIAL_SUPPORT
   #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-t<TCP Port>] [-u<UDP Port>]\n", argv[0]);
 			DE_PRINTF(0, "Default: \n\t-s %s\n\t-t %d\n\t-u %d\n",
 							TRANS_SERIAL_DEV,
@@ -200,7 +200,7 @@ int start_params(int argc, char **argv)
 			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-t<TCP Port>]\n", argv[0]);
 			DE_PRINTF(0, "Default:\n\t-s %s\n\t-t %d\n", TRANS_SERIAL_DEV, TRANS_TCP_PORT);
     #endif
-  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-u<UDP Port>]\n", argv[0]);
   			DE_PRINTF(0, "Default:\n\t-s %s\n\t-u %d\n", TRANS_SERIAL_DEV, TRANS_UDP_PORT);
   #else
@@ -208,14 +208,14 @@ int start_params(int argc, char **argv)
   			DE_PRINTF(0, "Default:\n\t-s %s\n", TRANS_SERIAL_DEV);
   #endif
 #elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
   			DE_PRINTF(0, "Usage: %s [-t<TCP Port>] [-u<UDP Port>]\n", argv[0]);
   			DE_PRINTF(0, "Default:\n\t-t %d\n\t-u %d\n", TRANS_TCP_PORT, TRANS_UDP_PORT);
   #else
   			DE_PRINTF(0, "Usage: %s [-t<TCP Port>]\n", argv[0]);
   			DE_PRINTF(0, "Default:\n\t-t %d\n", TRANS_TCP_PORT);
   #endif
-#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 			DE_PRINTF(0, "Usage: %s [-u<UDP Port>]\n", argv[0]);
 			DE_PRINTF(0, "Default:\n\t-u %d\n", TRANS_UDP_PORT);
 #else
@@ -240,7 +240,7 @@ int start_params(int argc, char **argv)
 			t_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_TCP;
 			break;
 #endif
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 		case 'u':
 			t_conf.udp_port = atoi(optarg);
 			t_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UDP;
@@ -277,7 +277,7 @@ int start_params(int argc, char **argv)
     #endif
 	}
 	
-    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 
 	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
 	{
@@ -293,7 +293,7 @@ int start_params(int argc, char **argv)
 	}
     #endif
 	
-  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
   	{
 		set_udp_port(t_conf.udp_port);
@@ -322,7 +322,7 @@ int start_params(int argc, char **argv)
   #endif
 	}
 
-  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
   	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
   	{
 		set_udp_port(t_conf.udp_port);
@@ -337,7 +337,7 @@ int start_params(int argc, char **argv)
 	}
   #endif
   
-#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
   	{
 		set_udp_port(t_conf.udp_port);
@@ -373,7 +373,7 @@ int start_params(int argc, char **argv)
 	DE_PRINTF(1, "TCP transmit port: %d\n", get_tcp_port());
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	DE_PRINTF(1, "UDP transmit port: %d\n", get_udp_port());
 #endif
 
@@ -796,7 +796,7 @@ void set_conf_val(char *cmd, char *val)
 #endif
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	if(!strcmp(cmd, GLOBAL_CONF_UDP_PORT))
 	{
 		confval_list *pval = get_confval_alloc_from_str(val);
@@ -897,7 +897,7 @@ int get_conf_setval()
 					GLOBAL_CONF_ISSETVAL_TCP_TIMEOUT,
 #endif
 #endif
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 					GLOBAL_CONF_ISSETVAL_UDP,
 #ifdef COMM_CLIENT
 					GLOBAL_CONF_ISSETVAL_UDP_TIMEOUT,
@@ -937,7 +937,7 @@ int get_conf_setval()
 					GLOBAL_CONF_TCP_TIMEOUT,
 #endif
 #endif
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 					GLOBAL_CONF_UDP_PORT,
 #ifdef COMM_CLIENT
 					GLOBAL_CONF_UDP_TIMEOUT,
