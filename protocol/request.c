@@ -29,6 +29,10 @@
 #include <module/dbserver.h>
 #endif
 
+#ifdef TRANS_HTTP_REQUEST
+char curl_buf[0x4000];
+#endif
+
 #ifdef COMM_CLIENT
 respond_data_t *prespond_data = NULL;
 
@@ -103,7 +107,8 @@ void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq
 		cJSON_AddStringToObject(pRoot, JSON_FIELD_PROTOCOL, tocolreq->protocol);
 		cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, tocolreq->random);
 		char *frame = cJSON_Print(pRoot);
-		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
+		sprintf(curl_buf, "key=[%s]&datatype=%s\0", frame, get_action_to_str(ACTION_TOCOLREQ));
+		curl_http_request(CURL_POST, get_global_conf()->http_url, curl_buf, curl_data);
 	}
 #endif
 
@@ -154,7 +159,7 @@ void trans_send_report_request(frhandler_arg_t *arg, trfr_report_t *report)
 
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, report->random);
 
-	trans_send_frame_request(arg, cJSON_Print(pRoot));
+	trans_send_frame_request(arg, ACTION_REPORT, cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
@@ -178,7 +183,7 @@ void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check)
 	cJSON_AddStringToObject(pCode, JSON_FIELD_CODEDATA, check->code.code_data);
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, check->random);
 
-	trans_send_frame_request(arg, cJSON_Print(pRoot));
+	trans_send_frame_request(arg, ACTION_CHECK, cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
@@ -198,7 +203,7 @@ void trans_send_respond_request(frhandler_arg_t *arg, trfr_respond_t *respond)
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_DEVDATA, respond->dev_data);
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, respond->random);
 
-	trans_send_frame_request(arg, cJSON_Print(pRoot));
+	trans_send_frame_request(arg, ACTION_RESPOND, cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
@@ -280,7 +285,7 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 #endif
 		if(!strcmp(refresh->obj->owner, INFO_OBJECT_DEBUG))
 		{
-			trans_send_frame_request(t_arg, arg->buf);
+			trans_send_frame_request(t_arg, ACTION_REFRESH, arg->buf);
 		}
 		free(t_arg);
 	}
@@ -365,7 +370,7 @@ void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
 #endif
 		if(!strcmp(control->obj->owner, INFO_OBJECT_DEBUG))
 		{
-			trans_send_frame_request(t_arg, arg->buf);
+			trans_send_frame_request(t_arg, ACTION_CONTROL, arg->buf);
 		}
 		free(t_arg);
 	}
@@ -558,7 +563,7 @@ void trans_send_refresh_request(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, refresh->random);
 
-	trans_send_frame_request(arg, cJSON_Print(pRoot));
+	trans_send_frame_request(arg, ACTION_REFRESH, cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
@@ -609,7 +614,7 @@ void trans_send_control_request(frhandler_arg_t *arg, trfr_control_t *control)
 
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, control->random);
 
-	trans_send_frame_request(arg, cJSON_Print(pRoot));
+	trans_send_frame_request(arg, ACTION_CONTROL, cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
@@ -642,7 +647,7 @@ void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres
 	}
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, tocolres->random);
 
-	trans_send_frame_request(arg, cJSON_Print(pRoot));
+	trans_send_frame_request(arg, ACTION_TOCOLRES, cJSON_Print(pRoot));
 	
 	cJSON_Delete(pRoot);
 }
@@ -677,7 +682,10 @@ void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info)
 			fr_buffer_t *buffer = get_devopt_data_tostr(pdev_info->zdev_opt);
 			if(buffer != NULL)
 			{
-				incode_xtocs(trespond_data->dev_data, buffer->data, buffer->size);
+				STRS_MEMCPY(trespond_data->dev_data,
+								buffer->data,
+								sizeof(trespond_data->dev_data),
+								buffer->size);
 			}
 			get_buffer_free(buffer);
 
@@ -740,8 +748,12 @@ void upload_data(uint8 isrefresh, char *random)
 					incode_xtocs(dev_sn, p_dev->zidentity_no, sizeof(zidentify_no_t));
 
 					fr_buffer_t *data_buffer = get_devopt_data_tostr(p_dev->zdev_opt);
-					char *dev_data = calloc(1, data_buffer->size+1);
-					memcpy(dev_data, data_buffer->data, data_buffer->size);
+					char *dev_data = NULL;
+					if(data_buffer != NULL)
+					{
+						dev_data = calloc(1, data_buffer->size+1);
+						memcpy(dev_data, data_buffer->data, data_buffer->size);
+					}
 					get_buffer_free(data_buffer);
 
 					trfield_device_t *device = 
@@ -1018,7 +1030,7 @@ void detrans_send_control(sn_t devsn, char *cmd)
 }
 #endif
 
-void trans_send_frame_request(frhandler_arg_t *arg, char *frame)
+void trans_send_frame_request(frhandler_arg_t *arg, trans_action_t action, char *frame)
 {
 #ifdef COMM_SERVER
 	if(arg == NULL)
@@ -1057,7 +1069,8 @@ void trans_send_frame_request(frhandler_arg_t *arg, char *frame)
 
 	case TOCOL_HTTP:
 #ifdef TRANS_HTTP_REQUEST
-		curl_http_request(CURL_POST, get_global_conf()->http_url, frame, curl_data);
+		sprintf(curl_buf, "key=[%s]&datatype=%s\0", frame, get_action_to_str(action));
+		curl_http_request(CURL_POST, get_global_conf()->http_url, curl_buf, curl_data);
 		set_heartbeat_check(0, get_global_conf()->http_timeout);
 #endif
 		break;

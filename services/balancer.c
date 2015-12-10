@@ -245,10 +245,12 @@ line_data_t *serlist_linehandle(char *buf, int len)
 char *get_server_ip(void)
 {
 	global_conf_t *g_conf = get_global_conf();
+#if defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT)
 	if(g_conf->isset_flag & GLOBAL_CONF_ISSETVAL_IP)
 	{
 		return g_conf->main_ip;
 	}
+#endif
 
 	if(p_serlist != NULL)
 	{

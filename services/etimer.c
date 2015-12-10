@@ -26,35 +26,40 @@
 static timer_event_t *p_event;
 static pthread_mutex_t timer_lock;
 
-void timer_func(int sig)
+void *timer_func(void *p)
 {
-	timer_event_t *t_event = p_event;
-	
-	while(t_event != NULL)
+	while(1)
 	{
-		if(t_event->param.immediate)
-		{
-			t_event->interval_count = 0;
-			t_event->param.immediate = 0;
-		}
-		else
-		{
-			t_event->interval_count--;
-		}
+		timer_event_t *t_event = p_event;
 		
-		if(t_event->interval_count <= 0)
+		while(t_event != NULL)
 		{
-			t_event->interval_count = t_event->param.interval;
-			t_event->param.count--;
-			tpool_add_work(t_event->timer_callback, t_event->param.arg, TPOOL_NONE);
+			if(t_event->param.immediate)
+			{
+				t_event->interval_count = 0;
+				t_event->param.immediate = 0;
+			}
+			else
+			{
+				t_event->interval_count--;
+			}
+			
+			if(t_event->interval_count <= 0)
+			{
+				t_event->interval_count = t_event->param.interval;
+				t_event->param.count--;
+				tpool_add_work(t_event->timer_callback, t_event->param.arg, TPOOL_NONE);
+			}
+			
+			if(!t_event->param.resident && !t_event->param.count)
+			{
+				del_timer_event(t_event->timer_id);
+			}
+			
+			t_event = t_event->next;
 		}
-		
-		if(!t_event->param.resident && !t_event->param.count)
-		{
-			del_timer_event(t_event->timer_id);
-		}
-		
-		t_event = t_event->next;
+
+		usleep(TIMER_MIN_INTERVAL);
 	}
 }
 
@@ -69,19 +74,23 @@ int timer_init()
             __FUNCTION__, errno, strerror(errno));
         return -1;
     }
-	
-	struct itimerval tv, oldtv;
+
+	/* Unused cause cutting by curl_easy_perform() */
+	/*struct itimerval tv, oldtv;
 	signal(SIGALRM, timer_func);
 
-    tv.it_interval.tv_sec = 0;  
-    tv.it_interval.tv_usec = TIMER_MIN_INTERVAL;  
-    tv.it_value.tv_sec = 0;  
-    tv.it_value.tv_usec = TIMER_MIN_INTERVAL;  
-    if(setitimer(ITIMER_REAL, &tv, &oldtv) < 0)
-    {
+	tv.it_interval.tv_sec = 0;  
+	tv.it_interval.tv_usec = TIMER_MIN_INTERVAL;  
+	tv.it_value.tv_sec = 0;  
+	tv.it_value.tv_usec = TIMER_MIN_INTERVAL;  
+	if(setitimer(ITIMER_REAL, &tv, &oldtv) < 0)
+	{
 		perror("timer initial");
 		return -1;
-	}
+	}*/
+
+	pthread_t pthtimer;
+	pthread_create(&pthtimer, NULL, timer_func, NULL);
 	
 	return 0;
 }

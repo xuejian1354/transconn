@@ -36,7 +36,14 @@ static void cli_watch(void *p);
 void gateway_init()
 {
 	set_refresh_check();
-	set_heartbeat_check(1, 4000);
+
+	timer_event_param_t timer_param;
+	timer_param.resident = 1;
+	timer_param.interval = 4000;
+	timer_param.count = 1;
+	timer_param.immediate = 1;
+
+	set_mevent(GATEWAY_HEARTBEAT_EVENT, heartbeat_request, &timer_param);
 }
 
 void gateway_refresh(void *p)
