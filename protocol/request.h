@@ -73,6 +73,6 @@ void detrans_send_refresh(sn_t devsn);
 void detrans_send_control(sn_t devsn, char *cmd);
 #endif
 
-void trans_send_frame_request(frhandler_arg_t *arg, char *frame);
+void trans_send_frame_request(frhandler_arg_t *arg, trans_action_t action, char *frame);
 
 #endif  //__REQUEST_H__

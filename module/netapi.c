@@ -107,12 +107,16 @@ void get_frhandler_arg_free(frhandler_arg_t *arg)
 #ifdef COMM_CLIENT
 frhandler_arg_t *get_transtocol_frhandler_arg()
 {
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	t_arg.transtocol = get_trans_protocol();
 	t_arg.addr.sin_family = PF_INET;
 	t_arg.addr.sin_port = htons(get_udp_port());
 	t_arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
 
 	return &t_arg;
+#else
+	return NULL;
+#endif
 }
 #endif
 
@@ -617,7 +621,7 @@ void curl_post_request(void *ptr)
     }
 	else
 	{
-		DE_PRINTF(0, "%s\nHTTP-Post:%s\nrequest:%s\n",
+		DE_PRINTF(0, "%s\nHTTP-Post: %s?%s\n\n",
 			get_time_head(), arg->url, arg->req);
 	}
   
@@ -627,7 +631,7 @@ void curl_post_request(void *ptr)
 
 size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp)
 {
-
+#if 0
 	xmlDocPtr doc;
 	xmlNodePtr curNode;
 	xmlChar *valData;
@@ -664,11 +668,11 @@ size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp)
 				{
 					valData = xmlNodeGetContent(curNode);
 					//DE_PRINTF(1, "name:%s\ncontent:%s\n", curNode->name, valData); 
-					frhandler_arg_t arg = {0};
-					arg.transtocol = TOCOL_HTTP;
-					arg.buf = valData;
-					arg.len = strlen(valData);
-					analysis_capps_frame(&arg);
+					frhandler_arg_t *arg = calloc(1, sizeof(frhandler_arg_t));
+					arg->transtocol = TOCOL_HTTP;
+					arg->buf = valData;
+					arg->len = strlen(valData);
+					analysis_capps_frame(arg);
 					xmlFree(valData); 
 					break;
 				}
@@ -682,6 +686,61 @@ size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp)
 
 curl_data_end:
 	xmlFreeDoc(doc);
+
+#else
+	int i;
+	int head = -1;
+	int tail = -1;
+	int len;
+
+	char *data = (char *)buffer;
+	len = strlen(data);
+
+	for(i=0; i<len; i++)
+	{
+		if(*(data+i) == ' ')
+		{
+			continue;
+		}
+		else if(*(data+i) == '[')
+		{
+			head = i;
+			break;
+		}
+	}
+
+	for(i=len-1; i>=0; i--)
+	{
+		if(*(data+i) == ' ')
+		{
+			continue;
+		}
+		else if(*(data+i) == ']')
+		{
+			tail = i;
+			break;
+		}
+	}
+
+	if(head >= 0 && tail > 0 && tail > head + 1)
+	{
+		frhandler_arg_t *arg = calloc(1, sizeof(frhandler_arg_t));
+		char *data_buf = calloc(1, tail-head);
+		memcpy(data_buf, data+head+1, tail-head-1);
+		arg->transtocol = TOCOL_HTTP;
+		arg->buf = data_buf;
+		arg->len = tail - head - 1;
+
+		DE_PRINTF(0, "%s\nHttp returns: %s\n\n", get_time_head(), data_buf);
+
+		analysis_capps_frame(arg);
+	}
+	else
+	{
+		DE_PRINTF(1, "errror format for returns\nreturn data: %s\n\n", data);
+	}
+#endif
+
 	return nmemb*size;
 }
 #endif

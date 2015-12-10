@@ -165,7 +165,7 @@ typedef struct
 	char serial_dev[16];
 #endif
 
-#ifdef COMM_CLIENT
+#if defined(COMM_CLIENT) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
 	char main_ip[IP_ADDR_MAX_SIZE];
 #endif
 
