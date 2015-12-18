@@ -4,7 +4,7 @@ ifeq ($(TOPDIR),)
 $(error TOPDIR value no set)
 endif
 
-inc_dirs :=/usr/local/mariadb/include/mysql /home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/curl /home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/libxml /home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/sqlite3.h /home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/sqlite3ext.h
+inc_dirs :=/home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/curl /home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/libxml /home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/sqlite3.h /home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/sqlite3ext.h
 
 inc_files := $(strip $(foreach n, $(SUB_MODULES), \
 			  $(patsubst %, $(n)/%, \
