@@ -16,6 +16,10 @@
  */
 #include "dballoc.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 devices_t *devices_alloc(unsigned int size)
 {
 	if(size == 0)
@@ -23,11 +27,11 @@ devices_t *devices_alloc(unsigned int size)
 		return NULL;
 	}
 
-	devices_t *devices = calloc(1, sizeof(devices_t));
+	devices_t *devices = (devices_t *)calloc(1, sizeof(devices_t));
 	devices->size = size;
-	devices->sn = calloc(size, sizeof(char *));
-	devices->iscollects = calloc(size, sizeof(int));
-	devices->locates = calloc(size, sizeof(char *));
+	devices->sn = (char **)calloc(size, sizeof(char *));
+	devices->iscollects = (int *)calloc(size, sizeof(int));
+	devices->locates = (char **)calloc(size, sizeof(char *));
 
 	return devices;
 }
@@ -54,7 +58,7 @@ int devices_add(devices_t *devs, char *sn, int iscollect, char *locate)
 	}
 
 	int tlen = strlen(sn);
-	*(devs->sn+i)= calloc(tlen+1, sizeof(char));
+	*(devs->sn+i)= (char *)calloc(tlen+1, sizeof(char));
 	strncpy(*(devs->sn+i), sn, tlen);
 
 	*(devs->iscollects+i) = iscollect;
@@ -62,7 +66,7 @@ int devices_add(devices_t *devs, char *sn, int iscollect, char *locate)
 	if(locate != NULL)
 	{
 		int llen = strlen(locate);
-		*(devs->locates+i) = calloc(llen+1, sizeof(char));
+		*(devs->locates+i) = (char *)calloc(llen+1, sizeof(char));
 		strncpy(*(devs->locates+i), locate, llen);
 	}
 
@@ -102,6 +106,20 @@ void devices_free(devices_t *devs)
 	free(devs);
 }
 
+areas_t *areas_alloc(unsigned int size)
+{
+	return strings_alloc(size);
+}
+
+int areas_add(areas_t *areas, char * area)
+{
+	return strings_add(areas, area);
+}
+
+void areas_free(areas_t *areas)
+{
+	return strings_free(areas);
+}
 
 scene_t *scene_create(char *name, char **devices, unsigned int dev_size, 
 	int *func_ids, unsigned int func_size, char **params, unsigned int param_size)
@@ -111,23 +129,23 @@ scene_t *scene_create(char *name, char **devices, unsigned int dev_size,
 		return NULL;
 	}
 
-	scene_t *scene = calloc(1, sizeof(scene_t));
+	scene_t *scene = (scene_t *)calloc(1, sizeof(scene_t));
 
 	int nlen = strlen(name);
-	scene->name = calloc(nlen+1, sizeof(char));
+	scene->name = (char *)calloc(nlen+1, sizeof(char));
 	strncpy(scene->name, name, nlen);
 
 	if(devices != NULL && dev_size != 0)
 	{
 		int i;
-		scene->devices = calloc(dev_size, sizeof(char *));
+		scene->devices = (char **)calloc(dev_size, sizeof(char *));
 		for(i=0; i<dev_size; i++)
 		{
 			char *dev_src = *(devices+i);
 			int dlen = strlen(dev_src);
 			if(dev_src != NULL && dlen > 0)
 			{
-				*(scene->devices+i) = calloc(dlen+1, sizeof(char));
+				*(scene->devices+i) = (char *)calloc(dlen+1, sizeof(char));
 				memcpy(*(scene->devices+i), dev_src, dlen);
 			}
 		}
@@ -135,21 +153,21 @@ scene_t *scene_create(char *name, char **devices, unsigned int dev_size,
 
 	if(func_ids != NULL && func_size != 0)
 	{
-		scene->func_ids = calloc(func_size, sizeof(int));
+		scene->func_ids = (int *)calloc(func_size, sizeof(int));
 		memcpy(scene->func_ids, func_ids, func_size);
 	}
 
 	if(params != NULL && param_size != 0)
 	{
 		int i;
-		scene->params = calloc(param_size, sizeof(char *));
+		scene->params = (char **)calloc(param_size, sizeof(char *));
 		for(i=0; i<param_size; i++)
 		{
 			char *param_src = *(params+i);
 			int plen = strlen(param_src);
 			if(param_src != NULL && plen > 0)
 			{
-				*(scene->params+i) = calloc(plen+1, sizeof(char));
+				*(scene->params+i) = (char *)calloc(plen+1, sizeof(char));
 				memcpy(*(scene->params+i), param_src, plen);
 			}
 		}
@@ -163,9 +181,9 @@ scenes_t *scenes_alloc(unsigned int size)
 		return NULL;
 	}
 
-	scenes_t *scenes = calloc(1, sizeof(scenes_t));
+	scenes_t *scenes = (scenes_t *)calloc(1, sizeof(scenes_t));
 	scenes->size = size;
-	scenes->scenes = calloc(size, sizeof(scene_t *));
+	scenes->scenes = (scene_t **)calloc(size, sizeof(scene_t *));
 
 	return scenes;
 }
@@ -251,3 +269,7 @@ void scenes_free(scenes_t *scenes)
 		scene_free(*(scenes->scenes+i));
 	}
 }
+
+#ifdef __cplusplus
+}
+#endif

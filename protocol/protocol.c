@@ -17,7 +17,15 @@
 #include "protocol.h"
 #include <cJSON.h>
 #include <module/netapi.h>
+#include <module/dbclient.h>
+#include <module/serial.h>
+#include <protocol/request.h>
+#include <protocol/common/mevent.h>
 #include <protocol/common/fieldlysis.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Used for SuperButton Functions */
 #define SB_OPT_CFG				'!'
@@ -41,7 +49,7 @@ void analysis_zdev_frame(void *ptr)
 	}
 
 	fr_head_type_t head_type = get_frhead_from_str(arg->buf);
-	void *p = get_frame_alloc(head_type, arg->buf, arg->len);
+	void *p = get_frame_alloc(head_type, (uint8 *)arg->buf, arg->len);
 	if(NULL == p)
 	{
 		return;
@@ -53,10 +61,10 @@ void analysis_zdev_frame(void *ptr)
 	{
 		uc_t *uc = (uc_t *)p;
 		gw_info_t *p_gw = get_gateway_info();
-		incode_ctoxs(p_gw->gw_no, uc->ext_addr, 16);
-		get_gateway_info()->zapp_type = get_frapp_type_from_str(uc->ed_type);
-		incode_ctox16(&(p_gw->zpanid), uc->panid);
-		incode_ctox16(&(p_gw->zchannel), uc->channel);
+		incode_ctoxs(p_gw->gw_no, (char *)uc->ext_addr, 16);
+		get_gateway_info()->zapp_type = get_frapp_type_from_str((char *)uc->ed_type);
+		incode_ctox16(&(p_gw->zpanid), (char *)uc->panid);
+		incode_ctox16(&(p_gw->zchannel), (char *)uc->channel);
 
 		if(p_gw->zgw_opt != NULL)
 		{
@@ -74,10 +82,10 @@ void analysis_zdev_frame(void *ptr)
 	case HEAD_UO:
 	{
 		uo_t *uo = (uo_t *)p;
-		dev_info_t *dev_info = calloc(1, sizeof(dev_info_t));
-		incode_ctoxs(dev_info->zidentity_no, uo->ext_addr, 16);
-		incode_ctox16(&dev_info->znet_addr, uo->short_addr);
-		dev_info->zapp_type = get_frapp_type_from_str(uo->ed_type);
+		dev_info_t *dev_info = (dev_info_t *)calloc(1, sizeof(dev_info_t));
+		incode_ctoxs(dev_info->zidentity_no, (char *)uo->ext_addr, 16);
+		incode_ctox16(&dev_info->znet_addr, (char *)uo->short_addr);
+		dev_info->zapp_type = get_frapp_type_from_str((char *)uo->ed_type);
 		dev_info->znet_type = get_frnet_type_from_str(uo->type);
 
 		dev_info->zdev_opt = 
@@ -105,7 +113,7 @@ void analysis_zdev_frame(void *ptr)
 				{
 					if(p_dev->zapp_type == FRAPP_CURTAIN && zlen < 1020)
 					{
-						sprintf(zbuf+zlen, "%04X", p_dev->znet_addr);
+						sprintf((char *)(zbuf+zlen), "%04X", p_dev->znet_addr);
 						zlen += 4;
 					}
 					p_dev = p_dev->next;
@@ -114,8 +122,8 @@ void analysis_zdev_frame(void *ptr)
 				if(zlen > 0)
 				{
 					uint8 mbuf[1040] = {0};
-					sprintf(mbuf, "D:/EC/%04XLTD%s:O\r\n", dev_info->znet_addr, zbuf);
-					serial_write(mbuf, 17+zlen);
+					sprintf((char *)mbuf, "D:/EC/%04XLTD%s:O\r\n", dev_info->znet_addr, zbuf);
+					serial_write((char *)mbuf, 17+zlen);
 				}
 				goto UO_Free;
 			}
@@ -127,10 +135,10 @@ void analysis_zdev_frame(void *ptr)
 					if(p_dev->zapp_type == FRAPP_LIGHTDETECT)
 					{
 						uint8 mbuf[24] = {0};
-						sprintf(mbuf, "D:/EC/%04XCTN%04X:O\r\n",
+						sprintf((char *)mbuf, "D:/EC/%04XCTN%04X:O\r\n",
 						p_dev->znet_addr,
 						dev_info->znet_addr);
-						serial_write(mbuf, 21);
+						serial_write((char *)mbuf, 21);
 					}
 					p_dev = p_dev->next;
 				}
@@ -146,11 +154,11 @@ UO_Free:
 	{
 		uh_t *uh = (uh_t *)p;
 		uint16 znet_addr;
-		incode_ctox16(&znet_addr, uh->short_addr);
+		incode_ctox16(&znet_addr, (char *)uh->short_addr);
 		dev_info_t *dev_info = query_zdevice_info(znet_addr);
 		if(dev_info == NULL)
 		{
-			uint8 mbuf[16] = {0};
+			char mbuf[16] = {0};
 			sprintf(mbuf, "D:/SR/%04X:O\r\n", znet_addr);
 			serial_write(mbuf, 14);
 		}
@@ -166,7 +174,7 @@ UO_Free:
 	{
 		ur_t *ur = (ur_t *)p;
 		uint16 znet_addr;
-		incode_ctox16(&znet_addr, ur->short_addr);
+		incode_ctox16(&znet_addr, (char *)ur->short_addr);
 		if(znet_addr == 0)	//gateway
 		{
 			gw_info_t *p_gw = get_gateway_info();
@@ -180,7 +188,7 @@ UO_Free:
 			dev_info_t *dev_info = query_zdevice_info(znet_addr);
 			if(dev_info == NULL)
 			{
-				uint8 mbuf[16] = {0};
+				char mbuf[16] = {0};
 				sprintf(mbuf, "D:/SR/%04X:O\r\n", znet_addr);
 				serial_write(mbuf, 14);
 			}
@@ -226,7 +234,7 @@ UR_Free:
 			{
 				int is_match = 0;
 				zidentify_no_t cur_mac = {0};
-				incode_ctoxs(cur_mac, de->data+17+16*i, 16);
+				incode_ctoxs(cur_mac, (char *)(de->data+17+16*i), 16);
 				
 				dev_info_t *p_dev = get_gateway_info()->p_dev;
 				while(p_dev != NULL)
@@ -242,7 +250,7 @@ UR_Free:
 
 				if(is_match)
 				{
-					uint8 mbuf[32] = {0};
+					char mbuf[32] = {0};
 					sprintf(mbuf, "D:/FC/%04X%c%s:O\r\n", 
 										p_dev->znet_addr,
 										SB_OPT_DEVREG,
@@ -261,7 +269,7 @@ UR_Free:
 			zidentify_no_t match_mac = {0};
 			uint8 data_tail[24] = {0};
 			
-			incode_ctoxs(match_mac, de->data+1, 16);
+			incode_ctoxs(match_mac, (char *)(de->data+1), 16);
 			memcpy(data_tail, de->data+17, 20);
 
 			dev_info_t *p_dev = get_gateway_info()->p_dev;
@@ -269,8 +277,8 @@ UR_Free:
 			{
 				if(!memcmp(p_dev->zidentity_no, match_mac, sizeof(zidentify_no_t)))
 				{
-					uint8 mbuf[56] = {0};	
-					uint8 gw_mac[18] = {0};
+					char mbuf[56] = {0};	
+					char gw_mac[18] = {0};
 					incode_xtocs(gw_mac, get_gateway_info()->gw_no, 8);
 					sprintf(mbuf, "D:/FC/%04X%c%s%s:O\r\n", 
 										p_dev->znet_addr, 
@@ -328,6 +336,7 @@ int zdev_sync_zopt(dev_opt_t *dst_opt, uint8 *data, uint8 datalen)
 
 void analysis_capps_frame(void *ptr)
 {
+	cJSON *pAction = NULL;
 	frhandler_arg_t *arg = (frhandler_arg_t *)ptr;
 	if(arg == NULL)
 	{
@@ -340,7 +349,7 @@ void analysis_capps_frame(void *ptr)
 		goto capps_arg_end;
 	}
 
-	cJSON *pAction = cJSON_GetObjectItem(pRoot, JSON_FIELD_ACTION);
+	pAction = cJSON_GetObjectItem(pRoot, JSON_FIELD_ACTION);
 	if(pAction == NULL)
 	{
 		goto capps_cjson_end;
@@ -428,7 +437,7 @@ void analysis_capps_frame(void *ptr)
 		else
 		{
 			dev_size = cJSON_GetArraySize(pDevs);
-			devices = calloc(dev_size, sizeof(trfield_device_t *));
+			devices = (trfield_device_t **)calloc(dev_size, sizeof(trfield_device_t *));
 		}
 
 		int i = 0;			
@@ -531,7 +540,7 @@ void analysis_capps_frame(void *ptr)
 		else
 		{
 			devsn_size = cJSON_GetArraySize(pDevSNs);
-			dev_sns = calloc(devsn_size, sizeof(sn_t));
+			dev_sns = (sn_t *)calloc(devsn_size, sizeof(sn_t));
 		}
 
 		int i = 0;
@@ -644,7 +653,7 @@ void analysis_capps_frame(void *ptr)
 
 		int i = 0;
 		int devsn_size = cJSON_GetArraySize(pDevSNs);
-		sn_t *dev_sns = calloc(devsn_size, sizeof(sn_t));
+		sn_t *dev_sns = (sn_t *)calloc(devsn_size, sizeof(sn_t));
 
 		while(i < devsn_size)
 		{
@@ -710,7 +719,7 @@ void analysis_capps_frame(void *ptr)
 		else
 		{
 			ctrl_size = cJSON_GetArraySize(pCtrls);
-			ctrls = calloc(ctrl_size, sizeof(trfield_ctrl_t *));
+			ctrls = (trfield_ctrl_t **)calloc(ctrl_size, sizeof(trfield_ctrl_t *));
 		}
 
 		int i = 0;			
@@ -780,7 +789,7 @@ void analysis_capps_frame(void *ptr)
 
 		trfr_tocolres_t *tocolres =
 			get_trfr_tocolres_alloc(obj,
-										atoi(pReqAction->valuestring),
+										(trans_action_t)atoi(pReqAction->valuestring),
 										info_str,
 										pRandom->valuestring);
 		trans_tocolres_handler(arg, tocolres);
@@ -798,4 +807,8 @@ capps_arg_end:
 	set_refresh_check();
 #endif
 }
+
+#ifdef __cplusplus
+}
+#endif
 

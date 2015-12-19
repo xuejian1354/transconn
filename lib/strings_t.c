@@ -16,6 +16,11 @@
  */
 #include "strings_t.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 strings_t *strings_alloc(unsigned int size)
 {
 	if(size == 0)
@@ -23,9 +28,9 @@ strings_t *strings_alloc(unsigned int size)
 		return NULL;
 	}
 
-	strings_t *strs = calloc(1, sizeof(strings_t));
+	strings_t *strs = (strings_t *)calloc(1, sizeof(strings_t));
 	strs->size = size;
-	strs->str = calloc(size, sizeof(char *));
+	strs->str = (char **)calloc(size, sizeof(char *));
 	return strs;
 }
 
@@ -51,7 +56,7 @@ int strings_add(strings_t *strs, char *str)
 	}
 
 	int tlen = strlen(str);
-	*(strs->str+i )= calloc(tlen+1, sizeof(char));;
+	*(strs->str+i )= (char *)calloc(tlen+1, sizeof(char));;
 	strncpy(*(strs->str+i), str, tlen);
 
 	return 0;
@@ -81,3 +86,7 @@ void strings_free(strings_t *strs)
 	free(strs->str);
 	free(strs);
 }
+
+#ifdef __cplusplus
+}
+#endif

@@ -21,6 +21,10 @@
 #include <services/etimer.h>
 #include <protocol/protocol.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef COMM_CLIENT
 #define GATEWAY_INIT_EVENT		0x0001
 #define TIMER_REFRESH_EVENT		0x0002
@@ -45,6 +49,10 @@ void set_gateway_check(zidentify_no_t gw_no, int rand);
 
 void set_mevent(int id, 
 	timer_callback_t event_callback, timer_event_param_t *param);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
  
  #endif  //__MEVENT_H__

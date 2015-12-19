@@ -16,6 +16,10 @@
  */
 #include "devopt.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 char get_devopt_method_xtoc(control_method_t m);
 control_method_t get_devopt_method_ctox(char c);
 char get_devopt_power_xtoc(detect_power_t p);
@@ -72,14 +76,14 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 	case FRAPP_LAMPSWITCH:
 	case FRAPP_CURTAIN:
 	case FRAPP_DOORLOCK:
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
 		if(len >= DEVOPT_LIGHTSWITCH_ONE_DATASTR_FIX_SIZE)
 		{
 			opt->device.lightswitch.nums = 1;
 			incode_ctoxs(opt->device.lightswitch.data.one, 
-							data, 
+							(char *)data, 
 							DEVOPT_LIGHTSWITCH_ONE_DATASTR_FIX_SIZE);
 		}
 		else
@@ -89,14 +93,14 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 		
 	case FRAPP_LIGHTSWITCH_TWO: 
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
 		if(len >= DEVOPT_LIGHTSWITCH_TWO_DATASTR_FIX_SIZE)
 		{
 			opt->device.lightswitch.nums = 2;
 			incode_ctoxs(opt->device.lightswitch.data.two, 
-							data, 
+							(char *)data, 
 							DEVOPT_LIGHTSWITCH_TWO_DATASTR_FIX_SIZE);
 		}
 		else
@@ -107,14 +111,14 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 		
 	case FRAPP_LIGHTSWITCH_THREE: 
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
 		if(len >= DEVOPT_LIGHTSWITCH_THREE_DATASTR_FIX_SIZE)
 		{
 			opt->device.lightswitch.nums = 3;
 			incode_ctoxs(opt->device.lightswitch.data.three, 
-							data, 
+							(char *)data, 
 							DEVOPT_LIGHTSWITCH_THREE_DATASTR_FIX_SIZE);
 		}
 		else
@@ -126,14 +130,14 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 		
 	case FRAPP_LIGHTSWITCH_FOUR: 
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
 		if(len >= DEVOPT_LIGHTSWITCH_FOUR_DATASTR_FIX_SIZE)
 		{
 			opt->device.lightswitch.nums = 4;
 			incode_ctoxs(opt->device.lightswitch.data.four, 
-							data, 
+							(char *)data, 
 							DEVOPT_LIGHTSWITCH_FOUR_DATASTR_FIX_SIZE);
 		}
 		else
@@ -146,13 +150,13 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 
 	case FRAPP_HUELIGHT: 
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
 		if(len >= DEVOPT_HUELIGHT_DATASTR_FIX_SIZE)
 		{
-			incode_ctoxs(&opt->device.huelight, 
-							data, 
+			incode_ctoxs((uint8 *)&opt->device.huelight, 
+							(char *)data, 
 							DEVOPT_HUELIGHT_DATASTR_FIX_SIZE);
 		}
 		else
@@ -162,12 +166,12 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 		
 	case FRAPP_ALARM: 
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
 		if(len >= 2)
 		{
-			incode_ctoxs(opt->device.alarm.data, data, 2);
+			incode_ctoxs(opt->device.alarm.data, (char *)data, 2);
 		}
 		else
 		{
@@ -176,13 +180,13 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 		
 	case FRAPP_IR_DETECTION: 
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.power = DEV_DETECT_NORMAL;
 		if(len >= 2)
 		{
 			opt->device.irdetect.setting = 0;
-			incode_ctoxs(opt->device.irdetect.status, data, 2);
+			incode_ctoxs(opt->device.irdetect.status, (char *)data, 2);
 		}
 		else
 		{
@@ -192,13 +196,13 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 		
 	case FRAPP_DOOR_SENSOR: 
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.power = DEV_DETECT_NORMAL;
 		if(len >= 2)
 		{
 			opt->device.doorsensor.setting = 0;
-			incode_ctoxs(opt->device.doorsensor.status, data, 2);
+			incode_ctoxs(opt->device.doorsensor.status, (char *)data, 2);
 		}
 		else
 		{
@@ -208,33 +212,33 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 
 	case FRAPP_ENVDETECTION: 
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
 
 		memset(opt->device.envdetection.current_buffer, 0, 16);
 		if(len <= 16)
 		{
-			memcpy(opt->device.envdetection.current_buffer, data, len);
+			memcpy(opt->device.envdetection.current_buffer, (char *)data, len);
 		}
 		
 		if(len >= 13 && !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
 		{
-			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, data+3, 2);
-			incode_ctox16(&opt->device.envdetection.pm25_threshold, data+5);
-			incode_ctox16(&opt->device.envdetection.pm25_val, data+9);
+			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, (char *)(data+3), 2);
+			incode_ctox16(&opt->device.envdetection.pm25_threshold, (char *)(data+5));
+			incode_ctox16(&opt->device.envdetection.pm25_val, (char *)(data+9));
 		}
 		else if(len >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
 		{
-			incode_ctox16(&opt->device.envdetection.pm25_val, data+3);
+			incode_ctox16(&opt->device.envdetection.pm25_val, (char *)(data+3));
 		}
 		else if(len >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
 		{
-			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, data+3, 2);
+			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, (char *)(data+3), 2);
 		}
 		else if(len >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
 		{
-			incode_ctox16(&opt->device.envdetection.pm25_threshold, data+3);
+			incode_ctox16(&opt->device.envdetection.pm25_threshold, (char *)(data+3));
 		}
 		
 		return opt;
@@ -242,7 +246,7 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 	case FRAPP_IR_RELAY: 
 	case FRAPP_PROJECTOR:
 	case FRAPP_AIRCONDITION:
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
 		opt->device.irrelay.mode = 0;
@@ -250,7 +254,7 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 
 	case FRAPP_AIRCONTROLLER:
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
 
@@ -262,31 +266,31 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		
 		if(len >= 13 && !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
 		{
-			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
-			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+5);
-			incode_ctox16(&opt->device.aircontroller.pm25_val, data+9);
+			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, (char *)(data+3), 2);
+			incode_ctox16(&opt->device.aircontroller.pm25_threshold, (char *)(data+5));
+			incode_ctox16(&opt->device.aircontroller.pm25_val, (char *)(data+9));
 		}
 		else if(len >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
 		{
-			incode_ctox16(&opt->device.aircontroller.pm25_val, data+3);
+			incode_ctox16(&opt->device.aircontroller.pm25_val, (char *)(data+3));
 		}
 		else if(len >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
 		{
-			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
+			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, (char *)(data+3), 2);
 		}
 		else if(len >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
 		{
-			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+3);
+			incode_ctox16(&opt->device.aircontroller.pm25_threshold, (char *)(data+3));
 		}
 		return opt;
 
 	case FRAPP_RELAYSOCKET: 
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
 		if(len >= 2)
 		{
-			incode_ctoxs(opt->device.relaysocket.data, data, 2);
+			incode_ctoxs(opt->device.relaysocket.data, (char *)data, 2);
 		}
 		else
 		{
@@ -295,12 +299,12 @@ dev_opt_t *get_devopt_fromstr(fr_app_type_t type, uint8 *data, int len)
 		return opt;
 
 	case FRAPP_LIGHTDETECT: 
-		opt = calloc(1, sizeof(dev_opt_t));
+		opt = (dev_opt_t *)calloc(1, sizeof(dev_opt_t));
 		opt->type = type;
 		opt->common.method = DEV_CONTROL_BOTH;
 		if(len >= 4)
 		{
-			incode_ctox16(&(opt->device.lightdetect.data), data);
+			incode_ctox16(&(opt->device.lightdetect.data), (char *)data);
 		}
 		else
 		{
@@ -334,8 +338,8 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		if(len >= DEVOPT_LIGHTSWITCH_ONE_FIX_SIZE)
 		{
 			opt->common.method = get_devopt_method_ctox(data[0]);
-			incode_ctoxs(&opt->device.lightswitch.nums, data+1, 2);
-			incode_ctoxs(opt->device.lightswitch.data.one, data+3, 2);
+			incode_ctoxs(&opt->device.lightswitch.nums, (char *)(data+1), 2);
+			incode_ctoxs(opt->device.lightswitch.data.one, (char *)(data+3), 2);
 		}
 		else
 		{
@@ -347,8 +351,8 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		if(len >= DEVOPT_LIGHTSWITCH_TWO_FIX_SIZE)
 		{
 			opt->common.method = get_devopt_method_ctox(data[0]);
-			incode_ctoxs(&opt->device.lightswitch.nums, data+1, 2);
-			incode_ctoxs(opt->device.lightswitch.data.two, data+3, 4);
+			incode_ctoxs(&opt->device.lightswitch.nums, (char *)(data+1), 2);
+			incode_ctoxs(opt->device.lightswitch.data.two, (char *)(data+3), 4);
 		}
 		else
 		{
@@ -360,8 +364,8 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		if(len >= DEVOPT_LIGHTSWITCH_THREE_FIX_SIZE)
 		{
 			opt->common.method = get_devopt_method_ctox(data[0]);
-			incode_ctoxs(&opt->device.lightswitch.nums, data+1, 2);
-			incode_ctoxs(opt->device.lightswitch.data.three, data+3, 6);
+			incode_ctoxs(&opt->device.lightswitch.nums, (char *)(data+1), 2);
+			incode_ctoxs(opt->device.lightswitch.data.three, (char *)(data+3), 6);
 		}
 		else
 		{
@@ -373,8 +377,8 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		if(len >= DEVOPT_LIGHTSWITCH_FOUR_FIX_SIZE)
 		{
 			opt->common.method = get_devopt_method_ctox(data[0]);
-			incode_ctoxs(&opt->device.lightswitch.nums, data+1, 2);
-			incode_ctoxs(opt->device.lightswitch.data.four, data+3, 8);
+			incode_ctoxs(&opt->device.lightswitch.nums, (char *)(data+1), 2);
+			incode_ctoxs(opt->device.lightswitch.data.four, (char *)(data+3), 8);
 		}
 		else
 		{
@@ -386,8 +390,8 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		if(len >= DEVOPT_HUELIGHT_FIX_SIZE)
 		{
 			opt->common.method = get_devopt_method_ctox(data[0]);
-			incode_ctoxs(&opt->device.huelight, 
-							data+1, 
+			incode_ctoxs((uint8 *)&opt->device.huelight, 
+							(char *)(data+1), 
 							DEVOPT_HUELIGHT_DATASTR_FIX_SIZE);
 		}
 		else
@@ -400,7 +404,7 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		if(len >= DEVOPT_ALARM_FIX_SIZE)
 		{
 			opt->common.method = get_devopt_method_ctox(data[0]);
-			incode_ctoxs(opt->device.alarm.data, data+1, 2);
+			incode_ctoxs(opt->device.alarm.data, (char *)(data+1), 2);
 		}
 		else
 		{
@@ -412,7 +416,7 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		if(len >= DEVOPT_IRDETECT_FIX_SIZE)
 		{
 			opt->common.power = get_devopt_power_ctox(data[0]);
-			incode_ctoxs(&opt->device.irdetect.setting, data+1, 2);
+			incode_ctoxs(&opt->device.irdetect.setting, (char *)(data+1), 2);
 			//incode_ctoxs(opt->device.irdetect.status, data+3, 2);
 		}
 		else
@@ -425,7 +429,7 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		if(len >= DEVOPT_DOORSENSOR_FIX_SIZE)
 		{
 			opt->common.power = get_devopt_power_ctox(data[0]);
-			incode_ctoxs(&opt->device.doorsensor.setting, data+1, 2);
+			incode_ctoxs(&opt->device.doorsensor.setting, (char *)(data+1), 2);
 			//incode_ctoxs(opt->device.doorsensor.status, data+3, 2);
 		}
 		else
@@ -449,21 +453,21 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 			else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3))
 			{
 				memcpy(opt->device.envdetection.current_buffer, data, len);
-				incode_ctoxs(&opt->device.envdetection.pm25_thresmode, data+3, 2);
+				incode_ctoxs(&opt->device.envdetection.pm25_thresmode, (char *)(data+3), 2);
 				if(len >= 9)
 				{
-					incode_ctox16(&opt->device.envdetection.pm25_threshold, data+5);
+					incode_ctox16(&opt->device.envdetection.pm25_threshold, (char *)(data+5));
 				}
 			}
 			else if(len>=7 &&!memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETHOLD, 3))
 			{
 				memcpy(opt->device.envdetection.current_buffer, data, len);
-				incode_ctox16(&opt->device.envdetection.pm25_threshold, data+3);
+				incode_ctox16(&opt->device.envdetection.pm25_threshold, (char *)(data+3));
 			}
 			else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_UPSETTING, 3))
 			{
 				memcpy(opt->device.envdetection.current_buffer, data, len);
-				incode_ctoxs(&opt->device.envdetection.up_setting, data+3, 2);
+				incode_ctoxs(&opt->device.envdetection.up_setting, (char *)(data+3), 2);
 			}
 		}
 		else
@@ -486,7 +490,7 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 				opt->device.irrelay.mode = 0;
 			}
 
-			incode_ctoxs(opt->device.irrelay.data, data+3, 2);
+			incode_ctoxs(opt->device.irrelay.data, (char *)(data+3), 2);
 		}
 		else
 		{
@@ -528,7 +532,7 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 
 			if(i < 6)
 			{
-				incode_xtocs(opt->device.aircontroller.current_buffer+3, &i, 1);
+				incode_xtocs((char *)(opt->device.aircontroller.current_buffer+3), &i, 1);
 			}
 		}
 		else if(!memcmp(data, DEVOPT_AIRCONTROLLER_IRLEARN, 3))
@@ -544,7 +548,7 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 
 			if(i < 6)
 			{
-				incode_xtocs(opt->device.aircontroller.current_buffer+3, &i, 1);
+				incode_xtocs((char *)(opt->device.aircontroller.current_buffer+3), &i, 1);
 			}
 		}
 		else if(len <= 16)
@@ -559,21 +563,21 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 			else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3))
 			{
 				memcpy(opt->device.aircontroller.current_buffer, data, len);
-				incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
+				incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, (char *)(data+3), 2);
 				if(len >= 9)
 				{
-					incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+5);
+					incode_ctox16(&opt->device.aircontroller.pm25_threshold, (char *)(data+5));
 				}
 			}
 			else if(len>=7 &&!memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETHOLD, 3))
 			{
 				memcpy(opt->device.aircontroller.current_buffer, data, len);
-				incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+3);
+				incode_ctox16(&opt->device.aircontroller.pm25_threshold, (char *)(data+3));
 			}
 			else if(len>=5 && !memcmp(data, DEVOPT_AIRCONTROLLER_UPSETTING, 3))
 			{
 				memcpy(opt->device.aircontroller.current_buffer, data, len);
-				incode_ctoxs(&opt->device.aircontroller.up_setting, data+3, 2);
+				incode_ctoxs(&opt->device.aircontroller.up_setting, (char *)(data+3), 2);
 			}
 		}
 		else
@@ -586,7 +590,7 @@ int set_devopt_fromstr(dev_opt_t *opt, uint8 *data, int len)
 		if(len >= DEVOPT_RELAYSOCKET_FIX_SIZE)
 		{
 			opt->common.method = get_devopt_method_ctox(data[0]);
-			incode_ctoxs(opt->device.relaysocket.data, data+1, 2);
+			incode_ctoxs(opt->device.relaysocket.data, (char *)(data+1), 2);
 		}
 		else
 		{
@@ -615,81 +619,81 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 	case FRAPP_LAMPSWITCH:
 	case FRAPP_CURTAIN:
 	case FRAPP_DOORLOCK:
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTSWITCH_ONE_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
-		incode_xtocs(buffer->data+1, &opt->device.lightswitch.nums, 1);
-		incode_xtocs(buffer->data+3, opt->device.lightswitch.data.one, 1);
+		incode_xtocs((char *)(buffer->data+1), &opt->device.lightswitch.nums, 1);
+		incode_xtocs((char *)(buffer->data+3), opt->device.lightswitch.data.one, 1);
 		return buffer;
 		
 	case FRAPP_LIGHTSWITCH_TWO: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTSWITCH_TWO_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
-		incode_xtocs(buffer->data+1, &opt->device.lightswitch.nums, 1);
-		incode_xtocs(buffer->data+3, opt->device.lightswitch.data.two, 2);
+		incode_xtocs((char *)(buffer->data+1), &opt->device.lightswitch.nums, 1);
+		incode_xtocs((char *)(buffer->data+3), opt->device.lightswitch.data.two, 2);
 		return buffer;
 		
 	case FRAPP_LIGHTSWITCH_THREE: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTSWITCH_THREE_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
-		incode_xtocs(buffer->data+1, &opt->device.lightswitch.nums, 1);
-		incode_xtocs(buffer->data+3, opt->device.lightswitch.data.three, 3);
+		incode_xtocs((char *)(buffer->data+1), &opt->device.lightswitch.nums, 1);
+		incode_xtocs((char *)(buffer->data+3), opt->device.lightswitch.data.three, 3);
 		return buffer;
 		
 	case FRAPP_LIGHTSWITCH_FOUR: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTSWITCH_FOUR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
-		incode_xtocs(buffer->data+1, &opt->device.lightswitch.nums, 1);
-		incode_xtocs(buffer->data+3, opt->device.lightswitch.data.four, 4);
+		incode_xtocs((char *)(buffer->data+1), &opt->device.lightswitch.nums, 1);
+		incode_xtocs((char *)(buffer->data+3), opt->device.lightswitch.data.four, 4);
 		return buffer;
 
 	case FRAPP_HUELIGHT: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_HUELIGHT_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
-		incode_xtocs(buffer->data+1, &opt->device.huelight, 4);
+		incode_xtocs((char *)(buffer->data+1), (uint8 *)&opt->device.huelight, 4);
 		return buffer;
 		
 	case FRAPP_ALARM: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_ALARM_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
-		incode_xtocs(buffer->data+1, opt->device.alarm.data, 1);
+		incode_xtocs((char *)(buffer->data+1), opt->device.alarm.data, 1);
 		return buffer;
 		
 	case FRAPP_IR_DETECTION: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_IRDETECT_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_power_xtoc(opt->common.power);
-		incode_xtocs(buffer->data+1, &opt->device.irdetect.setting, 1);
-		incode_xtocs(buffer->data+3, opt->device.irdetect.status, 1);
+		incode_xtocs((char *)(buffer->data+1), &opt->device.irdetect.setting, 1);
+		incode_xtocs((char *)(buffer->data+3), opt->device.irdetect.status, 1);
 		return buffer;
 		
 	case FRAPP_DOOR_SENSOR: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_DOORSENSOR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_power_xtoc(opt->common.power);
-		incode_xtocs(buffer->data+1, &opt->device.doorsensor.setting, 1);
-		incode_xtocs(buffer->data+3, opt->device.doorsensor.status, 1);
+		incode_xtocs((char *)(buffer->data+1), &opt->device.doorsensor.setting, 1);
+		incode_xtocs((char *)(buffer->data+3), opt->device.doorsensor.status, 1);
 		return buffer;
 
 	case FRAPP_ENVDETECTION:
@@ -702,32 +706,32 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		if(datalen >= 13 && !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
 		{
 			memcpy(opt->device.envdetection.current_buffer, data, datalen);
-			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, data+3, 2);
-			incode_ctox16(&opt->device.envdetection.pm25_threshold, data+5);
-			incode_ctox16(&opt->device.envdetection.pm25_val, data+9);
+			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, (char *)(data+3), 2);
+			incode_ctox16(&opt->device.envdetection.pm25_threshold, (char *)(data+5));
+			incode_ctox16(&opt->device.envdetection.pm25_val, (char *)(data+9));
 		}
 		else if(datalen >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
 		{
 			memcpy(opt->device.envdetection.current_buffer, data, datalen);
-			incode_ctox16(&opt->device.envdetection.pm25_val, data+3);
+			incode_ctox16(&opt->device.envdetection.pm25_val, (char *)(data+3));
 		}
 		else if(datalen >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
 		{
 			memcpy(opt->device.envdetection.current_buffer, data, datalen);
-			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, data+3, 2);
+			incode_ctoxs(&opt->device.envdetection.pm25_thresmode, (char *)(data+3), 2);
 		}
 		else if(datalen >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
 		{
 			memcpy(opt->device.envdetection.current_buffer, data, datalen);
-			incode_ctox16(&opt->device.envdetection.pm25_threshold, data+3);
+			incode_ctox16(&opt->device.envdetection.pm25_threshold, (char *)(data+3));
 		}
 		else if(datalen >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3))
 		{
-			memcpy(opt->device.envdetection.current_buffer, data, datalen);
+			memcpy(opt->device.envdetection.current_buffer, (char *)data, datalen);
 		}
 		else if(datalen >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETHOLD, 3))
 		{
-			memcpy(opt->device.envdetection.current_buffer, data, datalen);
+			memcpy(opt->device.envdetection.current_buffer, (char *)data, datalen);
 		}
 		else if(datalen >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_UPSETTING, 3))
 		{
@@ -740,9 +744,9 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 			memcpy(opt->device.envdetection.current_buffer, data, datalen);
 		}
 		
-		buffer = calloc(1, sizeof(fr_buffer_t));
-		buffer->size = strlen(opt->device.envdetection.current_buffer);
-		buffer->data = calloc(1, buffer->size);
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
+		buffer->size = strlen((char *)opt->device.envdetection.current_buffer);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		memcpy(buffer->data, 
 			opt->device.envdetection.current_buffer, buffer->size);
 		return buffer;	
@@ -763,24 +767,24 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 		if(datalen >= 13 && !memcmp(data, DEVOPT_AIRCONTROLLER_GETDATA, 3))
 		{
 			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
-			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
-			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+5);
-			incode_ctox16(&opt->device.aircontroller.pm25_val, data+9);
+			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, (char *)(data+3), 2);
+			incode_ctox16(&opt->device.aircontroller.pm25_threshold, (char *)(data+5));
+			incode_ctox16(&opt->device.aircontroller.pm25_val, (char *)(data+9));
 		}
 		else if(datalen >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READVAL, 3))
 		{
 			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
-			incode_ctox16(&opt->device.aircontroller.pm25_val, data+3);
+			incode_ctox16(&opt->device.aircontroller.pm25_val, (char *)(data+3));
 		}
 		else if(datalen >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READMODE, 3))
 		{
 			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
-			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, data+3, 2);
+			incode_ctoxs(&opt->device.aircontroller.pm25_thresmode, (char *)(data+3), 2);
 		}
 		else if(datalen >= 7 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25READHOLD, 3))
 		{
 			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
-			incode_ctox16(&opt->device.aircontroller.pm25_threshold, data+3);
+			incode_ctox16(&opt->device.aircontroller.pm25_threshold, (char *)(data+3));
 		}
 		else if(datalen >= 5 && !memcmp(data, DEVOPT_AIRCONTROLLER_PM25SETMODE, 3))
 		{
@@ -801,29 +805,29 @@ fr_buffer_t *get_devopt_buffer_alloc(dev_opt_t *opt, uint8 *data, uint8 datalen)
 			memcpy(opt->device.aircontroller.current_buffer, data, datalen);
 		}
 		
-		buffer = calloc(1, sizeof(fr_buffer_t));
-		buffer->size = strlen(opt->device.aircontroller.current_buffer);
-		buffer->data = calloc(1, buffer->size);
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
+		buffer->size = strlen((char *)opt->device.aircontroller.current_buffer);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		memcpy(buffer->data, 
 			opt->device.aircontroller.current_buffer, buffer->size);
 		return buffer;
 
 	case FRAPP_RELAYSOCKET: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_RELAYSOCKET_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
-		incode_xtocs(buffer->data+1, opt->device.relaysocket.data, 1);
+		incode_xtocs((char *)(buffer->data+1), opt->device.relaysocket.data, 1);
 		return buffer;
 
 	case FRAPP_LIGHTDETECT:
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTDETECT_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		
 		buffer->data[0] = get_devopt_method_xtoc(opt->common.method);
-		incode_xtoc16(buffer->data+1, opt->device.lightdetect.data);
+		incode_xtoc16((char *)(buffer->data+1), opt->device.lightdetect.data);
 		return buffer;
 
 	default: return NULL;
@@ -956,7 +960,7 @@ int set_devopt_data_fromstr(dev_opt_t *opt, uint8 *data, int len)
 	case FRAPP_LIGHTDETECT: 
 		if(len >= 4)
 		{
-			incode_ctox16(&(opt->device.lightdetect.data), data, 4);
+			incode_ctox16(&(opt->device.lightdetect.data), (char *)data);
 		}
 		else
 		{
@@ -985,67 +989,67 @@ fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
 	case FRAPP_LAMPSWITCH:
 	case FRAPP_CURTAIN:
 	case FRAPP_DOORLOCK:
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTSWITCH_ONE_DATASTR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
-		incode_xtocs(buffer->data, opt->device.lightswitch.data.one, 1);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
+		incode_xtocs((char *)buffer->data, opt->device.lightswitch.data.one, 1);
 		return buffer;
 		
 	case FRAPP_LIGHTSWITCH_TWO: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTSWITCH_TWO_DATASTR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
-		incode_xtocs(buffer->data, opt->device.lightswitch.data.two, 2);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
+		incode_xtocs((char *)buffer->data, opt->device.lightswitch.data.two, 2);
 		return buffer;
 		
 	case FRAPP_LIGHTSWITCH_THREE: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTSWITCH_THREE_DATASTR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
-		incode_xtocs(buffer->data, opt->device.lightswitch.data.three, 3);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
+		incode_xtocs((char *)buffer->data, opt->device.lightswitch.data.three, 3);
 		return buffer;
 		
 	case FRAPP_LIGHTSWITCH_FOUR: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTSWITCH_FOUR_DATASTR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
-		incode_xtocs(buffer->data, opt->device.lightswitch.data.four, 4);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
+		incode_xtocs((char *)buffer->data, opt->device.lightswitch.data.four, 4);
 		return buffer;
 
 	case FRAPP_HUELIGHT: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_HUELIGHT_DATASTR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
-		incode_xtocs(buffer->data, &opt->device.huelight, 4);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
+		incode_xtocs((char *)buffer->data, (uint8 *)&opt->device.huelight, 4);
 		return buffer;
 		
 	case FRAPP_ALARM: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_ALARM_DATASTR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
-		incode_xtocs(buffer->data, opt->device.alarm.data, 1);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
+		incode_xtocs((char *)buffer->data, opt->device.alarm.data, 1);
 		return buffer;
 		
 	case FRAPP_IR_DETECTION: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_IRDETECT_DATASTR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
-		incode_xtocs(buffer->data, &opt->device.irdetect.setting, 1);
-		incode_xtocs(buffer->data+2, &opt->device.irdetect.status, 1);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
+		incode_xtocs((char *)buffer->data, &opt->device.irdetect.setting, 1);
+		incode_xtocs((char *)(buffer->data+2), (uint8 *)&opt->device.irdetect.status, 1);
 		return buffer;
 		
 	case FRAPP_DOOR_SENSOR: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_DOORSENSOR_DATASTR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
-		incode_xtocs(buffer->data, &opt->device.doorsensor.setting, 1);
-		incode_xtocs(buffer->data+2, &opt->device.doorsensor.status, 1);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
+		incode_xtocs((char *)buffer->data, &opt->device.doorsensor.setting, 1);
+		incode_xtocs((char *)(buffer->data+2), (uint8 *)&opt->device.doorsensor.status, 1);
 		return buffer;
 
 	case FRAPP_ENVDETECTION:
-		buffer = calloc(1, sizeof(fr_buffer_t));
-		buffer->size = strlen(opt->device.envdetection.current_buffer);
-		buffer->data = calloc(1, buffer->size);
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
+		buffer->size = strlen((char *)opt->device.envdetection.current_buffer);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		memcpy(buffer->data, 
 			opt->device.envdetection.current_buffer, buffer->size);
 		return buffer;
@@ -1053,9 +1057,9 @@ fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
 	case FRAPP_IR_RELAY:
 	case FRAPP_PROJECTOR:
 	case FRAPP_AIRCONDITION:
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_IRRELAY_DATASTR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		if(opt->device.irrelay.mode == 0)
 		{
 			memcpy(buffer->data, DEVOPT_IRRELAY_SEND_MODE, 3);
@@ -1065,30 +1069,30 @@ fr_buffer_t * get_devopt_data_tostr(dev_opt_t *opt)
 			memcpy(buffer->data, DEVOPT_IRRELAY_LEARN_MODE, 3);
 		}
 
-		incode_xtocs(buffer->data+3, opt->device.irrelay.data, 1);
+		incode_xtocs((char *)(buffer->data+3), opt->device.irrelay.data, 1);
 		
 		return buffer;
 
 	case FRAPP_AIRCONTROLLER:
-		buffer = calloc(1, sizeof(fr_buffer_t));
-		buffer->size = strlen(opt->device.aircontroller.current_buffer);
-		buffer->data = calloc(1, buffer->size);
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
+		buffer->size = strlen((char *)opt->device.aircontroller.current_buffer);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
 		memcpy(buffer->data, 
 			opt->device.aircontroller.current_buffer, buffer->size);
 		return buffer;
 
 	case FRAPP_RELAYSOCKET: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_RELAYSOCKET_DATASTR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
-		incode_xtocs(buffer->data, opt->device.relaysocket.data, 1);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
+		incode_xtocs((char *)buffer->data, opt->device.relaysocket.data, 1);
 		return buffer;
 
 	case FRAPP_LIGHTDETECT: 
-		buffer = calloc(1, sizeof(fr_buffer_t));
+		buffer = (fr_buffer_t *)calloc(1, sizeof(fr_buffer_t));
 		buffer->size = DEVOPT_LIGHTDETECT_DATASTR_FIX_SIZE;
-		buffer->data = calloc(1, buffer->size);
-		incode_xtoc16(buffer->data, opt->device.lightdetect.data);
+		buffer->data = (uint8 *)calloc(1, buffer->size);
+		incode_xtoc16((char *)buffer->data, opt->device.lightdetect.data);
 		return buffer;
 
 	default: return NULL;
@@ -1413,4 +1417,8 @@ void devopt_de_print(dev_opt_t *opt)
 		break;
 	}
 }
+
+#ifdef __cplusplus
+}
+#endif
 

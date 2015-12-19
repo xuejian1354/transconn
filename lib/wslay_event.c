@@ -27,6 +27,8 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #include "wslay_queue.h"
 #include "wslay_frame.h"
@@ -171,7 +173,7 @@ static void wslay_event_imsg_chunks_free(struct wslay_event_imsg *m)
     return;
   }
   while(!wslay_queue_empty(m->chunks)) {
-    wslay_event_byte_chunk_free(wslay_queue_top(m->chunks));
+    wslay_event_byte_chunk_free((struct wslay_event_byte_chunk *)wslay_queue_top(m->chunks));
     wslay_queue_pop(m->chunks);
   }
 }
@@ -262,7 +264,7 @@ static uint8_t* wslay_event_flatten_queue(struct wslay_queue *queue, size_t len)
       return NULL;
     }
     while(!wslay_queue_empty(queue)) {
-      struct wslay_event_byte_chunk *chunk = wslay_queue_top(queue);
+      struct wslay_event_byte_chunk *chunk = (struct wslay_event_byte_chunk *)wslay_queue_top(queue);
       memcpy(buf+off, chunk->data, chunk->data_length);
       off += chunk->data_length;
       wslay_event_byte_chunk_free(chunk);
@@ -473,14 +475,14 @@ void wslay_event_context_free(wslay_event_context_ptr ctx)
   }
   if(ctx->send_queue) {
     while(!wslay_queue_empty(ctx->send_queue)) {
-      wslay_event_omsg_free(wslay_queue_top(ctx->send_queue));
+      wslay_event_omsg_free((struct wslay_event_omsg *)wslay_queue_top(ctx->send_queue));
       wslay_queue_pop(ctx->send_queue);
     }
     wslay_queue_free(ctx->send_queue);
   }
   if(ctx->send_ctrl_queue) {
     while(!wslay_queue_empty(ctx->send_ctrl_queue)) {
-      wslay_event_omsg_free(wslay_queue_top(ctx->send_ctrl_queue));
+      wslay_event_omsg_free((struct wslay_event_omsg *)wslay_queue_top(ctx->send_ctrl_queue));
       wslay_queue_pop(ctx->send_ctrl_queue);
     }
     wslay_queue_free(ctx->send_ctrl_queue);
@@ -632,7 +634,7 @@ int wslay_event_recv(wslay_event_context_ptr ctx)
         if(!wslay_event_config_get_no_buffering(ctx) ||
            wslay_is_ctrl_frame(iocb.opcode)) {
           struct wslay_event_byte_chunk *chunk;
-          chunk = wslay_queue_tail(ctx->imsg->chunks);
+          chunk = (struct wslay_event_byte_chunk *)wslay_queue_tail(ctx->imsg->chunks);
           wslay_event_byte_chunk_copy(chunk, ctx->ipayloadoff,
                                       iocb.data, iocb.data_length);
         }
@@ -757,7 +759,7 @@ static struct wslay_event_omsg* wslay_event_send_ctrl_queue_pop
    */
   if(ctx->close_status & WSLAY_CLOSE_QUEUED) {
     while(!wslay_queue_empty(ctx->send_ctrl_queue)) {
-      struct wslay_event_omsg *msg = wslay_queue_top(ctx->send_ctrl_queue);
+      struct wslay_event_omsg *msg = (struct wslay_event_omsg *)wslay_queue_top(ctx->send_ctrl_queue);
       wslay_queue_pop(ctx->send_ctrl_queue);
       if(msg->opcode == WSLAY_CONNECTION_CLOSE) {
         return msg;
@@ -767,7 +769,7 @@ static struct wslay_event_omsg* wslay_event_send_ctrl_queue_pop
     }
     return NULL;
   } else {
-    struct wslay_event_omsg *msg = wslay_queue_top(ctx->send_ctrl_queue);
+    struct wslay_event_omsg *msg = (struct wslay_event_omsg *)wslay_queue_top(ctx->send_ctrl_queue);
     wslay_queue_pop(ctx->send_ctrl_queue);
     return msg;
   }
@@ -782,7 +784,7 @@ int wslay_event_send(wslay_event_context_ptr ctx)
          !wslay_queue_empty(ctx->send_ctrl_queue) || ctx->omsg)) {
     if(!ctx->omsg) {
       if(wslay_queue_empty(ctx->send_ctrl_queue)) {
-        ctx->omsg = wslay_queue_top(ctx->send_queue);
+        ctx->omsg = (struct wslay_event_omsg *)wslay_queue_top(ctx->send_queue);
         wslay_queue_pop(ctx->send_queue);
       } else {
         ctx->omsg = wslay_event_send_ctrl_queue_pop(ctx);

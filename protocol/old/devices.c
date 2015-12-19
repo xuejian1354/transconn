@@ -19,6 +19,10 @@
 #include <module/serial.h>
 #include <protocol/request.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef COMM_CLIENT
 static gw_info_t gw_info;
 #endif
@@ -359,5 +363,9 @@ int del_gateway_info(zidentify_no_t gw_no)
 	}
 
 	return -1;
+}
+#endif
+
+#ifdef __cplusplus
 }
 #endif

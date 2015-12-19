@@ -19,6 +19,10 @@
 
 #include <services/globals.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //#define LOAD_BALANCE_SUPPORT
 
 #define RELSER_NAME_NUM		64
@@ -53,5 +57,9 @@ int serlist_read_from_confile(void);
 char *get_server_ip(void);
 char *get_server_ip_from_name(char *name);
 char *get_server_name_from_ip(char *ip);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	//__BALANCER_H__

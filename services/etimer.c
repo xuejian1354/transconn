@@ -18,6 +18,11 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <module/netapi.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef TIMER_SUPPORT
 
@@ -190,4 +195,8 @@ int del_timer_event(int timer_id)
 	return -1;
 }
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

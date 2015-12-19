@@ -19,6 +19,9 @@
 
 #include <debug/dconfig.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef COMM_CLIENT
 #define DLOG_FILE   "/var/log/connect_listen.log"
@@ -65,5 +68,9 @@ st(										\
 	}									\
 	DE_PRINTF(0, "\n");					\
 )
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  //__DLOG_H__

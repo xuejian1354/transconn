@@ -19,6 +19,10 @@
 
 #include <mtypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //#define COMM_SERVER
 //#define COMM_CLIENT
 
@@ -77,6 +81,10 @@
 
 #if !defined(TRANS_UDP_SERVICE) && defined(REMOTE_UPDATE_APK)
 #error 'You must define TRANS_UDP_SERVICE first before defining REMOTE_UPDATE_APK'
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif //__MCONFIG_H__

@@ -16,6 +16,10 @@
  */
 #include "users.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static cli_list_t cli_list;
 
 cli_list_t *get_client_list()
@@ -161,3 +165,7 @@ int del_client_info(cidentify_no_t cidentify_no)
 
 	return -1;
 }
+
+#ifdef __cplusplus
+}
+#endif

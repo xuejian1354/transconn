@@ -21,12 +21,18 @@
 #include <protocol/old/devices.h>
 #include <protocol/common/mevent.h>
 #include <services/balancer.h>
+#include <module/serial.h>
 #include <module/netlist.h>
+#include <module/netapi.h>
 #ifdef DB_API_WITH_SQLITE
 #include <module/dbclient.h>
 #endif
 #ifdef DB_API_WITH_MYSQL
 #include <module/dbserver.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 #ifdef TRANS_HTTP_REQUEST
@@ -230,7 +236,7 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 		for(i=0; i<refresh->sn_size; i++)
 		{
 			zidentify_no_t dev_no;
-			incode_ctoxs(dev_no, refresh->dev_sns+i, 16);
+			incode_ctoxs(dev_no, (char *)(refresh->dev_sns+i), 16);
 			sqlclient_set_datachange_zdev(dev_no, 1);
 		}
 	}
@@ -254,7 +260,7 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 #ifdef TRANS_UDP_SERVICE
 		if(!strcmp(protocol, "udp"))
 		{
-			t_arg = calloc(1, sizeof(frhandler_arg_t));
+			t_arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 
 			t_arg->transtocol = TOCOL_UDP;
 			t_arg->addr.sin_family = PF_INET;
@@ -277,7 +283,7 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 
 			if(tconn != NULL)
 			{
-				t_arg = calloc(1, sizeof(frhandler_arg_t));
+				t_arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 				t_arg->transtocol = TOCOL_TCP;
 				t_arg->fd = tconn->fd;
 			}
@@ -340,7 +346,7 @@ void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
 #ifdef TRANS_UDP_SERVICE
 		if(!strcmp(protocol, "udp"))
 		{
-			t_arg = calloc(1, sizeof(frhandler_arg_t));
+			t_arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 
 			t_arg->transtocol = TOCOL_UDP;
 			t_arg->addr.sin_family = PF_INET;
@@ -362,7 +368,7 @@ void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
 			tcp_conn_t *tconn = queryfrom_tcpconn_list_with_ipaddr(ipaddr);
 			if(tconn != NULL)
 			{
-				t_arg = calloc(1, sizeof(frhandler_arg_t));
+				t_arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 				t_arg->transtocol = TOCOL_TCP;
 				t_arg->fd = tconn->fd;
 			}
@@ -715,7 +721,7 @@ void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info)
 
 void upload_data(uint8 isrefresh, char *random)
 {
-	transtocol_t transtocol = get_trans_protocol();
+	uint16 transtocol = get_trans_protocol();
 	if(transtocol == TOCOL_UDP
 		|| transtocol == TOCOL_TCP
 		|| transtocol == TOCOL_HTTP)
@@ -751,7 +757,7 @@ void upload_data(uint8 isrefresh, char *random)
 					char *dev_data = NULL;
 					if(data_buffer != NULL)
 					{
-						dev_data = calloc(1, data_buffer->size+1);
+						dev_data = (char *)calloc(1, data_buffer->size+1);
 						memcpy(dev_data, data_buffer->data, data_buffer->size);
 					}
 					get_buffer_free(data_buffer);
@@ -766,7 +772,7 @@ void upload_data(uint8 isrefresh, char *random)
 					{
 						if(devices == NULL)
 						{
-							devices = calloc(1, sizeof(trfield_device_t *));
+							devices = (trfield_device_t **)calloc(1, sizeof(trfield_device_t *));
 							*devices = device;
 						}
 						else
@@ -797,7 +803,7 @@ void upload_data(uint8 isrefresh, char *random)
 										gwno_str,
 										NULL,
 										0,
-										"md5",
+										(char *)"md5",
 										cur_code,
 										NULL);
 
@@ -823,7 +829,7 @@ void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback)
 	uint16 znet_addr = get_znet_addr_with_sn(sn);
 	int timer_id = (ZDEVICE_RESPOND_EVENT<<16)+atoi(get_md5(get_system_time(), 2));
 
-	respond_data_t *mrespond_data = calloc(1, sizeof(respond_data_t));
+	respond_data_t *mrespond_data = (respond_data_t *)calloc(1, sizeof(respond_data_t));
 
 	strcpy(mrespond_data->sn, sn);
 	strcpy(mrespond_data->random, random);
@@ -860,11 +866,11 @@ void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback)
 
 		memcpy(buffer, FR_HEAD_DE, 2);
 		memcpy(buffer+2, FR_CMD_SINGLE_EXCUTE, 4);
-		sprintf(buffer+6, "%04X", znet_addr);
+		sprintf((char *)(buffer+6), "%04X", znet_addr);
 		memcpy(buffer+10, cmd, cmd_len);
 		memcpy(buffer+10+cmd_len, FR_TAIL, 4);
 
-		serial_write(buffer, size);
+		serial_write((char *)buffer, size);
 		free(buffer);
 	}
 }
@@ -877,7 +883,7 @@ void device_ctrl_timer_callback(void *p)
 		trfr_tocolres_t *tocolres = 
 			get_trfr_tocolres_alloc(NULL,
 										ACTION_CONTROL,
-										INFO_TIMEOUT,
+										(char *)INFO_TIMEOUT,
 										mrespond_data->random);
 		trans_send_tocolres_request(get_transtocol_frhandler_arg(), tocolres);
 		get_trfr_tocolres_free(tocolres);
@@ -905,7 +911,7 @@ void detrans_send_refresh(sn_t devsn)
 #ifdef TRANS_UDP_SERVICE
 	if(!strcmp(protocol, TRANSTOCOL_UDP))
 	{
-		arg = calloc(1, sizeof(frhandler_arg_t));
+		arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 
 		arg->transtocol = TOCOL_UDP;
 		arg->addr.sin_family = PF_INET;
@@ -928,7 +934,7 @@ void detrans_send_refresh(sn_t devsn)
 
 		if(tconn != NULL)
 		{
-			arg = calloc(1, sizeof(frhandler_arg_t));
+			arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 			arg->transtocol = TOCOL_TCP;
 			arg->fd = tconn->fd;
 		}
@@ -944,7 +950,7 @@ void detrans_send_refresh(sn_t devsn)
 	refresh.action = ACTION_REFRESH;
 	refresh.obj = &obj;
 	STRS_MEMCPY(refresh.gw_sn, gwsn, sizeof(sn_t), strlen(gwsn));
-	refresh.dev_sns = devsn;
+	refresh.dev_sns = (char (*)[JSON_FIELD_SN_MAXSIZE])devsn;
 	refresh.sn_size = 1;
 	STRS_MEMCPY(refresh.random,
 					get_md5(get_system_time(), 2),
@@ -972,7 +978,7 @@ void detrans_send_control(sn_t devsn, char *cmd)
 #ifdef TRANS_UDP_SERVICE
 	if(!strcmp(protocol, TRANSTOCOL_UDP))
 	{
-		arg = calloc(1, sizeof(frhandler_arg_t));
+		arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 
 		arg->transtocol = TOCOL_UDP;
 		arg->addr.sin_family = PF_INET;
@@ -995,7 +1001,7 @@ void detrans_send_control(sn_t devsn, char *cmd)
 
 		if(tconn != NULL)
 		{
-			arg = calloc(1, sizeof(frhandler_arg_t));
+			arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 			arg->transtocol = TOCOL_TCP;
 			arg->fd = tconn->fd;
 		}
@@ -1076,4 +1082,8 @@ void trans_send_frame_request(frhandler_arg_t *arg, trans_action_t action, char 
 		break;
 	}
 }
+
+#ifdef __cplusplus
+}
+#endif
 

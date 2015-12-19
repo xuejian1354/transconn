@@ -18,6 +18,10 @@
 #include <string.h>		/* for memcpy() */
 #include "md5.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if __BYTE_ORDER == 1234
 #define byteReverse(buf, len)	/* Nothing */
 #else
@@ -245,3 +249,7 @@ void MD5Transform(u_int32_t buf[4], u_int32_t const in[16])
     buf[2] += c;
     buf[3] += d;
 }
+
+#ifdef __cplusplus
+}
+#endif

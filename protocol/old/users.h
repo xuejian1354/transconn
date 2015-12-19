@@ -20,6 +20,10 @@
 
 #include <services/globals.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct Cli_User
 {
 	char name[64];
@@ -54,6 +58,10 @@ cli_list_t *get_client_list();
 int add_client_info(cli_info_t *m_info);
 cli_info_t *query_client_info(cidentify_no_t cidentify_no);
 int del_client_info(cidentify_no_t cidentify_no);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  //__USERS_H__
 

@@ -19,6 +19,10 @@
 
 #include <services/globals.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef SERIAL_SUPPORT
 
 #define SERIAL_MAX_LEN 128
@@ -31,4 +35,9 @@ int serial_write(char *data, int datalen);
 void *uart_read_func(void *p);
 
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif //__SERIAL_H__

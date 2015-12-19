@@ -24,6 +24,10 @@
 #include <protocol/old/devopt.h>
 #include <protocol/old/users.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define GATEWAY_BUFFER_FIX_SIZE		34
 #define ZDEVICE_BUFFER_SIZE		23
 
@@ -70,6 +74,10 @@ void get_gateway_frame_free(gw_info_t *p);
 
 fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type, 
 	dev_opt_t *opt, void *frame);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  //__DEVALLOC_H__
 

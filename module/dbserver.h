@@ -23,6 +23,11 @@
 #include <module/netapi.h>
 #include <strings_t.h>
 #include <mysql/mysql.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef DB_API_WITH_MYSQL
 
 int sqlserver_init();
@@ -43,6 +48,10 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info);
 void sync_user_info_to_sql(char *data);
 void del_user_info_to_sql(char *data);
 int set_device_to_user_sql(char *email, char *dev_str);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif	//__DBSERVER_H__
