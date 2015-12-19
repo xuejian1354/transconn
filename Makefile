@@ -1,7 +1,7 @@
 TOPDIR:=$(CURDIR)
 export TOPDIR
 
-$(shell find -name "*.[ch]" | xargs chmod -x)
+$(shell find -name "*[.c][ch]" | xargs chmod -x)
 $(shell find -name "*_config" | xargs chmod -x)
 $(shell find -name "*.txt" | xargs chmod -x)
 

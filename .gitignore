@@ -15,5 +15,8 @@ tests/client
 tests/perznet
 tests/deulog
 tests/clar
+tests/echoserv
+tests/fork-echoserv
+tests/testclient
 
 bin/
