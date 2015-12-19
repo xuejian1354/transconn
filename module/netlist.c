@@ -16,6 +16,11 @@
  */
 
 #include "netlist.h"
+#include <module/netapi.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef TRANS_TCP_CONN_LIST
 static tcp_conn_list_t tcp_conn_list = {
@@ -137,5 +142,9 @@ int delfrom_tcpconn_list(int fd)
 
 	DE_PRINTF(1, "%s:no found connectin in tcp conn list\n", __FUNCTION__);
 	return -1;
+}
+#endif
+
+#ifdef __cplusplus
 }
 #endif

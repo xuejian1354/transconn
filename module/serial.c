@@ -19,6 +19,10 @@
 #include <protocol/protocol.h>
 #include <module/netapi.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef SERIAL_SUPPORT
 
 static int serial_id;
@@ -360,7 +364,7 @@ serial_update:
 #endif
 
 				frhandler_arg_t *frarg = 
-					get_frhandler_arg_alloc(serial_id, TOCOL_NONE, NULL, tmpFrame, dataLen);
+					get_frhandler_arg_alloc(serial_id, TOCOL_NONE, NULL, (char *)tmpFrame, dataLen);
 
 #ifdef THREAD_POOL_SUPPORT
 				tpool_add_work(analysis_zdev_frame, frarg, TPOOL_LOCK);
@@ -373,5 +377,9 @@ serial_update:
             i++;
         }
     }
+}
+#endif
+
+#ifdef __cplusplus
 }
 #endif

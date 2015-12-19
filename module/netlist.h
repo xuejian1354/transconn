@@ -20,6 +20,10 @@
 #include <services/globals.h>
 #include <arpa/inet.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct TCPConn
 {
 	int fd;
@@ -38,4 +42,9 @@ int addto_tcpconn_list(tcp_conn_t *list);
 tcp_conn_t *queryfrom_tcpconn_list(int fd);
 tcp_conn_t *queryfrom_tcpconn_list_with_ipaddr(char *ipaddr);
 int delfrom_tcpconn_list(int fd);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif  // __NETLIST_H__

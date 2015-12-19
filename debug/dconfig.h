@@ -19,6 +19,10 @@
 
 #include <mconfig.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef COMM_SERVER
 #define DE_PRINT_UDP_PORT
 #define DE_PRINT_TCP_PORT
@@ -29,5 +33,10 @@
 #define DE_PRINT_TCP_PORT
 #define DE_PRINT_SERIAL_PORT
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif //__DCONFIG_H__
 

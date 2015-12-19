@@ -18,6 +18,10 @@
 #include <module/dballoc.h>
 #include <cJSON.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef DB_API_WITH_MYSQL
 
 #define DB_SERVER	"localhost"
@@ -506,7 +510,7 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 
 			if(mysql_row[1] != NULL && strlen(mysql_row[1]) > 0)
 			{
-				user_info->devices = calloc(1, strlen(mysql_row[1])+9);
+				user_info->devices = (char *)calloc(1, strlen(mysql_row[1])+9);
 				memcpy(user_info->devices, "devices:", 8);
 				memcpy(user_info->devices+8, mysql_row[1], strlen(mysql_row[1]));
 			}
@@ -519,7 +523,7 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 
 			if(mysql_row[2] != NULL && strlen(mysql_row[2]) > 0)
 			{
-				user_info->areas = calloc(1, strlen(mysql_row[2])+7);
+				user_info->areas = (char *)calloc(1, strlen(mysql_row[2])+7);
 				memcpy(user_info->areas, "areas:", 6);
 				memcpy(user_info->areas+6, mysql_row[2], strlen(mysql_row[2]));
 			}
@@ -532,7 +536,7 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 
 			if(mysql_row[3] != NULL && strlen(mysql_row[3]) > 0)
 			{
-				user_info->scenes = calloc(1, strlen(mysql_row[3])+8);
+				user_info->scenes = (char *)calloc(1, strlen(mysql_row[3])+8);
 				memcpy(user_info->scenes, "scenes:", 7);
 				memcpy(user_info->scenes+7, mysql_row[3], strlen(mysql_row[3]));
 			}
@@ -549,6 +553,11 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 
 void sync_user_info_to_sql(char *data)
 {
+	char *email = NULL;
+	cJSON* pDevs = NULL;
+	cJSON* pAreas = NULL;
+	cJSON* pScenes = NULL;
+
 	if(data == NULL)
 	{
 		return;
@@ -566,9 +575,9 @@ void sync_user_info_to_sql(char *data)
 		goto sync_end;
 	}
 
-	char *email = pEmail->valuestring;
+	email = pEmail->valuestring;
 
-	cJSON* pDevs = cJSON_GetObjectItem(pRoot, "devices");
+	pDevs = cJSON_GetObjectItem(pRoot, "devices");
 	if (pDevs != NULL)
 	{
 		int dev_size = cJSON_GetArraySize(pDevs);
@@ -590,7 +599,7 @@ void sync_user_info_to_sql(char *data)
 		devices_free(devs);
 	}
 
-	cJSON* pAreas = cJSON_GetObjectItem(pRoot, "areas");
+	pAreas = cJSON_GetObjectItem(pRoot, "areas");
 	if (pAreas != NULL)
 	{
 		int area_size = cJSON_GetArraySize(pAreas);
@@ -605,7 +614,7 @@ void sync_user_info_to_sql(char *data)
 		strings_free(areas);
 	}
 
-	cJSON* pScenes = cJSON_GetObjectItem(pRoot, "scenes");
+	pScenes = cJSON_GetObjectItem(pRoot, "scenes");
 	if (pScenes != NULL)
 	{
 		int scene_size = cJSON_GetArraySize(pScenes);
@@ -639,7 +648,7 @@ void sync_user_info_to_sql(char *data)
 			if(func_size > 0)
 			{
 				int j;
-				func_ids = calloc(func_size, sizeof(int));
+				func_ids = (int *)calloc(func_size, sizeof(int));
 				for(j=0; j<func_size; j++)
 				{
 					*(func_ids+j) = 
@@ -1002,6 +1011,11 @@ void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
 
 void del_user_info_to_sql(char *data)
 {
+	char *email = NULL;
+	cJSON* pDevs = NULL;
+	cJSON* pAreas = NULL;
+	cJSON* pScenes = NULL;
+
 	if(data == NULL)
 	{
 		return;
@@ -1019,9 +1033,9 @@ void del_user_info_to_sql(char *data)
 		goto del_end;
 	}
 
-	char *email = pEmail->valuestring;
+	email = pEmail->valuestring;
 
-	cJSON* pDevs = cJSON_GetObjectItem(pRoot, "devices");
+	pDevs = cJSON_GetObjectItem(pRoot, "devices");
 	if (pDevs != NULL)
 	{
 		int dev_size = cJSON_GetArraySize(pDevs);
@@ -1043,7 +1057,7 @@ void del_user_info_to_sql(char *data)
 		devices_free(devs);
 	}
 
-	cJSON* pAreas = cJSON_GetObjectItem(pRoot, "areas");
+	pAreas = cJSON_GetObjectItem(pRoot, "areas");
 	if (pAreas != NULL)
 	{
 		int area_size = cJSON_GetArraySize(pAreas);
@@ -1058,7 +1072,7 @@ void del_user_info_to_sql(char *data)
 		strings_free(areas);
 	}
 
-	cJSON* pScenes = cJSON_GetObjectItem(pRoot, "scenes");
+	pScenes = cJSON_GetObjectItem(pRoot, "scenes");
 	if (pScenes != NULL)
 	{
 		int scene_size = cJSON_GetArraySize(pScenes);
@@ -1092,7 +1106,7 @@ void del_user_info_to_sql(char *data)
 			if(func_size > 0)
 			{
 				int j;
-				func_ids = calloc(func_size, sizeof(int));
+				func_ids = (int *)calloc(func_size, sizeof(int));
 				for(j=0; j<func_size; j++)
 				{
 					*(func_ids+j) = 
@@ -1496,3 +1510,6 @@ int set_device_to_user_sql(char *email, char *dev_str)
 }
 #endif
 
+#ifdef __cplusplus
+}
+#endif

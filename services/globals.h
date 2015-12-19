@@ -22,7 +22,14 @@
 #include <signal.h>
 #include <tpool.h>
 #include <strings_t.h>
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <mincode.h>
 #include "time.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 //default program name
 #ifndef TARGET_NAME
@@ -257,4 +264,9 @@ void reapk_version_code(char *up_flags, char *ipaddr, cidentify_no_t cidentify_n
 char *get_current_time();
 char *get_system_time();
 char *get_md5(char *text, int result_len);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif	//__GLOBALS_H__

@@ -28,6 +28,10 @@
 #include <sqlite3.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct
 {
 	int fd;
@@ -68,6 +72,7 @@ int get_stcp_fd();
 int socket_tcp_server_init(int port);
 void socket_tcp_server_accept(int fd);
 void socket_tcp_server_recv(int fd);
+void socket_tcp_server_send(frhandler_arg_t *arg, char *data, int len);
 #endif
 
 #ifdef TRANS_TCP_CLIENT
@@ -99,5 +104,9 @@ void curl_http_request(curl_method_t cm,
 #endif
 
 void enable_datalog_atime();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // __NETAPI_H__

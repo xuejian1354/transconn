@@ -19,6 +19,10 @@
 
 #include <services/globals.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define TRANSTOCOL_HTTP		"http"
 #define TRANSTOCOL_TCP		"tcp"
 #define TRANSTOCOL_UDP		"udp"
@@ -46,12 +50,16 @@ typedef enum
 void set_session_status(sessionsta_t session);
 sessionsta_t get_session_status();
 
-void set_trans_protocol(transtocol_t tocol);
-transtocol_t get_trans_protocol();
-char *get_trans_protocol_to_str(transtocol_t tocol);
+void set_trans_protocol(uint16 tocol);
+uint16 get_trans_protocol();
+char *get_trans_protocol_to_str(uint16 tocol);
 
 void set_syncdata_checkcode(char *code);
 char *get_syncdata_checkcode();
 char *gen_current_checkcode(zidentify_no_t gw_sn);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  //__SESSION_H__

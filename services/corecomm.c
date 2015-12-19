@@ -18,6 +18,10 @@
 #include <signal.h>
 #include <module/netapi.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef SELECT_SUPPORT
 
 static int maxfd;
@@ -127,5 +131,9 @@ int select_listen()
 	usleep(10000);
 
 	return 0;
+}
+#endif
+
+#ifdef __cplusplus
 }
 #endif

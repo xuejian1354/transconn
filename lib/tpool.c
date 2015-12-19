@@ -16,6 +16,10 @@
  */
 #include "tpool.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static tpool_t *tpool = NULL;
 
 static void *thread_routine(void *arg);
@@ -25,7 +29,7 @@ int tpool_create(int max_thr_num)
 {
     int i;
     
-    tpool = calloc(1, sizeof(tpool_t));
+    tpool = (tpool_t *)calloc(1, sizeof(tpool_t));
     if(!tpool)
     {
         fprintf(stderr, "%s()%d : calloc failed\n", __FUNCTION__, __LINE__);
@@ -49,7 +53,7 @@ int tpool_create(int max_thr_num)
         return -1;
     }
 
-    tpool->thr_id = calloc(max_thr_num, sizeof(pthread_t));
+    tpool->thr_id = (pthread_t *)calloc(max_thr_num, sizeof(pthread_t));
     if(!tpool->thr_id)
     {
         fprintf(stderr, "%s()%d : calloc failed\n", __FUNCTION__, __LINE__);
@@ -79,7 +83,7 @@ int tpool_add_work(routine_t routine, void *arg, tpool_opt_t options)
         return -1;
     }
 
-    work = malloc(sizeof(tpool_work_t));
+    work = (tpool_work_t *)malloc(sizeof(tpool_work_t));
     if(!work)
     {
         fprintf(stderr, "%s()%d : malloc failed\n", __FUNCTION__, __LINE__);
@@ -189,3 +193,7 @@ void tpool_work_func(tpool_work_t *work)
 		pthread_mutex_unlock(lock);
 	}
 }
+
+#ifdef __cplusplus
+}
+#endif

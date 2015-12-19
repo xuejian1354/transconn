@@ -19,6 +19,10 @@
 
 #include <services/globals.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //app device type
 #define FR_APP_CONNECTOR			"00"
 #define FR_APP_ENDNODE				"00"
@@ -152,7 +156,7 @@ typedef enum
 typedef struct
 {
     fr_app_type_t type;
-    char *val;
+    const char *val;
 }zh_el_t;
 
 typedef enum
@@ -262,7 +266,7 @@ typedef struct
 }trfr_tocolres_t;
 
 fr_app_type_t get_frapp_type_from_str(char *app_type);
-char *get_frapp_type_to_str(fr_app_type_t app_type);
+const char *get_frapp_type_to_str(fr_app_type_t app_type);
 
 char *get_action_to_str(trans_action_t action);
 
@@ -293,5 +297,9 @@ void get_trfr_control_free(trfr_control_t *control);
 
 trfr_tocolres_t *get_trfr_tocolres_alloc(trfield_obj_t *obj, trans_action_t req_action, char *info, char *random);
 void get_trfr_tocolres_free(trfr_tocolres_t *tocolres);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  //__FIELDLYSIS_H__

@@ -20,10 +20,18 @@
 #include <services/globals.h>
 #include <protocol/old/devices.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef COMM_CLIENT
 void analysis_zdev_frame(void *ptr);
 #endif
 
 void analysis_capps_frame(void *ptr);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  //__PROTOCOL_H__

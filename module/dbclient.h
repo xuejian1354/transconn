@@ -21,6 +21,10 @@
 #include <protocol/old/devices.h>
 #include <sqlite3.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef DB_API_WITH_SQLITE
 int sqlclient_init();
 void sqlclient_release();
@@ -40,4 +44,9 @@ int sqlclient_del_gateway(zidentify_no_t gw_no);
 void sqlclient_get_zdevices(trfield_device_t ***devices, int *dev_size);
 void sqlclient_get_devdatas(char **text, long *text_len);
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif	//__DBCLIENT_H__

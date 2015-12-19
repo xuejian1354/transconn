@@ -17,6 +17,10 @@
 
 #include "devalloc.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length)
 {
 	if(length < ZDEVICE_BUFFER_SIZE)
@@ -25,10 +29,10 @@ dev_info_t *get_zdev_frame_alloc(uint8 *buffer, int length)
 	}
 
 	dev_info_t *dev_info = (dev_info_t *)calloc(1, sizeof(dev_info_t));
-	incode_ctoxs(dev_info->zidentity_no, buffer, 16);
-	incode_ctox16(&dev_info->znet_addr, buffer+16);
-	dev_info->zapp_type = get_frapp_type_from_str(buffer+20);
-	dev_info->znet_type = get_frnet_type_from_str(buffer[22]);
+	incode_ctoxs(dev_info->zidentity_no, (char *)buffer, 16);
+	incode_ctox16(&dev_info->znet_addr, (char *)(buffer+16));
+	dev_info->zapp_type = get_frapp_type_from_str((char *)(buffer+20));
+	dev_info->znet_type = get_frnet_type_from_str((char)(buffer[22]));
 	dev_info->zdev_opt = NULL;
 	dev_info->isdata_change = 1;
 	dev_info->next = NULL;
@@ -54,14 +58,14 @@ gw_info_t *get_gateway_frame_alloc(uint8 *buffer, int length)
 	}
 
 	uint8 optdata_len;
-	incode_ctoxs(&optdata_len, buffer+length-2, 2);
+	incode_ctoxs(&optdata_len, (char *)(buffer+length-2), 2);
 
 	gw_info_t *gw_info = (gw_info_t *)calloc(1, sizeof(gw_info_t));
-	incode_ctoxs(gw_info->gw_no, buffer, 16);
-	gw_info->zapp_type = get_frapp_type_from_str(buffer+16);
-	incode_ctox16(&gw_info->zpanid, buffer+18);
-	incode_ctox16(&gw_info->zchannel, buffer+22);
-	incode_ctox32(&gw_info->rand, buffer+26);
+	incode_ctoxs(gw_info->gw_no, (char *)buffer, 16);
+	gw_info->zapp_type = get_frapp_type_from_str((char *)(buffer+16));
+	incode_ctox16(&gw_info->zpanid, (char *)(buffer+18));
+	incode_ctox16(&gw_info->zchannel, (char *)(buffer+22));
+	incode_ctox32(&gw_info->rand, (char *)(buffer+26));
 	gw_info->ip_len = length-GATEWAY_BUFFER_FIX_SIZE-optdata_len-2;
 	if(gw_info->ip_len < IP_ADDR_MAX_SIZE)
 	{
@@ -228,3 +232,6 @@ fr_buffer_t *get_switch_buffer_alloc(fr_head_type_t head_type,
 	}
 }
 
+#ifdef __cplusplus
+}
+#endif

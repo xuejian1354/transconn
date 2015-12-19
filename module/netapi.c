@@ -17,8 +17,14 @@
 
 #include "netapi.h"
 #include <module/netlist.h>
+#include <services/corecomm.h>
 #include <services/balancer.h>
 #include <protocol/protocol.h>
+#include <protocol/request.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum
 {
@@ -69,8 +75,8 @@ frhandler_arg_t *get_frhandler_arg_alloc(int fd,
 		return NULL;
 	}
 
-	frhandler_arg_t *arg = calloc(1, sizeof(frhandler_arg_t));
-	arg->buf = calloc(1, len);
+	frhandler_arg_t *arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
+	arg->buf = (char *)calloc(1, len);
 
 	arg->fd = fd;
 	arg->transtocol = transtocol;
@@ -389,7 +395,7 @@ void socket_udp_recvfrom()
 	char buf[MAXSIZE];
 
 	struct sockaddr_in client_addr;
-	int socklen = sizeof(client_addr);
+	socklen_t socklen = sizeof(client_addr);
 
 	memset(buf, 0, sizeof(buf));
 	
@@ -508,7 +514,7 @@ void delog_udp_sendto(char *data, int len)
 #ifdef DAEMON_PROCESS_CREATE
 	if(!get_daemon_cmdline())
 	{
-		char *pdata = calloc(1, len+1);
+		char *pdata = (char *)calloc(1, len+1);
 		memcpy(pdata, data, len);
 		printf("%s", pdata);
 		free(pdata);
@@ -532,7 +538,7 @@ void curl_http_request(curl_method_t cm,
 
 	case CURL_POST:
 	{
-		curl_args_t *cargs = calloc(1, sizeof(curl_args_t));
+		curl_args_t *cargs = (curl_args_t *)calloc(1, sizeof(curl_args_t));
 		cargs->cm = CURL_POST;
 		cargs->url = url;
 		cargs->req = req;
@@ -668,7 +674,7 @@ size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp)
 				{
 					valData = xmlNodeGetContent(curNode);
 					//DE_PRINTF(1, "name:%s\ncontent:%s\n", curNode->name, valData); 
-					frhandler_arg_t *arg = calloc(1, sizeof(frhandler_arg_t));
+					frhandler_arg_t *arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 					arg->transtocol = TOCOL_HTTP;
 					arg->buf = valData;
 					arg->len = strlen(valData);
@@ -724,8 +730,8 @@ curl_data_end:
 
 	if(head >= 0 && tail > 0 && tail > head + 1)
 	{
-		frhandler_arg_t *arg = calloc(1, sizeof(frhandler_arg_t));
-		char *data_buf = calloc(1, tail-head);
+		frhandler_arg_t *arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
+		char *data_buf = (char *)calloc(1, tail-head);
 		memcpy(data_buf, data+head+1, tail-head-1);
 		arg->transtocol = TOCOL_HTTP;
 		arg->buf = data_buf;
@@ -906,3 +912,6 @@ void trans_data_show(de_print_t deprint,
 	lwflag = 0;
 }
 
+#ifdef __cplusplus
+}
+#endif

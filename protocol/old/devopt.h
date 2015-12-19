@@ -20,6 +20,10 @@
 #include <services/globals.h>
 #include <protocol/old/framelysis.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DEVCONTROL_NONE		'0'
 #define DEVCONTROL_MANUAL	'1'
 #define DEVCONTROL_NET		'2'
@@ -207,5 +211,9 @@ int set_devopt_data_fromstr(dev_opt_t *opt, uint8 *data, int len);
 int set_devopt_data_fromopt(dev_opt_t *dst, dev_opt_t *src);
 
 void devopt_de_print(dev_opt_t *opt);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	// __DEVOPT_H__

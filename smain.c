@@ -16,9 +16,15 @@
  */
 #include <services/globals.h>
 #include <services/balancer.h>
+#include <services/etimer.h>
+#include <services/corecomm.h>
 #include <module/netapi.h>
 #ifdef DB_API_SUPPORT
 #include <module/dbserver.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 int main(int argc, char **argv)
@@ -100,3 +106,7 @@ int main(int argc, char **argv)
 	
 	return 0;
 }
+
+#ifdef __cplusplus
+}
+#endif

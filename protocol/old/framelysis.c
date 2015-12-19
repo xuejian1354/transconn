@@ -16,6 +16,10 @@
  */
 #include "framelysis.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 fr_head_type_t get_frhead_from_str(char *head)
 {
 	if(!strncmp(FR_HEAD_UC, head, 3))
@@ -415,3 +419,7 @@ void get_buffer_free(fr_buffer_t *p)
 	free(p);
 	p = NULL;
 }
+
+#ifdef __cplusplus
+}
+#endif

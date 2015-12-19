@@ -21,6 +21,10 @@
 #include <protocol/old/devalloc.h>
 #include <protocol/common/fieldlysis.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev);
 dev_info_t *query_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
 int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
@@ -42,6 +46,10 @@ gw_list_t *get_gateway_list();
 int add_gateway_info(gw_info_t *m_gw);
 gw_info_t *query_gateway_info(zidentify_no_t gw_no);
 int del_gateway_info(zidentify_no_t gw_no);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif  //__DEVICES_H__

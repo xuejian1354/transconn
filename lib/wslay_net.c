@@ -23,6 +23,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "wslay_net.h"
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #ifndef WORDS_BIGENDIAN
 

@@ -20,6 +20,10 @@
 #include <services/globals.h>
 #include <protocol/common/fieldlysis.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //command method
 #define FR_CMD_BROCAST_REFRESH	"/BR/"		//broadcast
 #define FR_CMD_SINGLE_REFRESH	"/SR/"		//single refresh
@@ -161,5 +165,9 @@ void get_frame_free(fr_head_type_t htype, void *p);
 
 fr_buffer_t *get_buffer_alloc(fr_head_type_t htype, void *frame);
 void get_buffer_free(fr_buffer_t *p);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	//  __FRAMELYSIS_H__

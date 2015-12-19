@@ -17,6 +17,10 @@
 #include "dbclient.h"
 #include <cJSON.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef DB_API_WITH_SQLITE
 
 extern char cmdline[CMDLINE_SIZE];
@@ -448,11 +452,11 @@ void sqlclient_get_zdevices(trfield_device_t ***devices, int *dev_size)
 		{
 			if(sqlite3_column_count(stmt) > 17)
 			{
-				const char *name = sqlite3_column_text(stmt, 7);
-				const char *dev_sn = sqlite3_column_text(stmt, 1);
-				const char *dev_type = sqlite3_column_text(stmt, 2);
+				const uint8 *name = sqlite3_column_text(stmt, 7);
+				const uint8 *dev_sn = sqlite3_column_text(stmt, 1);
+				const uint8 *dev_type = sqlite3_column_text(stmt, 2);
 				int isonline = sqlite3_column_int(stmt, 10);
-				const char *dev_data = sqlite3_column_text(stmt, 15);
+				const uint8 *dev_data = sqlite3_column_text(stmt, 15);
 
 				trfield_device_t *device = 
 					get_trfield_device_alloc((char *)name,
@@ -464,12 +468,12 @@ void sqlclient_get_zdevices(trfield_device_t ***devices, int *dev_size)
 				{
 					if(*devices == NULL)
 					{
-						*devices = calloc(1, sizeof(trfield_device_t *));
+						*devices = (trfield_device_t **)calloc(1, sizeof(trfield_device_t *));
 						*(*devices) = device;
 					}
 					else
 					{
-						*devices = realloc(*devices, (*dev_size+1)*sizeof(trfield_device_t *));
+						*devices = (trfield_device_t **)realloc(*devices, (*dev_size+1)*sizeof(trfield_device_t *));
 						*(*devices+*dev_size) = device;
 					}
 
@@ -502,23 +506,23 @@ void sqlclient_get_devdatas(char **text, long *text_len)
 		{
 			if(sqlite3_column_count(stmt) > 1)
 			{
-				const char *data = sqlite3_column_text(stmt, 0);
-				const char *isonline = sqlite3_column_text(stmt, 1);
+				const uint8 *data = sqlite3_column_text(stmt, 0);
+				const uint8 *isonline = sqlite3_column_text(stmt, 1);
 				if(data == NULL || isonline == NULL)
 				{
 					continue;
 				}
 
-				int data_len = strlen(data);
+				int data_len = strlen((char *)data);
 
 				if(*text == NULL)
 				{
-					*text = calloc(1, data_len+2);
+					*text = (char *)calloc(1, data_len+2);
 					*text_len = data_len + 2;
 				}
 				else
 				{
-					*text = realloc(*text, *text_len+data_len+1);
+					*text = (char *)realloc(*text, *text_len+data_len+1);
 					*text_len += data_len+1;
 				}
 
@@ -532,3 +536,6 @@ void sqlclient_get_devdatas(char **text, long *text_len)
 }
 #endif
 
+#ifdef __cplusplus
+}
+#endif

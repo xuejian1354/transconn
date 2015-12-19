@@ -23,6 +23,10 @@
 #include <fcntl.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef signed   char   int8;
 typedef unsigned char   uint8;
 
@@ -35,5 +39,9 @@ typedef unsigned int   uint32;
 typedef uint8   byte;
 
 #define st(x)      do { x } while (0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__MTYPES_H__

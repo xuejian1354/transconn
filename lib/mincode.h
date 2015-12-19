@@ -20,6 +20,10 @@
 
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 unsigned char ctox(char src);
 unsigned char atox(char *src, int len);
 void incode_ctoxs(unsigned char *dest , char *src, int len);
@@ -29,5 +33,9 @@ void incode_xtoc16(char *dest, unsigned short src);
 void incode_ctox32(unsigned int *dest, char *src);
 void incode_xtoc32(char *dest, unsigned int src);
 unsigned int gen_rand(unsigned char *seed);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //  __INCODE_H __

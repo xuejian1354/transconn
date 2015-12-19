@@ -19,6 +19,10 @@
 
 #include <services/globals.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef SELECT_SUPPORT
 
 int select_init();
@@ -29,4 +33,9 @@ void select_wtclr(int fd);
 int select_listen();
 
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif  //__CORECOMM_H__

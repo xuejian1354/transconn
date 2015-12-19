@@ -23,6 +23,10 @@
 #include <module/netapi.h>
 #include <protocol/common/fieldlysis.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef void (*respond_request_t)(frhandler_arg_t *, trfr_respond_t *);
 
 typedef struct RespondData
@@ -74,5 +78,9 @@ void detrans_send_control(sn_t devsn, char *cmd);
 #endif
 
 void trans_send_frame_request(frhandler_arg_t *arg, trans_action_t action, char *frame);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  //__REQUEST_H__

@@ -25,25 +25,32 @@ ifneq ("$(origin V)", "command line")
   V := 1
 endif
 
-export DIR V
+ifneq ("$(origin S)", "command line")
+  S := 1
+endif
+
+export DIR V S
 
 TARGET_CC := $(prefix)gcc
+TARGET_CXX := $(prefix)g++
 TARGET_LD := $(prefix)ld
 TARGET_AR := $(prefix)ar
 TARGET_STRIP := $(prefix)strip
-export TARGET_CC TARGET_LD TARGET_AR TARGET_STRIP
+export TARGET_CC TARGET_CXX TARGET_LD TARGET_AR TARGET_STRIP
 
 STARGET_CC := $(sprefix)gcc
+STARGET_CXX := $(sprefix)g++
 STARGET_LD := $(sprefix)ld
 STARGET_AR := $(sprefix)ar
 STARGET_STRIP := $(sprefix)strip
-export STARGET_CC STARGET_LD STARGET_AR STARGET_STRIP
+export STARGET_CC STARGET_CXX STARGET_LD STARGET_AR STARGET_STRIP
 
 CTARGET_CC := $(cprefix)gcc
+CTARGET_CXX := $(cprefix)g++
 CTARGET_LD := $(cprefix)ld
 CTARGET_AR := $(cprefix)ar
 CTARGET_STRIP := $(cprefix)strip
-export CTARGET_CC CTARGET_LD CTARGET_AR CTARGET_STRIP
+export CTARGET_CC CTARGET_CXX CTARGET_LD CTARGET_AR CTARGET_STRIP
 
 all:preshow
 
@@ -65,5 +72,11 @@ else
     endef
   else
     $(error invalid value V=$(V), please set correct value of 1 or 99)
+  endif
+endif
+
+ifneq ($S,1)
+  ifneq ($S,99)
+    $(error invalid value S=$(S), please set correct value of 1 or 99)
   endif
 endif
