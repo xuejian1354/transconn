@@ -42,16 +42,17 @@ $(DIR)$(1)/built-c.o:$(addprefix $(DIR),$(patsubst %.c,%-c.o,$(2)))
           $(CTARGET_LD) -r -o $$@ $$^)
 endef
 
-SERVER_SOURCES:=smain.c
-SERVER_SOURCES:=smain.c
-CLIENT_SOURCES:=cmain.c
+SERVER_SOURCES:=smain.cc
+CLIENT_SOURCES:=cmain.cc
 SUB_DIRS:=$(strip $(patsubst $(TOPDIR)/%/,%, \
 		$(dir $(shell find -L $(TOPDIR) -name "transconn.mk"))))
 SUB_MODULES:=debug $(SUB_DIRS)
 export SUB_MODULES
 
-SERVER_OBJS:=$(addprefix $(DIR),$(patsubst %.c,%-s.o,$(SERVER_SOURCES)))
-CLIENT_OBJS:=$(addprefix $(DIR),$(patsubst %.c,%-c.o,$(CLIENT_SOURCES)))
+SERVER_OBJS:=$(filter %-s.o,$(addprefix $(DIR),$(patsubst %.c,%-s.o,$(SERVER_SOURCES))))
+SERVER_OBJS+=$(filter %-s.o,$(addprefix $(DIR),$(patsubst %.cc,%-s.o,$(SERVER_SOURCES))))
+CLIENT_OBJS:=$(filter %-c.o,$(addprefix $(DIR),$(patsubst %.c,%-c.o,$(CLIENT_SOURCES))))
+CLIENT_OBJS+=$(filter %-c.o,$(addprefix $(DIR),$(patsubst %.cc,%-c.o,$(CLIENT_SOURCES))))
 
 $(foreach d, $(SUB_DIRS), \
     $(eval include $(d)/transconn.mk) \
@@ -73,7 +74,6 @@ alls:$(TARGET) tests
 
 include $(TOPDIR)/include/include.mk
 
-ifeq ($S,1)
 $(DIR)$(SERVER_TARGET):$(inc_deps) $(inc_dirs_deps) server_comshow $(SERVER_OBJS) libs-s
 	$(call echocmd,TAR,$@, \
 	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -O2 -o $@ $(SERVER_OBJS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG)) $(STD_LDFLAGS)
@@ -89,31 +89,20 @@ $(DIR)%-s.o:%.c $(ALL_HEARDS) mconfig/server_config
 	$(call echocmd,CC, $@, \
 	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -w -O2 -o $@ -c $<)
 
-$(DIR)%-c.o:%.c $(ALL_HEARDS) mconfig/client_config
-	@if [ ! -d "$(dir $@)" ]; then mkdir -p $(dir $@); fi;
-	$(call echocmd,CC, $@, \
-	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ -c $<)
-else
-$(DIR)$(SERVER_TARGET):$(inc_deps) $(inc_dirs_deps) server_comshow $(SERVER_OBJS) libs-s
-	$(call echocmd,TAR,$@, \
-	  $(STARGET_CXX) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -O2 -o $@ $(SERVER_OBJS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG)) $(STD_LDFLAGS)
-	@$(STARGET_STRIP) $@
-
-$(DIR)$(CLIENT_TARGET):$(inc_deps) $(inc_dirs_deps) client_comshow $(CLIENT_OBJS) libs-c
-	$(call echocmd,TAR,$@, \
-	  $(CTARGET_CXX) $(CLIENT_DMACRO) $(INCLUDE) $(LDPATH) $(CLIENT_LDPATH) -O2 -o $@ $(CLIENT_OBJS) $(patsubst %,%-c,$(LDFLAGS)) $(CLIENT_LDFLAG)) $(STD_LDFLAGS)
-	@$(CTARGET_STRIP) $@
-
-$(DIR)%-s.o:%.c $(ALL_HEARDS) mconfig/server_config
+$(DIR)%-s.o:%.cc $(ALL_HEARDS) mconfig/server_config
 	@if [ ! -d "$(dir $@)" ]; then mkdir -p $(dir $@); fi;
 	$(call echocmd,CXX,$@, \
 	  $(STARGET_CXX) $(SERVER_DMACRO) $(INCLUDE) -w -O2 -o $@ -c $<)
 
 $(DIR)%-c.o:%.c $(ALL_HEARDS) mconfig/client_config
 	@if [ ! -d "$(dir $@)" ]; then mkdir -p $(dir $@); fi;
+	$(call echocmd,CC, $@, \
+	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ -c $<)
+
+$(DIR)%-c.o:%.cc $(ALL_HEARDS) mconfig/client_config
+	@if [ ! -d "$(dir $@)" ]; then mkdir -p $(dir $@); fi;
 	$(call echocmd,CXX,$@, \
 	  $(CTARGET_CXX) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ -c $<)
-endif
 
 libs-s:
 	@make -C $(TOPDIR)/lib $(patsubst %,$(TOPDIR)/$(DIR)lib/%-s.a,$(patsubst %.a,%,$(LDLIBS)))
@@ -153,5 +142,4 @@ help:
 	@echo "  sprefix=[compiler]	\"Server Cross compiler prefix.\""
 	@echo "  cprefix=[compiler]	\"Client Cross compiler prefix.\""
 	@echo "  V=[1|99]		\"Default value is 1, and 99 show more details.\""
-	@echo "  S=[1|99]		\"Default value is 1, and 99 switch compiler to g++.\""
 	@echo "  dir=<path>		\"binaries path.\""

@@ -25,11 +25,7 @@ ifneq ("$(origin V)", "command line")
   V := 1
 endif
 
-ifneq ("$(origin S)", "command line")
-  S := 1
-endif
-
-export DIR V S
+export DIR V
 
 TARGET_CC := $(prefix)gcc
 TARGET_CXX := $(prefix)g++
@@ -75,8 +71,3 @@ else
   endif
 endif
 
-ifneq ($S,1)
-  ifneq ($S,99)
-    $(error invalid value S=$(S), please set correct value of 1 or 99)
-  endif
-endif
