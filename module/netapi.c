@@ -592,7 +592,11 @@ void curl_post_request(void *ptr)
     //curl_easy_setopt(curl, CURLOPT_HEADER, 1);
     //curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
     //curl_easy_setopt(curl, CURLOPT_COOKIEFILE,"/tmp/curlpost.cookie");
-  
+
+	
+	DE_PRINTF(0, "%s\nHTTP-Post: %s?%s\n\n",
+		get_time_head(), arg->url, arg->req);
+	
     res = curl_easy_perform(curl);  
   
     if (res != CURLE_OK)
@@ -625,11 +629,6 @@ void curl_post_request(void *ptr)
 				break;
         }
     }
-	else
-	{
-		DE_PRINTF(0, "%s\nHTTP-Post: %s?%s\n\n",
-			get_time_head(), arg->url, arg->req);
-	}
   
     curl_easy_cleanup(curl);
 	free(arg);
@@ -737,13 +736,13 @@ curl_data_end:
 		arg->buf = data_buf;
 		arg->len = tail - head - 1;
 
-		DE_PRINTF(0, "%s\nHttp returns: %s\n\n", get_time_head(), data_buf);
+		DE_PRINTF(0, "%s\nHTTP-Returns: %s\n\n\n", get_time_head(), data);
 
 		analysis_capps_frame(arg);
 	}
 	else
 	{
-		DE_PRINTF(1, "errror format for returns\nreturn data: %s\n\n", data);
+		DE_PRINTF(1, "Errror format for returns\nreturn data: %s\n\n\n", data);
 	}
 #endif
 
