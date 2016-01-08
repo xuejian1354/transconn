@@ -691,10 +691,11 @@ void analysis_capps_frame(void *ptr)
 			}
 		}
 
+		char *pgw_str = NULL;
 		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
-		if(pGateway == NULL)
+		if(pGateway != NULL)
 		{
-			goto capps_cjson_end;
+			pgw_str = pGateway->valuestring;
 		}
 
 		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
@@ -744,7 +745,7 @@ void analysis_capps_frame(void *ptr)
 
 		trfr_control_t *control = 
 			get_trfr_control_alloc(obj,
-									pGateway->valuestring,
+									pgw_str,
 									ctrls,
 									ctrl_size,
 									pRandom->valuestring);

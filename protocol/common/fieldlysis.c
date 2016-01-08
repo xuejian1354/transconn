@@ -15,6 +15,7 @@
  * GNU General Public License for more details.
  */
 #include "fieldlysis.h"
+#include <protocol/old/devices.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -501,7 +502,7 @@ void get_trfr_refresh_free(trfr_refresh_t *refresh)
 
 trfr_control_t *get_trfr_control_alloc(trfield_obj_t *obj, sn_t gw_sn, trfield_ctrl_t **ctrls, int ctrl_size, char *random)
 {
-	if(gw_sn == NULL || ctrls == NULL || ctrl_size <= 0)
+	if(ctrls == NULL || ctrl_size <= 0)
 	{
 		return NULL;
 	}
@@ -510,7 +511,16 @@ trfr_control_t *get_trfr_control_alloc(trfield_obj_t *obj, sn_t gw_sn, trfield_c
 	trfr_control_t *control = (trfr_control_t *)calloc(1, sizeof(trfr_control_t));
 	control->action = ACTION_CONTROL;
 	control->obj = obj;
-	STRS_MEMCPY(control->gw_sn, gw_sn, sizeof(control->gw_sn), strlen(gw_sn));
+	if(gw_sn == NULL)
+	{
+#ifdef COMM_CLIENT
+		incode_xtocs(control->gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+#endif
+	}
+	else
+	{
+		STRS_MEMCPY(control->gw_sn, gw_sn, sizeof(control->gw_sn), strlen(gw_sn));
+	}
 	control->ctrls= ctrls;
 	control->ctrl_size= ctrl_size;
 
