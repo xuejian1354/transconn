@@ -24,6 +24,11 @@ static tcp_conn_list_t tcp_conn_list = {
 	TRANS_TCP_CONN_MAX_SIZE,
 };
 
+tcp_conn_list_t *get_tcp_conn_list()
+{
+	return &tcp_conn_list;
+}
+
 int addto_tcpconn_list(tcp_conn_t *list)
 {
 	tcp_conn_t *t_list;

@@ -15,7 +15,7 @@ SLIBSRC_TARGETS := $(addprefix $(BIN_DIR),$(patsubst %.c,%-s.o,$(LIBSRC_FILES)))
 CLIBSRC_TARGETS := $(addprefix $(BIN_DIR),$(patsubst %.c,%-c.o,$(LIBSRC_FILES)))
 
 all:$(SERVER_LIBS) $(CLIENT_LIBS)
-.PHONY: all clean preshow
+.PHONY: all clean
 
 #$(foreach libsrc,$(TARGET), $(eval $(libsrc):$($(patsubst lib%.a,%_libsrc,$(libsrc)))))
 LIB_HEARDS:=$(shell ls $(patsubst %,$(TOPDIR)/%,lib/*.h))

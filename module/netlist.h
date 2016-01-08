@@ -20,9 +20,16 @@
 #include <services/globals.h>
 #include <arpa/inet.h>
 
+typedef enum
+{
+	COMM_TCLIENT,
+	RESER_TCLIENT,
+}tclient_type_t;
+
 typedef struct TCPConn
 {
 	int fd;
+	tclient_type_t tclient;
 	struct sockaddr_in client_addr;
 	struct TCPConn *next;
 }tcp_conn_t;
@@ -34,6 +41,7 @@ typedef struct TCPConnList
 	const int max_size;
 }tcp_conn_list_t;
 
+tcp_conn_list_t *get_tcp_conn_list();
 int addto_tcpconn_list(tcp_conn_t *list);
 tcp_conn_t *queryfrom_tcpconn_list(int fd);
 tcp_conn_t *queryfrom_tcpconn_list_with_ipaddr(char *ipaddr);

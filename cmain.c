@@ -57,15 +57,15 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#ifdef SERIAL_SUPPORT
-	if(serial_init(get_serial_port()) < 0)			//init serial port
+#ifdef SELECT_SUPPORT
+	if(select_init() < 0)
 	{
 		return -1;
 	}
 #endif
 
-#ifdef SELECT_SUPPORT
-	if(select_init() < 0)
+#ifdef SERIAL_SUPPORT
+	if(serial_init(get_serial_port()) < 0)			//init serial port
 	{
 		return -1;
 	}

@@ -40,12 +40,14 @@
 //max udp session size of udp
 #define TRANS_UDP_SESS_MAX_SIZE		1024
 
-#ifdef TRANS_TCP_SERVER
+#if defined(TRANS_TCP_SERVER) || defined(UART_COMMBY_SOCKET)
 #define TRANS_TCP_CONN_LIST
 #endif
 
 //serial dev
 #define TRANS_SERIAL_DEV	"/dev/ttyS1"
+//replace uart server socket port
+#define UART_REPORT		12388
 
 //tcp protocol using port
 #define TRANS_TCP_PORT	11565
@@ -123,7 +125,7 @@ typedef struct
 	char serial_port[16];
 #endif
 
-#ifdef TRANS_TCP_SERVER
+#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	int tcp_port;
 #endif
 

@@ -20,18 +20,6 @@
 #include <module/balancer.h>
 #include <protocol/trframelysis.h>
 #include <protocol/protocol.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-
-typedef enum
-{
-	DE_UDP_SEND,
-	DE_UDP_RECV,
-	DE_TCP_ACCEPT,
-	DE_TCP_SEND,
-	DE_TCP_RECV,
-	DE_TCP_RELEASE
-}de_print_t;
 
 #ifdef TRANS_HTTP_REQUEST
 void curl_post_request(void *ptr);
@@ -39,9 +27,6 @@ void curl_post_request(void *ptr);
 static void set_deprint_flag(uint16 flag);
 static void set_deudp_flag(uint8 flag);
 static void set_detcp_flag(uint8 flag);
-
-static void trans_data_show(de_print_t deprint,
-				struct sockaddr_in *addr, char *data, int len);
 
 static uint16 deprint_flag = 0xFFF;
 static uint8 deudp_flag = 1;
@@ -97,7 +82,7 @@ int socket_tcp_server_init(int port)
 #endif
 }
 
-void socket_tcp_server_accept(int fd)
+int socket_tcp_server_accept(int fd)
 {
 	int rw;
 	struct sockaddr_in client_addr;
@@ -114,6 +99,7 @@ void socket_tcp_server_accept(int fd)
 	
 	m_list = (tcp_conn_t *)malloc(sizeof(tcp_conn_t));
 	m_list->fd = rw;
+	m_list->tclient = COMM_TCLIENT;
 	m_list->client_addr = client_addr;
 	m_list->next = NULL;
 
@@ -121,15 +107,33 @@ void socket_tcp_server_accept(int fd)
 	{
 		free(m_list);
 		close(rw);
-		return;
+		return -1;
 	}
 #endif
 
 #ifdef SELECT_SUPPORT
 	select_set(rw);
 #endif
+
+	return 0;
 }
 
+void socket_tcp_server_send(frhandler_arg_t *arg, char *data, int len)
+{
+	if(arg == NULL)
+	{
+		return;
+	}
+	
+	send(arg->fd, data, len, 0);
+
+#ifdef DE_PRINT_TCP_PORT
+	trans_data_show(DE_TCP_SEND, &arg->addr, data, len);
+#endif
+}
+#endif
+
+#if defined(TRANS_TCP_SERVER) || (defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET))
 void socket_tcp_server_release(int fd)
 {
 	close(fd);
@@ -152,7 +156,7 @@ void socket_tcp_server_release(int fd)
 #endif
 }
 
-void socket_tcp_server_recv(int fd)
+int socket_tcp_server_recv(int fd)
 {
 	int nbytes;
 	char buf[MAXSIZE];
@@ -167,7 +171,7 @@ void socket_tcp_server_recv(int fd)
 #ifdef DE_PRINT_TCP_PORT
 #ifdef TRANS_TCP_CONN_LIST
 		tcp_conn_t *m_list = queryfrom_tcpconn_list(fd);
-		if(m_list != NULL)
+		if(m_list != NULL && m_list->tclient == COMM_TCLIENT)
 		{
 			trans_data_show(DE_TCP_RECV, &m_list->client_addr, buf, nbytes);
 		}
@@ -175,7 +179,14 @@ void socket_tcp_server_recv(int fd)
 #else
 		DE_PRINTF(0, "data:%s\n", buf);
 #endif
-		
+
+#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
+		if(m_list->tclient == RESER_TCLIENT)
+		{
+			serial_write(buf, nbytes);
+			return 0;
+		}
+#endif
 
 #ifdef TRANS_TCP_CONN_LIST
 		frhandler_arg_t *frarg = 
@@ -187,20 +198,8 @@ void socket_tcp_server_recv(int fd)
 #endif
 #endif
 	}
-}
 
-void socket_tcp_server_send(frhandler_arg_t *arg, char *data, int len)
-{
-	if(arg == NULL)
-	{
-		return;
-	}
-	
-	send(arg->fd, data, len, 0);
-
-#ifdef DE_PRINT_TCP_PORT
-	trans_data_show(DE_TCP_SEND, &arg->addr, data, len);
-#endif
+	return 0;
 }
 #endif
 
@@ -234,7 +233,7 @@ int socket_tcp_client_connect(int port)
 #endif
 }
 
-void socket_tcp_client_recv()
+int socket_tcp_client_recv()
 {
 	int nbytes;
 	char buf[MAXSIZE];
@@ -257,6 +256,8 @@ void socket_tcp_client_recv()
 		analysis_capps_frame(frarg);
 #endif
 	}
+
+	return 0;
 }
 
 void socket_tcp_client_send(char *data, int len)
@@ -314,7 +315,7 @@ int socket_udp_service_init(int port)
 }
 
 
-void socket_udp_recvfrom()
+int socket_udp_recvfrom()
 {
 	int nbytes;
 	char buf[MAXSIZE];
@@ -339,6 +340,8 @@ void socket_udp_recvfrom()
 	analysis_capps_frame(frarg);
 #endif
 #endif
+
+	return 0;
 }
 
 void socket_udp_sendto(char *addr, char *data, int len)
