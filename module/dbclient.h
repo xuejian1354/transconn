@@ -41,7 +41,7 @@ int sqlclient_add_gateway(gw_info_t *m_gw);
 int sqlclient_query_gateway(zidentify_no_t gw_no);
 int sqlclient_del_gateway(zidentify_no_t gw_no);
 
-void sqlclient_get_zdevices(trfield_device_t ***devices, int *dev_size);
+void sqlclient_get_zdevices(uint8 isrefresh, trfield_device_t ***devices, int *dev_size);
 void sqlclient_get_devdatas(char **text, long *text_len);
 #endif
 

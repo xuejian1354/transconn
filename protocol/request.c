@@ -739,7 +739,7 @@ void upload_data(uint8 isrefresh, char *random)
 			trfield_device_t **devices = NULL;
 			int dev_size = 0;
 #ifdef DB_API_WITH_SQLITE
-			sqlclient_get_zdevices(&devices, &dev_size);
+			sqlclient_get_zdevices(isrefresh, &devices, &dev_size);
 #else
 			dev_info_t *p_dev = get_gateway_info()->p_dev;
 			while(p_dev != NULL)

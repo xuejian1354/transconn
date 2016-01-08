@@ -430,7 +430,7 @@ int sqlclient_del_gateway(zidentify_no_t gw_no)
 	return sqlclient_excute_cmdline(GET_CMD_LINE());
 }
 
-void sqlclient_get_zdevices(trfield_device_t ***devices, int *dev_size)
+void sqlclient_get_zdevices(uint8 isrefresh, trfield_device_t ***devices, int *dev_size)
 {
 	if(devices == NULL || dev_size == NULL)
 	{
@@ -440,10 +440,20 @@ void sqlclient_get_zdevices(trfield_device_t ***devices, int *dev_size)
 	sn_t gwsn = {0};
 	incode_xtocs(gwsn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 
-	SET_CMD_LINE("%s%s%s",
-					"SELECT * FROM devices WHERE gwsn=\'",
-					gwsn,
-					"\' AND ischange=\'1\'");
+	if(isrefresh)
+	{
+		SET_CMD_LINE("%s%s%s",
+						"SELECT * FROM devices WHERE gwsn=\'",
+						gwsn,
+						"\'");
+	}
+	else
+	{
+		SET_CMD_LINE("%s%s%s",
+						"SELECT * FROM devices WHERE gwsn=\'",
+						gwsn,
+						"\' AND ischange=\'1\'");
+	}
 
  	sqlite3_stmt *stmt;
     if(sqlite3_prepare_v2(sqlite_db, GET_CMD_LINE(), -1, &stmt, NULL) == SQLITE_OK)
@@ -483,6 +493,15 @@ void sqlclient_get_zdevices(trfield_device_t ***devices, int *dev_size)
 		}
     }
 	sqlite3_finalize(stmt);
+
+	if(!isrefresh)
+	{
+		SET_CMD_LINE("%s%s%s",
+						"UPDATE devices SET ischange=\'0\' WHERE gwsn=\'",
+						gwsn,
+						"\'");
+		sqlclient_excute_cmdline(GET_CMD_LINE());
+	}
 }
 
 void sqlclient_get_devdatas(char **text, long *text_len)
