@@ -32,6 +32,18 @@
 extern "C" {
 #endif
 
+typedef enum
+{
+	DE_UDP_SEND,
+	DE_UDP_RECV,
+	DE_TCP_ACCEPT,
+	DE_TCP_SEND,
+	DE_TCP_RECV,
+	DE_TCP_RELEASE,
+	DE_POST_SEND,
+	DE_POST_RET
+}de_print_t;
+
 typedef struct
 {
 	int fd;
@@ -70,15 +82,17 @@ frhandler_arg_t *get_transtocol_frhandler_arg();
 #ifdef TRANS_TCP_SERVER
 int get_stcp_fd();
 int socket_tcp_server_init(int port);
-void socket_tcp_server_accept(int fd);
-void socket_tcp_server_recv(int fd);
+int socket_tcp_server_accept(int fd);
+#endif
+#if defined(TRANS_TCP_SERVER) || (defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET))
+int socket_tcp_server_recv(int fd);
 void socket_tcp_server_send(frhandler_arg_t *arg, char *data, int len);
 #endif
 
 #ifdef TRANS_TCP_CLIENT
 int get_ctcp_fd();
 int socket_tcp_client_connect(int port);
-void socket_tcp_client_recv();
+int socket_tcp_client_recv();
 void socket_tcp_client_send(char *data, int len);
 void socket_tcp_client_close();
 #endif
@@ -88,7 +102,7 @@ int get_udp_fd();
 int socket_udp_service_init(int port);
 void socket_udp_sendto_with_ipaddr(char *ipaddr, char *data, int len);
 void socket_udp_sendto(struct sockaddr_in *addr, char *data, int len);
-void socket_udp_recvfrom();
+int socket_udp_recvfrom();
 #endif
 
 void set_deuart_flag(uint8 flag);
@@ -102,6 +116,9 @@ size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp);
 void curl_http_request(curl_method_t cm, 
 		char *url, char *req, data_handler reback);
 #endif
+
+void trans_data_show(de_print_t deprint,
+				struct sockaddr_in *addr, char *data, int len);
 
 void enable_datalog_atime();
 

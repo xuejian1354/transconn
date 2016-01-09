@@ -113,13 +113,13 @@ libs-c:
 server_comshow:
 	@echo ""
 	@echo ===========================================================
-	@echo **compile server:
+	@echo **compile server: $(STARGET_CC)
 	@echo ===========================================================
 
 client_comshow:
 	@echo ""
 	@echo ===========================================================
-	@echo **compile client:
+	@echo **compile client: $(CTARGET_CC)
 	@echo ===========================================================
 
 tests:

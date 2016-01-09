@@ -84,15 +84,15 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#ifdef SERIAL_SUPPORT
-	if(serial_init(get_serial_dev()) < 0)			//init serial device
+#ifdef SELECT_SUPPORT
+	if(select_init() < 0)
 	{
 		return -1;
 	}
 #endif
 
-#ifdef SELECT_SUPPORT
-	if(select_init() < 0)
+#ifdef SERIAL_SUPPORT
+	if(serial_init(get_serial_dev()) < 0)			//init serial device
 	{
 		return -1;
 	}

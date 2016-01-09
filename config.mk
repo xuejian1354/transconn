@@ -48,10 +48,7 @@ CTARGET_AR := $(cprefix)ar
 CTARGET_STRIP := $(cprefix)strip
 export CTARGET_CC CTARGET_CXX CTARGET_LD CTARGET_AR CTARGET_STRIP
 
-all:preshow
-
-preshow:
-	@echo cross compiler is server:$(STARGET_CC) client:$(CTARGET_CC)
+all:
 
 WHOLE_BUILD := 1
 export WHOLE_BUILD

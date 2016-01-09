@@ -50,12 +50,14 @@ extern "C" {
 //max udp session size of udp
 #define TRANS_UDP_SESS_MAX_SIZE		1024
 
-#ifdef TRANS_TCP_SERVER
+#if defined(TRANS_TCP_SERVER) || defined(UART_COMMBY_SOCKET)
 #define TRANS_TCP_CONN_LIST
 #endif
 
 //serial dev
 #define TRANS_SERIAL_DEV	"/dev/ttyS1"
+//replace uart server socket port
+#define UART_REPORT		12388
 
 //tcp protocol using port
 #define TRANS_TCP_PORT	11665
@@ -80,6 +82,7 @@ extern "C" {
 #if defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 #define DEU_UDP_CMD			"deudp"
 #define DEU_TCP_CMD			"detcp"
+#define DEU_POST_CMD		"depost"
 #define DEU_UART_CMD		"deuart"
 #define DE_UDP_PORT			13688
 #define DE_UDP_CTRL_PORT	13689
