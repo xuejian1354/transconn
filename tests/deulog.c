@@ -25,15 +25,13 @@ void udp_sendto(char *data, int len);
 
 static int fd;
 static struct sockaddr_in u_addr;
-static int mudp_port = TRANS_UDP_PORT;
+static int mudp_port[10] = {0};
+static int mudp_size = 0;
 
 int main(int argc, char **argv)
 {
-	if(argc == 2)
-	{
-		mudp_port = atoi(argv[1]);
-	}
-	printf("UDP: m_port=%d, s_port=%d\n", DE_UDP_PORT, mudp_port);
+	mudp_size = 0;
+	printf("UDP: s_port=%d\n", DE_UDP_PORT);
 	
 	if (udp_init() < 0)
 	{
@@ -92,21 +90,49 @@ void *udp_read_func(void *p)
 {
 	while(1)
 	{
-		int nbytes;
+		int i, nbytes;
 		char buf[0x4000] = {0};
 
-		nbytes = recvfrom(fd, buf, sizeof(buf), 0, NULL, NULL);
+		struct sockaddr_in client_addr;
+		socklen_t socklen = sizeof(client_addr);
+
+		nbytes = recvfrom(fd, buf, sizeof(buf),
+							0, (struct sockaddr *)&client_addr, &socklen);
+
 		printf("%s", buf);
+
+		int client_port = ntohs(client_addr.sin_port);
+		for(i=0; i<sizeof(mudp_port); i++)
+		{
+			if(client_port == mudp_port[i])
+			{
+				goto for_end;
+			}
+		}
+
+		if(mudp_size < sizeof(mudp_port))
+		{
+			mudp_port[mudp_size++] = client_port;
+		}
+		else
+		{
+			mudp_port[mudp_size] = client_port;
+		}
+for_end:;
 	}
 }
 
 void udp_sendto(char *data, int len)
 {
+	int i;
 	struct sockaddr_in s_addr = u_addr;
-	
-	//s_addr.sin_family = PF_INET;
-	s_addr.sin_port = htons(mudp_port);
-	//s_addr.sin_addr.s_addr = inet_addr("172.0.0.1"); //htonl(INADDR_ANY);
-	
-	sendto(fd, data, len, 0, (struct sockaddr *)&s_addr, sizeof(struct sockaddr));
+
+	for(i=0; i<mudp_size; i++)
+	{
+		//s_addr.sin_family = PF_INET;
+		s_addr.sin_port = htons(mudp_port[i]);
+		//s_addr.sin_addr.s_addr = inet_addr("172.0.0.1"); //htonl(INADDR_ANY);
+
+		sendto(fd, data, len, 0, (struct sockaddr *)&s_addr, sizeof(struct sockaddr));
+	}
 }
