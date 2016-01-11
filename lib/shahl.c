@@ -28,7 +28,7 @@ SHAEnd(SHA_CTX *ctx, char *buf)
     static const char hex[]="0123456789abcdef";
 
     if (!buf)
-        buf = malloc(33);
+        buf = (char *)malloc(33);
     if (!buf)
 	return 0;
     SHAFinal(digest,ctx);

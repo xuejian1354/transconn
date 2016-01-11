@@ -22,10 +22,11 @@
 #include <string.h>
 #include <strings_t.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define areas_t strings_t
-#define areas_alloc(size)		strings_alloc(size)
-#define areas_add(areas, area)	strings_add(areas, area)
-#define areas_free(areas)		strings_free(areas)
 
 typedef struct
 {
@@ -56,6 +57,10 @@ devices_t *devices_alloc(unsigned int size);
 int devices_add(devices_t *devs, char *sn, int iscollect, char *locate);
 void devices_free(devices_t *devs);
 
+areas_t *areas_alloc(unsigned int size);
+int areas_add(areas_t *areas, char * area);
+void areas_free(areas_t *areas);
+
 scene_t *scene_create(char *name, char **devices, unsigned int dev_size, 
 	int *func_ids, unsigned int func_size, char **params, unsigned int param_size);
 void scene_free(scene_t *scene);
@@ -63,5 +68,9 @@ void scene_free(scene_t *scene);
 scenes_t *scenes_alloc(unsigned int size);
 int scenes_put(scenes_t *scenes, scene_t *scene);
 void scenes_free(scenes_t *scenes);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	//__DBALLOC_H__

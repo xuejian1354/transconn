@@ -23,6 +23,10 @@
 #include <string.h>
 #include <pthread.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum
 {
 	TPOOL_NONE,
@@ -52,4 +56,9 @@ typedef struct tpool {
 int tpool_create(int max_thr_num);
 void tpool_destroy();
 int tpool_add_work(routine_t routine, void *arg, tpool_opt_t options);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif //__TPOOL_H__

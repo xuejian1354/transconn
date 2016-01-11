@@ -18,6 +18,10 @@
 #include <signal.h>
 #include <module/netapi.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef SELECT_SUPPORT
 
 static int maxfd;
@@ -81,10 +85,17 @@ int select_listen()
 	ret = pselect(maxfd+1, &current_rdfs, &current_wtfs, NULL, NULL, &sigmask);
 	if(ret > 0)
 	{
+#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
+		int reser_fd = get_reser_fd();
+		if(reser_fd >= 0 && FD_ISSET(reser_fd, &current_rdfs))
+		{
+			return get_reser_accept(reser_fd);
+		}
+#endif
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 		if(FD_ISSET(udpfd, &current_rdfs))
 		{
-			socket_udp_recvfrom();
+			return socket_udp_recvfrom();
 		}
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 		else 
@@ -94,23 +105,22 @@ int select_listen()
 #ifdef TRANS_TCP_CLIENT
 		if(FD_ISSET(get_ctcp_fd(), &current_rdfs))
 		{
-			socket_tcp_client_recv(get_ctcp_fd());
+			return socket_tcp_client_recv(get_ctcp_fd());
 		}
 #endif
 
 #ifdef TRANS_TCP_SERVER
 		if(FD_ISSET(get_stcp_fd(), &current_rdfs))
 		{
-			socket_tcp_server_accept(get_stcp_fd());
+			return socket_tcp_server_accept(get_stcp_fd());
 		}
-		else
+#endif
+#if defined(TRANS_TCP_SERVER) || (defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET))
+		for(i=0; i<=maxfd; i++)
 		{
-			for(i=0; i<=maxfd; i++)
+			if(FD_ISSET(i, &current_rdfs))
 			{
-				if(FD_ISSET(i, &current_rdfs) && i!= get_stcp_fd() && i!= udpfd)
-				{
-					socket_tcp_server_recv(i);
-				}
+				return socket_tcp_server_recv(i);
 			}
 		}
 #endif
@@ -127,5 +137,9 @@ int select_listen()
 	usleep(10000);
 
 	return 0;
+}
+#endif
+
+#ifdef __cplusplus
 }
 #endif

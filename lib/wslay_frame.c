@@ -27,6 +27,8 @@
 #include <stddef.h>
 #include <string.h>
 #include <assert.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #include "wslay_net.h"
 

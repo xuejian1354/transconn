@@ -19,6 +19,10 @@
 
 #include <mtypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //#define COMM_SERVER
 //#define COMM_CLIENT
 
@@ -26,6 +30,9 @@
 #define THREAD_POOL_SUPPORT
 #define TIMER_SUPPORT
 #define SELECT_SUPPORT
+#ifdef COMM_CLIENT
+#define UART_COMMBY_SOCKET
+#endif
 #endif
 //#define TRANS_TCP_SERVER
 //#define TRANS_TCP_CLIENT
@@ -77,6 +84,10 @@
 
 #if !defined(TRANS_UDP_SERVICE) && defined(REMOTE_UPDATE_APK)
 #error 'You must define TRANS_UDP_SERVICE first before defining REMOTE_UPDATE_APK'
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif //__MCONFIG_H__

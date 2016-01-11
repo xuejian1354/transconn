@@ -23,8 +23,12 @@
 #include <module/dbclient.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static sessionsta_t session_status;
-static transtocol_t transtocol;
+static uint16 transtocol;
 static char checkcode[64];
 
 #ifdef COMM_CLIENT
@@ -51,7 +55,7 @@ sessionsta_t get_session_status()
 	return session_status;
 }
 
-void set_trans_protocol(transtocol_t tocol)
+void set_trans_protocol(uint16 tocol)
 {
 	switch(tocol)
 	{
@@ -71,7 +75,7 @@ void set_trans_protocol(transtocol_t tocol)
 		int i = 0;
 		while(i < get_global_conf()->tocol_len)
 		{
-			transtocol_t enable_tocol = get_global_conf()->protocols[i];
+			uint16 enable_tocol = get_global_conf()->protocols[i];
 			if(enable_tocol & tocol)
 			{
 				transtocol |= tocol;
@@ -97,7 +101,8 @@ void set_trans_protocol(transtocol_t tocol)
 		break;
 	}
 }
-transtocol_t get_trans_protocol()
+
+uint16 get_trans_protocol()
 {
 #ifdef COMM_CLIENT
 	if(!(transtocol & TOCOL_ENABLE))
@@ -108,7 +113,7 @@ transtocol_t get_trans_protocol()
 	int i = 0;
 	while(i < get_global_conf()->tocol_len)
 	{
-		transtocol_t enable_tocol = get_global_conf()->protocols[i];
+		uint16 enable_tocol = get_global_conf()->protocols[i];
 		if(enable_tocol & transtocol)
 		{
 			return enable_tocol;
@@ -125,16 +130,16 @@ transtocol_t get_trans_protocol()
 #endif
 }
 
-char *get_trans_protocol_to_str(transtocol_t tocol)
+char *get_trans_protocol_to_str(uint16 tocol)
 {
 	switch(tocol)
 	{
-	case TOCOL_UDP: return "udp";
-	case TOCOL_TCP: return "tcp";
-	case TOCOL_HTTP: return "http";
+	case TOCOL_UDP: return (char *)"udp";
+	case TOCOL_TCP: return (char *)"tcp";
+	case TOCOL_HTTP: return (char *)"http";
 	}
 
-	return "";
+	return (char *)"";
 }
 
 #ifdef COMM_CLIENT
@@ -179,7 +184,7 @@ char *gen_current_checkcode(zidentify_no_t gw_sn)
 
 			if(text == NULL)
 			{
-				text = calloc(1, buffer->size+2);
+				text = (char *)calloc(1, buffer->size+2);
 				text_len = buffer->size+2;
 			}
 			else
@@ -255,4 +260,8 @@ size_t transtocol_post_respond_handler(void *buffer,
 	return size*nmemb;
 }
 #endif
+#endif
+
+#ifdef __cplusplus
+}
 #endif

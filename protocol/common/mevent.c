@@ -18,9 +18,14 @@
 #include "mevent.h"
 #include <protocol/protocol.h>
 #include <protocol/request.h>
+#include <module/serial.h>
 #ifdef COMM_CLIENT
 #include <services/balancer.h>
 #include <module/dbclient.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 #ifdef TIMER_SUPPORT
@@ -48,7 +53,7 @@ void gateway_init()
 
 void gateway_refresh(void *p)
 {
-	serial_write("D:/BR/0000:O\r\n", 14);
+	serial_write((char *)"D:/BR/0000:O\r\n", 14);
 
 	set_trans_protocol(TOCOL_NONE);
 }
@@ -57,9 +62,9 @@ void upload_refresh(void *p)
 {
 	sn_t gw_sn = {0};
 	incode_xtocs(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-	if(!strcmp(gw_sn, "0000000000000000"))
+	if(!strcmp(gw_sn, (char *)"0000000000000000"))
 	{
-		serial_write("D:/BR/0000:O\r\n", 14);
+		serial_write((char *)"D:/BR/0000:O\r\n", 14);
 		return;
 	}
 
@@ -78,7 +83,7 @@ void upload_refresh(void *p)
 	get_trfr_tocolreq_free(ttocolreq);
 #endif
 #ifdef TRANS_HTTP_REQUEST
-	trfr_tocolreq_t *htocolreq = get_trfr_tocolreq_alloc(NULL, gw_sn, TRANSTOCOL_HTTP, NULL);
+	trfr_tocolreq_t *htocolreq = get_trfr_tocolreq_alloc(NULL, gw_sn, (char *)TRANSTOCOL_HTTP, NULL);
 	trans_send_tocolreq_request(NULL, htocolreq);
 	get_trfr_tocolreq_free(htocolreq);
 #endif
@@ -208,7 +213,7 @@ void cli_watch(void *p)
 
 void set_mevent(int id, timer_callback_t event_callback, timer_event_param_t *param)
 {
-	timer_event_t *timer_event = calloc(1, sizeof(timer_event_t));
+	timer_event_t *timer_event = (timer_event_t *)calloc(1, sizeof(timer_event_t));
 	timer_event->timer_id = id;
 	timer_event->param = *param;
 	timer_event->timer_callback = event_callback;
@@ -217,5 +222,9 @@ void set_mevent(int id, timer_callback_t event_callback, timer_event_param_t *pa
 	{
 		free(timer_event);
 	}
+}
+#endif
+
+#ifdef __cplusplus
 }
 #endif

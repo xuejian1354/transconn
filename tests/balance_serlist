@@ -1,3 +1,6 @@
+[loongsmart]
+ip=58.96.188.106
+
 [router]
 ip=192.168.1.1
 
@@ -6,9 +9,3 @@ ip=192.168.1.8
 
 [loongsky1]
 ip=192.168.1.88
-
-[loongsky2]
-ip=192.168.1.89
-
-[loongsmart]
-ip=58.96.188.106

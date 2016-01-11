@@ -16,6 +16,10 @@
  */
 #include "mincode.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 unsigned char ctox(char src)
 {
 	char temp = 0;
@@ -116,7 +120,7 @@ void incode_ctox32(unsigned int *dest, char *src)
 {
 	int i;
 	char dsts[4];
-	incode_ctoxs(dsts, src, 8);
+	incode_ctoxs((unsigned char *)dsts, src, 8);
 
 	*dest = 0;
 	for(i=0; i<4; i++)
@@ -147,3 +151,7 @@ unsigned int gen_rand(unsigned char *seed)
 
 	return ra;
 }
+
+#ifdef __cplusplus
+}
+#endif

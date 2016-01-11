@@ -17,30 +17,25 @@
 
 #include "netapi.h"
 #include <module/netlist.h>
+#include <services/corecomm.h>
 #include <services/balancer.h>
 #include <protocol/protocol.h>
+#include <protocol/request.h>
 
-typedef enum
-{
-	DE_UDP_SEND,
-	DE_UDP_RECV,
-	DE_TCP_ACCEPT,
-	DE_TCP_SEND,
-	DE_TCP_RECV,
-	DE_TCP_RELEASE
-}de_print_t;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef TRANS_HTTP_REQUEST
 void curl_post_request(void *ptr);
 #endif
 static void set_deudp_flag(uint8 flag);
 static void set_detcp_flag(uint8 flag);
-
-static void trans_data_show(de_print_t deprint,
-				struct sockaddr_in *addr, char *data, int len);
+static void set_depost_flag(uint8 flag);
 
 static uint8 deudp_flag = 1;
 static uint8 detcp_flag = 1;
+static uint8 depost_flag = 1;
 static uint8 deuart_flag = 1;
 #ifdef DE_TRANS_UDP_STREAM_LOG
 static struct sockaddr_in ulog_addr;
@@ -69,8 +64,8 @@ frhandler_arg_t *get_frhandler_arg_alloc(int fd,
 		return NULL;
 	}
 
-	frhandler_arg_t *arg = calloc(1, sizeof(frhandler_arg_t));
-	arg->buf = calloc(1, len);
+	frhandler_arg_t *arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
+	arg->buf = (char *)calloc(1, len);
 
 	arg->fd = fd;
 	arg->transtocol = transtocol;
@@ -154,7 +149,7 @@ int socket_tcp_server_init(int port)
 	return 0;
 }
 
-void socket_tcp_server_accept(int fd)
+int socket_tcp_server_accept(int fd)
 {
 	int rw;
 	struct sockaddr_in client_addr;
@@ -171,6 +166,7 @@ void socket_tcp_server_accept(int fd)
 	
 	m_list = (tcp_conn_t *)malloc(sizeof(tcp_conn_t));
 	m_list->fd = rw;
+	m_list->tclient = COMM_TCLIENT;
 	m_list->client_addr = client_addr;
 	m_list->next = NULL;
 
@@ -178,71 +174,15 @@ void socket_tcp_server_accept(int fd)
 	{
 		free(m_list);
 		close(rw);
-		return;
+		return 0;
 	}
 #endif
 
 #ifdef SELECT_SUPPORT
 	select_set(rw);
 #endif
-}
 
-void socket_tcp_server_release(int fd)
-{
-	close(fd);
-#ifdef SELECT_SUPPORT
-	select_clr(fd);
-#endif
-
-#ifdef DE_PRINT_TCP_PORT
-#ifdef TRANS_TCP_CONN_LIST
-	tcp_conn_t *m_list = queryfrom_tcpconn_list(fd);
-	if(m_list != NULL)
-	{
-		trans_data_show(DE_TCP_RELEASE, &m_list->client_addr, "", 0);
-	}
-	delfrom_tcpconn_list(fd);
-#else
-	DE_PRINTF(1, "TCP:release,fd=%d\n\n", fd);
-#endif
-#endif
-}
-
-void socket_tcp_server_recv(int fd)
-{
-	int nbytes;
-	char buf[MAXSIZE];
-	
-	memset(buf, 0, sizeof(buf));
-   	if ((nbytes = recv(fd, buf, sizeof(buf), 0)) <= 0)
-   	{
-      	socket_tcp_server_release(fd);
-	}
-	else
-	{
-#ifdef DE_PRINT_TCP_PORT
-#ifdef TRANS_TCP_CONN_LIST
-		tcp_conn_t *m_list = queryfrom_tcpconn_list(fd);
-		if(m_list != NULL)
-		{
-			trans_data_show(DE_TCP_RECV, &m_list->client_addr, buf, nbytes);
-		}
-#endif
-#else
-		DE_PRINTF(0, "data:%s\n", buf);
-#endif
-		
-
-#ifdef TRANS_TCP_CONN_LIST
-		frhandler_arg_t *frarg = 
-			get_frhandler_arg_alloc(fd, TOCOL_TCP, &m_list->client_addr, buf, nbytes);
-#ifdef THREAD_POOL_SUPPORT
-		tpool_add_work(analysis_capps_frame, frarg, TPOOL_LOCK);
-#else
-		analysis_capps_frame(frarg);
-#endif
-#endif
-	}
+	return 0;
 }
 
 void socket_tcp_server_send(frhandler_arg_t *arg, char *data, int len)
@@ -265,6 +205,74 @@ void socket_tcp_server_send(frhandler_arg_t *arg, char *data, int len)
 
 	trans_data_show(DE_TCP_SEND, &arg->addr, data, len);
 #endif
+}
+#endif
+
+#if defined(TRANS_TCP_SERVER) || (defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET))
+void socket_tcp_server_release(int fd)
+{
+	close(fd);
+#ifdef SELECT_SUPPORT
+	select_clr(fd);
+#endif
+
+#ifdef DE_PRINT_TCP_PORT
+#ifdef TRANS_TCP_CONN_LIST
+	tcp_conn_t *m_list = queryfrom_tcpconn_list(fd);
+	if(m_list != NULL)
+	{
+		trans_data_show(DE_TCP_RELEASE, &m_list->client_addr, "", 0);
+	}
+	delfrom_tcpconn_list(fd);
+#else
+	DE_PRINTF(1, "TCP:release,fd=%d\n\n", fd);
+#endif
+#endif
+}
+
+int socket_tcp_server_recv(int fd)
+{
+	int nbytes;
+	char buf[MAXSIZE];
+	
+	memset(buf, 0, sizeof(buf));
+   	if ((nbytes = recv(fd, buf, sizeof(buf), 0)) <= 0)
+   	{
+      	socket_tcp_server_release(fd);
+	}
+	else
+	{
+#ifdef DE_PRINT_TCP_PORT
+#ifdef TRANS_TCP_CONN_LIST
+		tcp_conn_t *m_list = queryfrom_tcpconn_list(fd);
+		if(m_list != NULL && m_list->tclient == COMM_TCLIENT)
+		{
+			trans_data_show(DE_TCP_RECV, &m_list->client_addr, buf, nbytes);
+		}
+#endif
+#else
+		DE_PRINTF(0, "data:%s\n", buf);
+#endif
+
+#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
+		if(m_list->tclient == RESER_TCLIENT)
+		{
+			serial_write(buf, nbytes);
+			return 0;
+		}
+#endif
+
+#ifdef TRANS_TCP_CONN_LIST
+		frhandler_arg_t *frarg = 
+			get_frhandler_arg_alloc(fd, TOCOL_TCP, &m_list->client_addr, buf, nbytes);
+#ifdef THREAD_POOL_SUPPORT
+		tpool_add_work(analysis_capps_frame, frarg, TPOOL_LOCK);
+#else
+		analysis_capps_frame(frarg);
+#endif
+#endif
+	}
+	return 0;
 }
 #endif
 
@@ -299,7 +307,7 @@ int socket_tcp_client_connect(int port)
 	return 0;
 }
 
-void socket_tcp_client_recv()
+int socket_tcp_client_recv()
 {
 	int nbytes;
 	char buf[MAXSIZE];
@@ -322,6 +330,8 @@ void socket_tcp_client_recv()
 		analysis_capps_frame(frarg);
 #endif
 	}
+
+	return 0;
 }
 
 void socket_tcp_client_send(char *data, int len)
@@ -383,13 +393,13 @@ int socket_udp_service_init(int port)
 }
 
 
-void socket_udp_recvfrom()
+int socket_udp_recvfrom()
 {
 	int nbytes;
 	char buf[MAXSIZE];
 
 	struct sockaddr_in client_addr;
-	int socklen = sizeof(client_addr);
+	socklen_t socklen = sizeof(client_addr);
 
 	memset(buf, 0, sizeof(buf));
 	
@@ -430,6 +440,7 @@ void socket_udp_recvfrom()
 	analysis_capps_frame(frarg);
 #endif
 #endif
+	return 0;
 }
 
 void socket_udp_sendto_with_ipaddr(char *ipaddr, char *data, int len)
@@ -492,6 +503,11 @@ void set_detcp_flag(uint8 flag)
 	detcp_flag = flag;
 }
 
+void set_depost_flag(uint8 flag)
+{
+	depost_flag = flag;
+}
+
 void set_deuart_flag(uint8 flag)
 {
 	deuart_flag = flag;
@@ -508,7 +524,7 @@ void delog_udp_sendto(char *data, int len)
 #ifdef DAEMON_PROCESS_CREATE
 	if(!get_daemon_cmdline())
 	{
-		char *pdata = calloc(1, len+1);
+		char *pdata = (char *)calloc(1, len+1);
 		memcpy(pdata, data, len);
 		printf("%s", pdata);
 		free(pdata);
@@ -532,7 +548,7 @@ void curl_http_request(curl_method_t cm,
 
 	case CURL_POST:
 	{
-		curl_args_t *cargs = calloc(1, sizeof(curl_args_t));
+		curl_args_t *cargs = (curl_args_t *)calloc(1, sizeof(curl_args_t));
 		cargs->cm = CURL_POST;
 		cargs->url = url;
 		cargs->req = req;
@@ -586,7 +602,15 @@ void curl_post_request(void *ptr)
     //curl_easy_setopt(curl, CURLOPT_HEADER, 1);
     //curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
     //curl_easy_setopt(curl, CURLOPT_COOKIEFILE,"/tmp/curlpost.cookie");
-  
+
+#ifdef DE_PRINT_UDP_PORT
+	trans_data_show(DE_POST_SEND,
+		(struct sockaddr_in *)arg->url, arg->req, strlen(arg->req));
+#else
+	DE_PRINTF(0, "%s\nHTTP-Post: %s?%s\n\n",
+		get_time_head(), arg->url, arg->req);
+#endif
+	
     res = curl_easy_perform(curl);  
   
     if (res != CURLE_OK)
@@ -619,11 +643,6 @@ void curl_post_request(void *ptr)
 				break;
         }
     }
-	else
-	{
-		DE_PRINTF(0, "%s\nHTTP-Post: %s?%s\n\n",
-			get_time_head(), arg->url, arg->req);
-	}
   
     curl_easy_cleanup(curl);
 	free(arg);
@@ -668,7 +687,7 @@ size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp)
 				{
 					valData = xmlNodeGetContent(curNode);
 					//DE_PRINTF(1, "name:%s\ncontent:%s\n", curNode->name, valData); 
-					frhandler_arg_t *arg = calloc(1, sizeof(frhandler_arg_t));
+					frhandler_arg_t *arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 					arg->transtocol = TOCOL_HTTP;
 					arg->buf = valData;
 					arg->len = strlen(valData);
@@ -724,20 +743,24 @@ curl_data_end:
 
 	if(head >= 0 && tail > 0 && tail > head + 1)
 	{
-		frhandler_arg_t *arg = calloc(1, sizeof(frhandler_arg_t));
-		char *data_buf = calloc(1, tail-head);
+		frhandler_arg_t *arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
+		char *data_buf = (char *)calloc(1, tail-head);
 		memcpy(data_buf, data+head+1, tail-head-1);
 		arg->transtocol = TOCOL_HTTP;
 		arg->buf = data_buf;
 		arg->len = tail - head - 1;
 
-		DE_PRINTF(0, "%s\nHttp returns: %s\n\n", get_time_head(), data_buf);
+#ifdef DE_PRINT_UDP_PORT
+		trans_data_show(DE_POST_RET, NULL, data, strlen(data));
+#else
+		DE_PRINTF(0, "%s\nHTTP-Returns: %s\n\n\n", get_time_head(), data);
+#endif
 
 		analysis_capps_frame(arg);
 	}
 	else
 	{
-		DE_PRINTF(1, "errror format for returns\nreturn data: %s\n\n", data);
+		DE_PRINTF(1, "Errror format for returns\nreturn data: %s\n\n\n", data);
 	}
 #endif
 
@@ -792,6 +815,23 @@ void trans_data_show(de_print_t deprint,
 				DE_PRINTF(1, "\n%s set failed\n\n", DEU_TCP_CMD);
 			}
 		}
+		else if(len >= 8 && !memcmp(data, DEU_POST_CMD, 6))
+		{
+			if(!memcmp(data+6, " 0", 2))
+			{
+				set_depost_flag(0);
+				DE_PRINTF(1, "\n%s disable\n\n", DEU_POST_CMD);
+			}
+			else if(!memcmp(data+6, " 1", 2))
+			{
+				set_depost_flag(1);
+				DE_PRINTF(1, "\n%s enable\n\n", DEU_POST_CMD);
+			}
+			else
+			{
+				DE_PRINTF(1, "\n%s set failed\n\n", DEU_POST_CMD);
+			}
+		}
 		else if(len >= 8 && !memcmp(data, DEU_UART_CMD, 6))
 		{
 			if(!memcmp(data+6, " 0", 2))
@@ -815,6 +855,7 @@ void trans_data_show(de_print_t deprint,
 			DE_PRINTF(0, "follow:\n");
 			DE_PRINTF(0, "  %s [0|1]\n", DEU_UDP_CMD);
 			DE_PRINTF(0, "  %s [0|1]\n", DEU_TCP_CMD);
+			DE_PRINTF(0, "  %s [0|1]\n", DEU_POST_CMD);
 			DE_PRINTF(0, "  %s [0|1]\n", DEU_UART_CMD);
 		}
 
@@ -897,6 +938,24 @@ void trans_data_show(de_print_t deprint,
 						ntohs(addr->sin_port));
 		return;
 	}
+	else if(deprint == DE_POST_SEND)
+	{
+		if(!depost_flag)
+		{
+			return;
+		}
+		DE_PRINTF(0, "%s\nHTTP-Post: %s?%s\n\n", get_time_head(), (char *)addr, data);
+		return;
+	}
+	else if(deprint == DE_POST_RET)
+	{
+		if(!depost_flag)
+		{
+			return;
+		}
+		DE_PRINTF(0, "%s\nHTTP-Returns: %s\n\n\n", get_time_head(), data);
+		return;
+	}
 	else
 	{
 		return;
@@ -906,3 +965,6 @@ void trans_data_show(de_print_t deprint,
 	lwflag = 0;
 }
 
+#ifdef __cplusplus
+}
+#endif

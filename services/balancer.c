@@ -16,9 +16,13 @@
  */
 #include "balancer.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static relser_list_t *p_serlist;
 static const char *none_name = "none";
-static char *none_server_ip = "0.0.0.0";
+static const char *none_server_ip = "0.0.0.0";
 
 int add_relser_info(relser_info_t *m_ser);
 relser_info_t *query_relser_info(char *name);
@@ -50,7 +54,7 @@ int add_relser_info(relser_info_t *m_ser)
 		else
 		{
 			memset(t_ser->ipaddr, 0, sizeof(t_ser->ipaddr));
-			memcpy(t_ser->ipaddr, m_ser->ipaddr, strlen(m_ser->ipaddr));
+			memcpy(t_ser->ipaddr, m_ser->ipaddr, strlen((char *)m_ser->ipaddr));
 
 			/*if(pre_ser != NULL)
 			{
@@ -138,7 +142,7 @@ int serlist_read_from_confile(void)
 	FILE *fp = NULL;
 	char buf[64] = {0};
 
-	p_serlist = calloc(1, sizeof(relser_list_t));
+	p_serlist = (relser_list_t *)calloc(1, sizeof(relser_list_t));
 	p_serlist->p_ser = NULL;
 	p_serlist->max_num = 0;
 		
@@ -154,7 +158,7 @@ int serlist_read_from_confile(void)
 				switch(ldata->type)
 				{
 				case LINE_NAME:
-					relser_info = calloc(1, sizeof(relser_info_t));
+					relser_info = (relser_info_t *)calloc(1, sizeof(relser_info_t));
 					memcpy(relser_info->name, ldata->data, strlen(ldata->data));
 					
 					if (add_relser_info(relser_info) != 0)
@@ -214,7 +218,7 @@ line_data_t *serlist_linehandle(char *buf, int len)
 
 		if(isFind && i>1)
 		{
-			line_data_t *line_data = calloc(1, sizeof(line_data_t));
+			line_data_t *line_data = (line_data_t *)calloc(1, sizeof(line_data_t));
 			line_data->type = LINE_NAME;
 			memcpy(line_data->data, buf+1, i-1);
 			return line_data;
@@ -229,7 +233,7 @@ line_data_t *serlist_linehandle(char *buf, int len)
 			break;
 		}
 		
-		line_data_t *line_data = calloc(1, sizeof(line_data_t));
+		line_data_t *line_data = (line_data_t *)calloc(1, sizeof(line_data_t));
 		line_data->type = LINE_IP;
 		memcpy(line_data->data, buf+3, len-4);
 		return line_data;
@@ -254,10 +258,10 @@ char *get_server_ip(void)
 
 	if(p_serlist != NULL)
 	{
-		return p_serlist->p_ser->ipaddr;
+		return (char *)p_serlist->p_ser->ipaddr;
 	}
 
-	return none_server_ip;
+	return (char *)none_server_ip;
 }
 
 char *get_server_ip_from_name(char *name)
@@ -272,12 +276,12 @@ char *get_server_ip_from_name(char *name)
 	{
 		if(!memcmp(t_ser->name, name, strlen(t_ser->name)))
 		{
-			return t_ser->ipaddr;
+			return (char *)t_ser->ipaddr;
 		}
 		t_ser = t_ser->next;
 	}
 
-	return none_server_ip;
+	return (char *)none_server_ip;
 }
 
 char *get_server_name_from_ip(char *ip)
@@ -290,7 +294,7 @@ char *get_server_name_from_ip(char *ip)
 	
 	while(t_ser != NULL)
 	{
-		if(!memcmp(t_ser->ipaddr, ip, strlen(t_ser->ipaddr)))
+		if(!memcmp(t_ser->ipaddr, ip, strlen((char *)t_ser->ipaddr)))
 		{
 			return t_ser->name;
 		}
@@ -298,3 +302,7 @@ char *get_server_name_from_ip(char *ip)
 
 	return (char *)none_name;
 }
+
+#ifdef __cplusplus
+}
+#endif

@@ -18,10 +18,16 @@
 #include <errno.h>
 #include <dirent.h>
 #include <md5.h>
+#include <module/netapi.h>
 #include <protocol/common/fieldlysis.h>
 #include <protocol/common/session.h>
+#include <protocol/common/mevent.h>
 #include <protocol/protocol.h>
 #include <services/balancer.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 char cmdline[CMDLINE_SIZE];
 
@@ -162,25 +168,25 @@ int start_params(int argc, char **argv)
 #ifdef SERIAL_SUPPORT
   #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
     #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	char *optstrs = "s:t:u:h";
+	const char *optstrs = "s:t:u:h";
 	#else
-	char *optstrs = "s:t:h";
+	const char *optstrs = "s:t:h";
     #endif
   #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	char *optstrs = "s:u:h";
+	const char *optstrs = "s:u:h";
   #else
-  	char *optstrs = "s:h";
+  	const char *optstrs = "s:h";
   #endif
 #elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
   #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-  	char *optstrs = "t:u:h";
+  	const char *optstrs = "t:u:h";
   #else
-  	char *optstrs = "t:h";
+  	const char *optstrs = "t:h";
   #endif
 #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	char *optstrs = "u:h";
+	const char *optstrs = "u:h";
 #else
-	char *optstrs = "h";
+	const char *optstrs = "h";
 #endif
 	
     while((ch = getopt(argc, argv, optstrs)) != -1)
@@ -657,7 +663,7 @@ void set_conf_val(char *cmd, char *val)
 		int start_isset = 0;
 		int end_isset = 0;
 		int pro_index = 0;
-		transtocol_t transtocol_hasset = TOCOL_DISABLE;
+		uint16 transtocol_hasset = TOCOL_DISABLE;
 
 		for(i=0; i<=len; i++)
 		{
@@ -923,7 +929,7 @@ int get_conf_setval()
 #endif
 					};
 
-	char *issetvals[] = {
+	const char *issetvals[] = {
 					GLOBAL_CONF_COMM_PROTOCOL,
 #ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_SERIAL_PORT,
@@ -1066,9 +1072,9 @@ confval_list *get_confval_alloc_from_str(char *str)
 					if(j-valhead_pos > 1)
 					{
 						int valname_len = j - valhead_pos - 1;
-						char *valname = calloc(1, valname_len+1);
+						char *valname = (char *)calloc(1, valname_len+1);
 						memcpy(valname, str+valhead_pos+1, valname_len);
-						confval_list *m_confval = calloc(1, sizeof(confval_list));
+						confval_list *m_confval = (confval_list *)calloc(1, sizeof(confval_list));
 						m_confval->head_pos = head_pos;
 						m_confval->val = valname;
 						m_confval->next = NULL;
@@ -1150,7 +1156,7 @@ char *get_val_from_name(char *name)
 		return port_buf;
 	}
 
-	return "";
+	return (char *)"";
 }
 
 #ifdef REMOTE_UPDATE_APK
@@ -1230,7 +1236,7 @@ char *get_md5(char *text, int result_len)
 {
 	if(text == NULL)
 	{
-		return "";
+		return (char *)"";
 	}
 
 	MD5_CTX ctx;
@@ -1247,5 +1253,9 @@ char *get_md5(char *text, int result_len)
 	return curcode;
 }
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
