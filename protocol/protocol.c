@@ -645,24 +645,24 @@ void analysis_capps_frame(void *ptr)
 			goto capps_cjson_end;
 		}
 
+		int devsn_size = 0;
+		sn_t *dev_sns = NULL;
 		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSNS);
-		if(pDevSNs == NULL)
+		if(pDevSNs != NULL)
 		{
-			goto capps_cjson_end;
-		}
+			int i = 0;
+			devsn_size = cJSON_GetArraySize(pDevSNs);
+			dev_sns = (sn_t *)calloc(devsn_size, sizeof(sn_t));
 
-		int i = 0;
-		int devsn_size = cJSON_GetArraySize(pDevSNs);
-		sn_t *dev_sns = (sn_t *)calloc(devsn_size, sizeof(sn_t));
+			while(i < devsn_size)
+			{
+				cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
+				i++;
+				if(pDevSN == NULL) continue;
 
-		while(i < devsn_size)
-		{
-			cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
-			i++;
-			if(pDevSN == NULL) continue;
-
-			STRS_MEMCPY(dev_sns+i-1, pDevSN->valuestring, 
-					sizeof(sn_t), strlen(pDevSN->valuestring));
+				STRS_MEMCPY(dev_sns+i-1, pDevSN->valuestring, 
+						sizeof(sn_t), strlen(pDevSN->valuestring));
+			}
 		}
 
 		trfr_refresh_t *refresh = 

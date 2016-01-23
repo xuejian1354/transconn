@@ -516,7 +516,7 @@ void sqlclient_get_devdatas(char **text, long *text_len)
 	SET_CMD_LINE("%s%s%s",
 					"SELECT data,isonline FROM devices WHERE gwsn=\'",
 					gwsn,
-					"\'");
+					"\' ORDER BY serialnum ASC");
 
  	sqlite3_stmt *stmt;
     if(sqlite3_prepare_v2(sqlite_db, GET_CMD_LINE(), -1, &stmt, NULL) == SQLITE_OK)

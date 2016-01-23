@@ -458,7 +458,7 @@ void get_trfr_respond_free(trfr_respond_t *respond)
 
 trfr_refresh_t *get_trfr_refresh_alloc(trfield_obj_t *obj, sn_t gw_sn, sn_t dev_sns[], int sn_size, char *random)
 {
-	if(gw_sn == NULL || dev_sns == NULL || sn_size <=0)
+	if(gw_sn == NULL)
 	{
 		return NULL;
 	}
