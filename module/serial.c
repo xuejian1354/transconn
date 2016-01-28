@@ -33,7 +33,7 @@ static int fixLen = 3;		//location when copy
 static int dataLen = 0;
 static uint8 tmpFrame[SERIAL_MAX_LEN]={0};
 
-#ifdef UART_COMMBY_SOCKET
+#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
 static int refd = -1;
 static int reser_fd = -1;
 #endif
@@ -168,7 +168,7 @@ int set_serial_params(int fd, uint32 speed, uint8 databit, uint8 stopbit, uint8 
     return 0;
 }
 
-#ifdef UART_COMMBY_SOCKET
+#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
 int get_uart_refd()
 {
 	return refd;
