@@ -188,7 +188,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 	if(sql_query_zdev(p_gw, m_dev->zidentity_no) != NULL)
 	{
 		SET_CMD_LINE("%s%04X%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
-				"UPDATE devices SET shortaddr=\'",
+				"UPDATE homedevs SET shortaddr=\'",
 				m_dev->znet_addr,
 				"\', apptype=\'",
 				apptype_str,
@@ -217,7 +217,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 		if( mysql_query(&mysql_conn, GET_CMD_LINE()))
 	    {
 			pthread_mutex_unlock(&sql_lock);
-	       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 		   	return -1;
 	    }
 		pthread_mutex_unlock(&sql_lock);
@@ -226,7 +226,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 	}
 
 	SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
-		"INSERT INTO devices (id, serialnum, apptype, shortaddr, ipaddr, ",
+		"INSERT INTO homedevs (id, serialnum, apptype, shortaddr, ipaddr, ",
 		"commtocol, gwsn, name, area, updatetime, isonline, iscollect, ",
 		"ispublic, users, data, created_at, updated_at) VALUES (NULL, \'",
 		serno,
@@ -265,7 +265,7 @@ int sql_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return -1;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -278,7 +278,7 @@ dev_info_t *sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 	char serstr[24] = {0};
 	incode_xtocs(serstr, zidentity_no, sizeof(zidentify_no_t));
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT * FROM devices WHERE serialnum=\'", 
+		"SELECT * FROM homedevs WHERE serialnum=\'", 
 		serstr, 
 		"\'");
 
@@ -293,7 +293,7 @@ dev_info_t *sql_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return NULL;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -343,7 +343,7 @@ int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 	char serno[24] = {0};
 	incode_xtocs(serno, zidentity_no, sizeof(zidentify_no_t));
 	
-	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE serialnum=\'",
+	SET_CMD_LINE("%s%s%s", "DELETE FROM homedevs WHERE serialnum=\'",
 		serno,
 		"\'");
 
@@ -358,7 +358,7 @@ int sql_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return -1;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -387,7 +387,7 @@ int sql_uponline_zdev(gw_info_t *p_gw,
 	incode_xtocs(gwno, p_gw->gw_no, sizeof(zidentify_no_t));
 
 	SET_CMD_LINE("%s%d%s%s%s%s%s", 
-				"UPDATE devices SET isonline=\'",
+				"UPDATE homedevs SET isonline=\'",
 				isonline,
 				"\' WHERE shortaddr IN (",
 				addrs_str,
@@ -406,7 +406,7 @@ int sql_uponline_zdev(gw_info_t *p_gw,
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return -1;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -434,7 +434,7 @@ int sql_add_gateway(gw_info_t *m_gw)
 	if(ret > 0)
 	{
 		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
-			"INSERT INTO gateways (id, gwsn, apptype, ipaddr, ",
+			"INSERT INTO homegws (id, gwsn, apptype, ipaddr, ",
 			"name, data, created_at, updated_at) VALUES (NULL, \'",
 			gwno_str,
 			"\', \'",
@@ -464,7 +464,7 @@ int sql_add_gateway(gw_info_t *m_gw)
 		if( mysql_query(&mysql_conn, GET_CMD_LINE()))
 	    {
 			pthread_mutex_unlock(&sql_lock);
-	       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 		   	return -1;
 	    }
 		pthread_mutex_unlock(&sql_lock);
@@ -475,7 +475,7 @@ int sql_add_gateway(gw_info_t *m_gw)
 	else if(ret == 0)
 	{
 		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s", 
-				"UPDATE gateways SET apptype=\'",
+				"UPDATE homegws SET apptype=\'",
 				apptype_str,
 				"\', data=\'",
 				data,
@@ -498,7 +498,7 @@ int sql_add_gateway(gw_info_t *m_gw)
 		if( mysql_query(&mysql_conn, GET_CMD_LINE()))
 	    {
 			pthread_mutex_unlock(&sql_lock);
-	       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+	       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 		   	return -1;
 	    }
 		pthread_mutex_unlock(&sql_lock);
@@ -514,7 +514,7 @@ int sql_query_gateway(zidentify_no_t gw_no)
 	char gwno_str[24] = {0};
 	incode_xtocs(gwno_str, gw_no, sizeof(zidentify_no_t));
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT * FROM gateways WHERE gwsn=\'", 
+		"SELECT * FROM homegws WHERE gwsn=\'", 
 		gwno_str, 
 		"\'");
 
@@ -529,7 +529,7 @@ int sql_query_gateway(zidentify_no_t gw_no)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return -1;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -559,7 +559,7 @@ int sql_del_gateway(zidentify_no_t gw_no)
 	char gwno_str[24] = {0};
 	incode_xtocs(gwno_str, gw_no, sizeof(zidentify_no_t));
 	
-	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE serialnum=\'",
+	SET_CMD_LINE("%s%s%s", "DELETE FROM homedevs WHERE serialnum=\'",
 		gwno_str,
 		"\'");
 
@@ -574,7 +574,7 @@ int sql_del_gateway(zidentify_no_t gw_no)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return -1;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -606,7 +606,7 @@ int get_user_info_from_sql(char *email, cli_user_t *user_info)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return -1;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -819,7 +819,7 @@ void sync_devices_with_user_sql(char *email, devices_t *devs)
 	}
 	
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT devices FROM users WHERE email=\'", 
+		"SELECT homedevs FROM users WHERE email=\'", 
 		email, 
 		"\'");
 
@@ -834,7 +834,7 @@ void sync_devices_with_user_sql(char *email, devices_t *devs)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -931,7 +931,7 @@ void sync_devices_with_user_sql(char *email, devices_t *devs)
 				
 				mysql_free_result(mysql_res);
 
-				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+				DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", 
 						__FUNCTION__, __LINE__);
 				
 			   	return;
@@ -970,7 +970,7 @@ void sync_areas_with_user_sql(char *email, areas_t *areas)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -1055,7 +1055,7 @@ void sync_areas_with_user_sql(char *email, areas_t *areas)
 				
 				mysql_free_result(mysql_res);
 
-				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+				DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", 
 						__FUNCTION__, __LINE__);
 				
 			   	return;
@@ -1094,7 +1094,7 @@ void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -1224,7 +1224,7 @@ void sync_scenes_with_user_sql(char *email, scenes_t *scenes)
 				
 				mysql_free_result(mysql_res);
 
-				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+				DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", 
 						__FUNCTION__, __LINE__);
 				
 			   	return;
@@ -1384,7 +1384,7 @@ void del_devices_from_user_sql(char *email, devices_t *devs)
 	}
 	
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT devices FROM users WHERE email=\'", 
+		"SELECT homedevs FROM users WHERE email=\'", 
 		email, 
 		"\'");
 
@@ -1399,7 +1399,7 @@ void del_devices_from_user_sql(char *email, devices_t *devs)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -1479,7 +1479,7 @@ void del_devices_from_user_sql(char *email, devices_t *devs)
 				
 				mysql_free_result(mysql_res);
 
-				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+				DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", 
 						__FUNCTION__, __LINE__);
 				
 			   	return;
@@ -1518,7 +1518,7 @@ void del_areas_from_user_sql(char *email, areas_t *areas)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -1597,7 +1597,7 @@ void del_areas_from_user_sql(char *email, areas_t *areas)
 				
 				mysql_free_result(mysql_res);
 
-				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+				DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", 
 						__FUNCTION__, __LINE__);
 				
 			   	return;
@@ -1636,7 +1636,7 @@ void del_scenes_from_user_sql(char *email, scenes_t *scenes)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -1716,7 +1716,7 @@ void del_scenes_from_user_sql(char *email, scenes_t *scenes)
 				
 				mysql_free_result(mysql_res);
 
-				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+				DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", 
 						__FUNCTION__, __LINE__);
 				
 			   	return;
@@ -1740,7 +1740,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 	}
 	
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT devices FROM users WHERE email=\'", 
+		"SELECT homedevs FROM users WHERE email=\'", 
 		email, 
 		"\'");
 
@@ -1755,7 +1755,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 	if( mysql_query(&mysql_conn, GET_CMD_LINE()))
     {
 		pthread_mutex_unlock(&sql_lock);
-       	DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", __FUNCTION__, __LINE__);
+       	DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", __FUNCTION__, __LINE__);
 	   	return -1;
     }
 	pthread_mutex_unlock(&sql_lock);
@@ -1838,7 +1838,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 				
 				mysql_free_result(mysql_res);
 
-				DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+				DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", 
 						__FUNCTION__, __LINE__);
 				
 			   	return -1;
@@ -1897,7 +1897,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 		
 		mysql_free_result(mysql_res);
 
-		DE_PRINTF(1, "%s()%d : sql query devices failed\n\n", 
+		DE_PRINTF(1, "%s()%d : sql query homedevs failed\n\n", 
 				__FUNCTION__, __LINE__);
 		
 	   	return -1;
