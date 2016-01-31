@@ -177,7 +177,7 @@ int sqlserver_add_gateway(frhandler_arg_t *arg, sn_t gwsn)
 	if(ret == 0)
 	{
 		SET_CMD_LINE("%s%s%s%s%s%d%s%d%s%s%s%s%s",
-				"UPDATE gateways SET transtocol=\'",
+				"UPDATE homegws SET transtocol=\'",
 				get_trans_protocol_to_str(arg->transtocol),
 				"\', ip=\'",
 				inet_ntoa(arg->addr.sin_addr),
@@ -201,7 +201,7 @@ int sqlserver_add_gateway(frhandler_arg_t *arg, sn_t gwsn)
 		incode_ctoxs(rannum+1, gwsn+14, 2);
 
 		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s%d%s%d%s%s%s%s%s", 
-			"INSERT INTO gateways (id, name, gw_sn, transtocol, ",
+			"INSERT INTO homegws (id, name, gw_sn, transtocol, ",
 			"ip, udp_port, tcp_port, http_url, area, updatetime) ",
 			"VALUES (NULL, \'",
 			get_mix_name(FRAPP_CONNECTOR, rannum[0], rannum[1]),
@@ -231,7 +231,7 @@ int sqlserver_add_gateway(frhandler_arg_t *arg, sn_t gwsn)
 int sqlserver_query_gateway(sn_t gwsn)
 {
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT * FROM gateways WHERE gw_sn=\'", 
+		"SELECT * FROM homegws WHERE gw_sn=\'", 
 		gwsn, 
 		"\'");
 
@@ -266,7 +266,7 @@ char *sqlserver_get_column_from_gwsn(char *field, sn_t gwsn)
 	SET_CMD_LINE("%s%s%s%s%s",
 		"SELECT ",
 		field,
-		" FROM gateways WHERE gw_sn=\'",
+		" FROM homegws WHERE gw_sn=\'",
 		gwsn, 
 		"\'");
 
@@ -313,7 +313,7 @@ int sqlserver_add_zdevices(frhandler_arg_t *arg, trfr_report_t *report)
 		if(ret == 0)
 		{
 			SET_CMD_LINE("%s%s%s%d%s%s%s%s%s%s%s%s%s", 
-					"UPDATE devices SET dev_type=\'",
+					"UPDATE homedevs SET dev_type=\'",
 					get_frapp_type_to_str(device->dev_type),
 					"\', znet_status=\'",
 					device->znet_status,
@@ -337,7 +337,7 @@ int sqlserver_add_zdevices(frhandler_arg_t *arg, trfr_report_t *report)
 			incode_ctoxs(rannum+1, device->dev_sn+14, 2);
 
 			SET_CMD_LINE("%s%s%s%s%s%s%s%s%d%s%s%s%s%s%s%s%s%s", 
-				"INSERT INTO devices (id, dev_sn, name, dev_type, znet_status, ",
+				"INSERT INTO homedevs (id, dev_sn, name, dev_type, znet_status, ",
 				"dev_data, gw_sn, area, ispublic, updatetime) VALUES (NULL, \'",
 				device->dev_sn,
 				"\', \'",
@@ -372,7 +372,7 @@ int sqlserver_update_zdevice(frhandler_arg_t *arg, trfr_respond_t *respond)
 	if(sqlserver_query_zdevice(respond->dev_sn) == 0)
 	{
 		SET_CMD_LINE("%s%s%s%s%s%s%s", 
-				"UPDATE devices SET dev_data=\'",
+				"UPDATE homedevs SET dev_data=\'",
 				respond->dev_data,
 				"\', updatetime=\'",
 				get_current_time(),
@@ -390,7 +390,7 @@ int sqlserver_update_zdevice(frhandler_arg_t *arg, trfr_respond_t *respond)
 int sqlserver_query_zdevice(sn_t serno)
 {
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT * FROM devices WHERE dev_sn=\'", 
+		"SELECT * FROM homedevs WHERE dev_sn=\'", 
 		serno, 
 		"\'");
 
@@ -425,7 +425,7 @@ char *sqlserver_get_column_from_zdevice(char *field, sn_t serno)
 	SET_CMD_LINE("%s%s%s%s%s", 
 		"SELECT ",
 		field,
-		" FROM devices WHERE dev_sn=\'", 
+		" FROM homedevs WHERE dev_sn=\'", 
 		serno, 
 		"\'");
 
@@ -458,7 +458,7 @@ char *sqlserver_get_column_from_zdevice(char *field, sn_t serno)
 
 int sqlserver_del_zdevice(sn_t serno)
 {
-	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE dev_sn=\'",
+	SET_CMD_LINE("%s%s%s", "DELETE FROM homedevs WHERE dev_sn=\'",
 		serno,
 		"\'");
 
@@ -699,7 +699,7 @@ void sync_devices_with_user_sql(char *email, devices_t *devs)
 	}
 
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT devices FROM users WHERE email=\'", 
+		"SELECT homedevs FROM users WHERE email=\'", 
 		email, 
 		"\'");
 
@@ -1157,7 +1157,7 @@ void del_devices_from_user_sql(char *email, devices_t *devs)
 	}
 
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT devices FROM users WHERE email=\'", 
+		"SELECT homedevs FROM users WHERE email=\'", 
 		email, 
 		"\'");
 
@@ -1402,7 +1402,7 @@ int set_device_to_user_sql(char *email, char *dev_str)
 	}
 
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT devices FROM users WHERE email=\'", 
+		"SELECT homedevs FROM users WHERE email=\'", 
 		email, 
 		"\'");
 
