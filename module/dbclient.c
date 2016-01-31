@@ -49,7 +49,7 @@ int sqlclient_init()
 
 	DE_PRINTF(1, "sqlite connect \"%s\"\n\n", m_conf->db_name);
 
-	SET_CMD_LINE("CREATE TABLE gateways (%s%s%s%s%s%s%s%s)",
+	SET_CMD_LINE("CREATE TABLE homegws (%s%s%s%s%s%s%s%s)",
 					"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
 					"gwsn VARCHAR(32), ",
 					"apptype VARCHAR(8), ",
@@ -61,13 +61,13 @@ int sqlclient_init()
 
 	if(sqlite3_exec(sqlite_db, GET_CMD_LINE(), NULL, NULL, &errmsg) != SQLITE_OK)
 	{
-		/*DE_PRINTF(1, "%s()%d : sqlite create table \"gateways\" failed\n", __FUNCTION__, __LINE__);
+		/*DE_PRINTF(1, "%s()%d : sqlite create table \"homegws\" failed\n", __FUNCTION__, __LINE__);
 		DE_PRINTF(1, "%s()%d : %s\n",  __FUNCTION__, __LINE__, sqlite3_errmsg(sqlite_db));
 		sqlite3_close(sqlite_db);
 		return -1;*/
 	}
 
-	SET_CMD_LINE("CREATE TABLE devices (%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s)",
+	SET_CMD_LINE("CREATE TABLE homedevs (%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s)",
 					"id INTEGER PRIMARY KEY AUTOINCREMENT, ",
 					"serialnum VARCHAR(32), ",
 					"apptype VARCHAR(8), ",
@@ -147,7 +147,7 @@ int sqlclient_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 	if(sqlclient_query_zdev(p_gw, m_dev->zidentity_no) == 0)
 	{
 		SET_CMD_LINE("%s%04X%s%s%s%d%s%s%s%s%s%s%s%s%s%s%s%s%s", 
-				"UPDATE devices SET shortaddr=\'",
+				"UPDATE homedevs SET shortaddr=\'",
 				m_dev->znet_addr,
 				"\', apptype=\'",
 				get_frapp_type_to_str(m_dev->zapp_type),
@@ -173,7 +173,7 @@ int sqlclient_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 	}
 
 	SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s%s%s%s%s%d%s%s%s%s%s%s%s", 
-		"INSERT INTO devices (id, serialnum, apptype, shortaddr, ipaddr, ",
+		"INSERT INTO homedevs (id, serialnum, apptype, shortaddr, ipaddr, ",
 		"commtocol, gwsn, name, area, updatetime, isonline, iscollect, ",
 		"ispublic, ischange, users, data, created_at, updated_at) VALUES (NULL, \'",
 		serno,
@@ -213,7 +213,7 @@ int sqlclient_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 	char serstr[24] = {0};
 	incode_xtocs(serstr, zidentity_no, sizeof(zidentify_no_t));
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT * FROM devices WHERE serialnum=\'", 
+		"SELECT * FROM homedevs WHERE serialnum=\'", 
 		serstr, 
 		"\'");
 
@@ -246,7 +246,7 @@ int sqlclient_del_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
 	char serno[24] = {0};
 	incode_xtocs(serno, zidentity_no, sizeof(zidentify_no_t));
 
-	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE serialnum=\'",
+	SET_CMD_LINE("%s%s%s", "DELETE FROM homedevs WHERE serialnum=\'",
 		serno,
 		"\'");
 
@@ -275,7 +275,7 @@ int sqlclient_uponline_zdev(gw_info_t *p_gw,
 	incode_xtocs(gwno, p_gw->gw_no, sizeof(zidentify_no_t));
 
 	SET_CMD_LINE("%s%d%s%s%s%s%s%s", 
-				"UPDATE devices SET isonline=\'",
+				"UPDATE homedevs SET isonline=\'",
 				isonline,
 				"\', ischange=\'1\' ",
 				"WHERE shortaddr IN (",
@@ -301,7 +301,7 @@ int sqlclient_set_datachange_zdev(zidentify_no_t dev_no, uint8 ischange)
 	if(!memcmp(dev_no, get_gateway_info()->gw_no, sizeof(zidentify_no_t)))
 	{
 		SET_CMD_LINE("%s%d%s%s%s", 
-						"UPDATE devices SET ischange=\'",
+						"UPDATE homedevs SET ischange=\'",
 						ischange,
 						"\' WHERE gwsn=\'",
 						devno_str,
@@ -310,7 +310,7 @@ int sqlclient_set_datachange_zdev(zidentify_no_t dev_no, uint8 ischange)
 	else
 	{
 		SET_CMD_LINE("%s%d%s%s%s", 
-						"UPDATE devices SET ischange=\'",
+						"UPDATE homedevs SET ischange=\'",
 						ischange,
 						"\' WHERE serialnum=\'",
 						devno_str,
@@ -338,7 +338,7 @@ int sqlclient_add_gateway(gw_info_t *m_gw)
 	if(ret > 0)
 	{
 		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
-			"INSERT INTO gateways (id, gwsn, apptype, ipaddr, ",
+			"INSERT INTO homegws (id, gwsn, apptype, ipaddr, ",
 			"name, data, created_at, updated_at) VALUES (NULL, \'",
 			gwno_str,
 			"\', \'",
@@ -363,7 +363,7 @@ int sqlclient_add_gateway(gw_info_t *m_gw)
 	else if(ret == 0)
 	{
 		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s", 
-				"UPDATE gateways SET apptype=\'",
+				"UPDATE homegws SET apptype=\'",
 				get_frapp_type_to_str(m_gw->zapp_type),
 				"\', data=\'",
 				data,
@@ -387,7 +387,7 @@ int sqlclient_query_gateway(zidentify_no_t gw_no)
 	char gwno_str[24] = {0};
 	incode_xtocs(gwno_str, gw_no, sizeof(zidentify_no_t));
 	SET_CMD_LINE("%s%s%s", 
-		"SELECT * FROM gateways WHERE gwsn=\'", 
+		"SELECT * FROM homegws WHERE gwsn=\'", 
 		gwno_str, 
 		"\'");
 
@@ -422,7 +422,7 @@ int sqlclient_del_gateway(zidentify_no_t gw_no)
 	char gwno_str[24] = {0};
 	incode_xtocs(gwno_str, gw_no, sizeof(zidentify_no_t));
 
-	SET_CMD_LINE("%s%s%s", "DELETE FROM devices WHERE serialnum=\'",
+	SET_CMD_LINE("%s%s%s", "DELETE FROM homedevs WHERE serialnum=\'",
 		gwno_str,
 		"\'");
 
@@ -443,14 +443,14 @@ void sqlclient_get_zdevices(uint8 isrefresh, trfield_device_t ***devices, int *d
 	if(isrefresh)
 	{
 		SET_CMD_LINE("%s%s%s",
-						"SELECT * FROM devices WHERE gwsn=\'",
+						"SELECT * FROM homedevs WHERE gwsn=\'",
 						gwsn,
 						"\'");
 	}
 	else
 	{
 		SET_CMD_LINE("%s%s%s",
-						"SELECT * FROM devices WHERE gwsn=\'",
+						"SELECT * FROM homedevs WHERE gwsn=\'",
 						gwsn,
 						"\' AND ischange=\'1\'");
 	}
@@ -497,7 +497,7 @@ void sqlclient_get_zdevices(uint8 isrefresh, trfield_device_t ***devices, int *d
 	if(!isrefresh)
 	{
 		SET_CMD_LINE("%s%s%s",
-						"UPDATE devices SET ischange=\'0\' WHERE gwsn=\'",
+						"UPDATE homedevs SET ischange=\'0\' WHERE gwsn=\'",
 						gwsn,
 						"\'");
 		sqlclient_excute_cmdline(GET_CMD_LINE());
@@ -514,7 +514,7 @@ void sqlclient_get_devdatas(char **text, long *text_len)
 	sn_t gwsn = {0};
 	incode_xtocs(gwsn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 	SET_CMD_LINE("%s%s%s",
-					"SELECT data,isonline FROM devices WHERE gwsn=\'",
+					"SELECT data,isonline FROM homedevs WHERE gwsn=\'",
 					gwsn,
 					"\' ORDER BY serialnum ASC");
 
