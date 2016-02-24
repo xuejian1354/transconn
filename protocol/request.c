@@ -182,8 +182,10 @@ void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check)
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(check->action));
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, check->gw_sn);
 
+	cJSON *pCodeArray = cJSON_CreateArray();
 	cJSON *pCode = cJSON_CreateObject();
-	cJSON_AddItemToObject(pRoot, JSON_FIELD_CODE, pCode);
+	cJSON_AddItemToArray(pCodeArray, pCode);
+	cJSON_AddItemToObject(pRoot, JSON_FIELD_CODE, pCodeArray);
 
 	cJSON_AddStringToObject(pCode, JSON_FIELD_CODECHECK, check->code.code_check);
 	cJSON_AddStringToObject(pCode, JSON_FIELD_CODEDATA, check->code.code_data);

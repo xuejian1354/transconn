@@ -511,7 +511,13 @@ void analysis_capps_frame(void *ptr)
 			goto capps_cjson_end;
 		}
 
-		cJSON *pCode = cJSON_GetObjectItem(pRoot, JSON_FIELD_CODE);
+		cJSON *pCodeArray = cJSON_GetObjectItem(pRoot, JSON_FIELD_CODE);
+		if(pCodeArray == NULL)
+		{
+			goto capps_cjson_end;
+		}
+
+		cJSON *pCode = cJSON_GetArrayItem(pCodeArray, 0);
 		if(pCode == NULL)
 		{
 			goto capps_cjson_end;
