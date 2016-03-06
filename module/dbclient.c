@@ -29,6 +29,7 @@ static sqlite3 *sqlite_db;
 static char *errmsg;
 
 static pthread_mutex_t sqlclient_lock;
+static pthread_mutex_t sqlquery_lock;
 
 static int sqlclient_excute_cmdline(char *cmdline);
 
@@ -98,7 +99,13 @@ int sqlclient_init()
 	if(pthread_mutex_init(&sqlclient_lock, NULL) != 0)
 	{
 		DE_PRINTF(1, "%s()%d : pthread_mutext_init failed\n", __FUNCTION__, __LINE__);
-        return -1;
+		return -1;
+	}
+
+	if(pthread_mutex_init(&sqlquery_lock, NULL) != 0)
+	{
+		DE_PRINTF(1, "%s()%d : pthread_mutext_init failed\n", __FUNCTION__, __LINE__);
+		return -1;
 	}
 
 	return 0;
@@ -130,6 +137,7 @@ void sqlclient_release()
 
 int sqlclient_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 {
+	int ret = -1;
 	char serno[24] = {0};
 	incode_xtocs(serno, m_dev->zidentity_no, sizeof(zidentify_no_t));
 
@@ -144,6 +152,7 @@ int sqlclient_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 		get_buffer_free(frbuffer);
 	}
 
+	pthread_mutex_lock(&sqlquery_lock);
 	if(sqlclient_query_zdev(p_gw, m_dev->zidentity_no) == 0)
 	{
 		SET_CMD_LINE("%s%04X%s%s%s%d%s%s%s%s%s%s%s%s%s%s%s%s%s", 
@@ -169,43 +178,48 @@ int sqlclient_add_zdev(gw_info_t *p_gw, dev_info_t *m_dev)
 
 		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 
-		return sqlclient_excute_cmdline(GET_CMD_LINE());
+		ret = sqlclient_excute_cmdline(GET_CMD_LINE());
 	}
+	else
+	{
+		SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s%s%s%s%s%d%s%s%s%s%s%s%s",
+			"INSERT INTO homedevs (id, serialnum, apptype, shortaddr, ipaddr, ",
+			"commtocol, gwsn, name, area, updatetime, isonline, iscollect, ",
+			"ispublic, ischange, users, data, created_at, updated_at) VALUES (NULL, \'",
+			serno,
+			"\', \'",
+			get_frapp_type_to_str(m_dev->zapp_type),
+			"\', \'",
+			m_dev->znet_addr,
+			"\', \'",
+			p_gw->ipaddr,
+			"\', \'01\', \'",
+			gwno,
+			"\', \'",
+			get_mix_name(m_dev->zapp_type,
+				p_gw->gw_no[sizeof(zidentify_no_t)-1],
+				m_dev->zidentity_no[sizeof(zidentify_no_t)-1]),
+			"\', \'",
+			NO_AREA,
+			"\', \'",
+			get_current_time(),
+			"\', \'1\', \'0\', \'0\', \'",
+			m_dev->isdata_change,
+			"\', \'\', \'",
+			data,
+			"\', \'",
+			get_current_time(),
+			"\', \'",
+			get_current_time(),
+			"\')");
 
-	SET_CMD_LINE("%s%s%s%s%s%s%s%04X%s%s%s%s%s%s%s%s%s%s%s%d%s%s%s%s%s%s%s", 
-		"INSERT INTO homedevs (id, serialnum, apptype, shortaddr, ipaddr, ",
-		"commtocol, gwsn, name, area, updatetime, isonline, iscollect, ",
-		"ispublic, ischange, users, data, created_at, updated_at) VALUES (NULL, \'",
-		serno,
-		"\', \'",
-		get_frapp_type_to_str(m_dev->zapp_type),
-		"\', \'",
-		m_dev->znet_addr,
-		"\', \'",
-		p_gw->ipaddr,
-		"\', \'01\', \'",
-		gwno,
-		"\', \'",
-		get_mix_name(m_dev->zapp_type, 
-			p_gw->gw_no[sizeof(zidentify_no_t)-1], 
-			m_dev->zidentity_no[sizeof(zidentify_no_t)-1]),
-		"\', \'",
-		NO_AREA,
-		"\', \'",
-		get_current_time(),
-		"\', \'1\', \'0\', \'0\', \'",
-		m_dev->isdata_change,
-		"\', \'\', \'",
-		data,
-		"\', \'",
-		get_current_time(),
-		"\', \'",
-		get_current_time(),
-		"\')");
+		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
 
-	DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
+		ret = sqlclient_excute_cmdline(GET_CMD_LINE());
+	}
+	pthread_mutex_unlock(&sqlquery_lock);
 
-	return sqlclient_excute_cmdline(GET_CMD_LINE());
+	return ret;
 }
 
 int sqlclient_query_zdev(gw_info_t *p_gw, zidentify_no_t zidentity_no)
@@ -323,6 +337,7 @@ int sqlclient_set_datachange_zdev(zidentify_no_t dev_no, uint8 ischange)
 
 int sqlclient_add_gateway(gw_info_t *m_gw)
 {
+	int ret = -1;
 	char gwno_str[24] = {0};
 	incode_xtocs(gwno_str, m_gw->gw_no, sizeof(zidentify_no_t));
 
@@ -334,7 +349,8 @@ int sqlclient_add_gateway(gw_info_t *m_gw)
 		get_buffer_free(frbuffer);
 	}
 
-	int ret = sqlclient_query_gateway(m_gw->gw_no);
+	pthread_mutex_lock(&sqlquery_lock);
+	ret = sqlclient_query_gateway(m_gw->gw_no);
 	if(ret > 0)
 	{
 		SET_CMD_LINE("%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", 
@@ -358,7 +374,7 @@ int sqlclient_add_gateway(gw_info_t *m_gw)
 			"\')");
 
 		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-		return sqlclient_excute_cmdline(GET_CMD_LINE());
+		ret = sqlclient_excute_cmdline(GET_CMD_LINE());
 	}
 	else if(ret == 0)
 	{
@@ -376,10 +392,12 @@ int sqlclient_add_gateway(gw_info_t *m_gw)
 				"\'");
 
 		DE_PRINTF(1, "%s()%d : %s\n\n", __FUNCTION__, __LINE__ , GET_CMD_LINE());
-		return sqlclient_excute_cmdline(GET_CMD_LINE());
+		ret = sqlclient_excute_cmdline(GET_CMD_LINE());
 	}
 
-	return -1;
+	pthread_mutex_unlock(&sqlquery_lock);
+
+	return ret;
 }
 
 int sqlclient_query_gateway(zidentify_no_t gw_no)
