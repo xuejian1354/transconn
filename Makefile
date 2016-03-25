@@ -14,7 +14,7 @@ CLIENT_TARGET:=smartlab
 TARGET:=$(addprefix $(DIR),$(SERVER_TARGET) $(CLIENT_TARGET))
 export SERVER_TARGET CLIENT_TARGET
 
-INCLUDE +=-I$(TOPDIR)/include -I$(TOPDIR)/lib
+INCLUDE +=-I$(TOPDIR)/include $(patsubst %,-I%,$(shell find -L $(TOPDIR)/lib -type d))
 ifneq ($(DIR),)
 INCLUDE += -I$(TOPDIR)/$(DIR)include
 endif
@@ -76,23 +76,23 @@ include $(TOPDIR)/include/include.mk
 
 $(DIR)$(SERVER_TARGET):$(inc_deps) $(inc_dirs_deps) server_comshow $(SERVER_OBJS) libs-s
 	$(call echocmd,TAR,$@, \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -O2 -o $@ $(SERVER_OBJS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG)) $(STD_LDFLAGS)
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) $(LDPATH) $(SERVER_LDPATH) -Werror -w -O2 -o $@ $(SERVER_OBJS) $(patsubst %,%-s,$(LDFLAGS)) $(SERVER_LDFLAG)) $(STD_LDFLAGS)
 	@$(STARGET_STRIP) $@
 
 $(DIR)$(CLIENT_TARGET):$(inc_deps) $(inc_dirs_deps) client_comshow $(CLIENT_OBJS) libs-c
 	$(call echocmd,TAR,$@, \
-	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) $(LDPATH) $(CLIENT_LDPATH) -O2 -o $@ $(CLIENT_OBJS) $(patsubst %,%-c,$(LDFLAGS)) $(CLIENT_LDFLAG)) $(STD_LDFLAGS)
+	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) $(LDPATH) $(CLIENT_LDPATH) -Werror -w -O2 -o $@ $(CLIENT_OBJS) $(patsubst %,%-c,$(LDFLAGS)) $(CLIENT_LDFLAG)) $(STD_LDFLAGS)
 	@$(CTARGET_STRIP) $@
 
 $(DIR)%-s.o:%.c $(ALL_HEARDS) mconfig/server_config
 	@if [ ! -d "$(dir $@)" ]; then mkdir -p $(dir $@); fi;
 	$(call echocmd,CC, $@, \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -w -O2 -o $@ -c $<)
+	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -Werror -w -O2 -o $@ -c $<)
 
 $(DIR)%-s.o:%.cc $(ALL_HEARDS) mconfig/server_config
 	@if [ ! -d "$(dir $@)" ]; then mkdir -p $(dir $@); fi;
 	$(call echocmd,CXX,$@, \
-	  $(STARGET_CXX) $(SERVER_DMACRO) $(INCLUDE) -w -O2 -o $@ -c $<)
+	  $(STARGET_CXX) $(SERVER_DMACRO) $(INCLUDE) -Werror -w -O2 -o $@ -c $<)
 
 $(DIR)%-c.o:%.c $(ALL_HEARDS) mconfig/client_config
 	@if [ ! -d "$(dir $@)" ]; then mkdir -p $(dir $@); fi;

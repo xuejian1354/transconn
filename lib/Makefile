@@ -7,6 +7,10 @@ BIN_DIR :=$(addsuffix lib/,$(TOPDIR)/$(DIR))
 include $(TOPDIR)/config.mk
 include $(TOPDIR)/lib/library.mk
 
+ifneq ("$(INCLUDE)","")
+LIBS_INC :=$(INCLUDE)
+endif
+
 SERVER_LIBS:=$(addprefix $(BIN_DIR),$(patsubst %,%-s.a,$(patsubst %.a,%,$(LDLIBS))))
 CLIENT_LIBS:=$(addprefix $(BIN_DIR),$(patsubst %,%-c.a,$(patsubst %.a,%,$(LDLIBS))))
 
@@ -27,7 +31,7 @@ $(SERVER_LIBS):$(SLIBSRC_TARGETS)
 $(SLIBSRC_TARGETS):$(LIBSRC_FILES) $(LIB_HEARDS)
 	@if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@); fi;
 	$(call echocmd,CC, $(patsubst $(TOPDIR)/%,%,$@), \
-	  $(STARGET_CC) $(SERVER_DMACRO) $(INCLUDE) -O2 -o $@ -c $(patsubst $(BIN_DIR)%-s.o,%.c,$@))
+	  $(STARGET_CC) $(SERVER_DMACRO) $(LIBS_INC) -Werror -w -O2 -o $@ -c $(patsubst $(BIN_DIR)%-s.o,%.c,$@))
 
 $(CLIENT_LIBS):$(CLIBSRC_TARGETS)
 	$(call echocmd,AR, $(patsubst $(TOPDIR)/%,%,$@), \
@@ -36,7 +40,7 @@ $(CLIENT_LIBS):$(CLIBSRC_TARGETS)
 $(CLIBSRC_TARGETS):$(LIBSRC_FILES) $(LIB_HEARDS)
 	@if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@); fi;
 	$(call echocmd,CC, $(patsubst $(TOPDIR)/%,%,$@), \
-	  $(CTARGET_CC) $(CLIENT_DMACRO) $(INCLUDE) -O2 -o $@ -c $(patsubst $(BIN_DIR)%-c.o,%.c,$@))
+	  $(CTARGET_CC) $(CLIENT_DMACRO) $(LIBS_INC) -Werror -w -O2 -o $@ -c $(patsubst $(BIN_DIR)%-c.o,%.c,$@))
 
 clean:
 	if [ -d $(BIN_DIR) ]; then find -L $(BIN_DIR) -name "*.[oa]" | xargs $(RM); fi; 

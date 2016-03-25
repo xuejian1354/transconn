@@ -19,7 +19,9 @@
 
 #include <services/globals.h>
 #include <protocol/old/devices.h>
+#ifdef DB_API_WITH_SQLITE
 #include <sqlite3.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

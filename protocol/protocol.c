@@ -17,7 +17,9 @@
 #include "protocol.h"
 #include <cJSON.h>
 #include <module/netapi.h>
+#ifdef COMM_CLIENT
 #include <module/dbclient.h>
+#endif
 #include <module/serial.h>
 #include <protocol/request.h>
 #include <protocol/common/mevent.h>

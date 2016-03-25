@@ -1,5 +1,5 @@
 /*
- * cmain.c
+ * cmain.cc
  *
  * Copyright (C) 2013 loongsky development.
  *
