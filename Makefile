@@ -68,7 +68,7 @@ ALL_HEARDS:=$(shell find -L $(patsubst %,$(TOPDIR)/%,$(SUB_MODULES)) -name *.h)
 
 .PHONY:all alls tests distclean clean cclean sclean help
 
-all:$(DIR)$(SERVER_TARGET)
+all:$(DIR)$(SERVER_TARGET) $(DIR)$(CLIENT_TARGET)
 
 alls:$(TARGET) tests
 
