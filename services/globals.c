@@ -80,6 +80,12 @@ static global_conf_t g_conf =
 	TRANS_HTTP_TIMEOUT,
 #endif
 #endif
+#ifdef TRANS_WS_CONNECT
+	{0},
+#ifdef COMM_CLIENT
+	TRANS_WS_TIMEOUT,
+#endif
+#endif
 #ifdef REMOTE_UPDATE_APK
 	TRANS_UPDATE_DIR,
 #endif
@@ -943,6 +949,12 @@ int get_conf_setval()
 					GLOBAL_CONF_ISSETVAL_HTTP_TIMEOUT,
 #endif
 #endif
+#ifdef TRANS_WS_CONNECT
+					GLOBAL_CONF_ISSETVAL_WSURL,
+#ifdef COMM_CLIENT
+					GLOBAL_CONF_ISSETVAL_WS_TIMEOUT,
+#endif
+#endif
 #ifdef REMOTE_UPDATE_APK
 					GLOBAL_CONF_ISSETVAL_UPAPK,
 #endif
@@ -981,6 +993,12 @@ int get_conf_setval()
 					GLOBAL_CONF_HTTP_URL,
 #ifdef COMM_CLIENT
 					GLOBAL_CONF_HTTP_TIMEOUT,
+#endif
+#endif
+#ifdef TRANS_WS_CONNECT
+					GLOBAL_CONF_WS_URL,
+#ifdef COMM_CLIENT
+					GLOBAL_CONF_WS_TIMEOUT,
 #endif
 #endif
 #ifdef REMOTE_UPDATE_APK
@@ -1036,7 +1054,7 @@ void translate_confval_to_str(char *dst, char *src)
 			char str_field[64] = {0};
 			memcpy(str_field, src+tail_pos, head_pos-tail_pos);
 			strcat(dst, str_field);
-			
+
 			confval_list *t_confval = pval;
 			while(t_confval != NULL)
 			{

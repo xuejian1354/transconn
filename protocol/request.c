@@ -118,6 +118,17 @@ void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq
 	}
 #endif
 
+#ifdef TRANS_WS_CONNECT
+	if(!strcmp(tocolreq->protocol, TRANSTOCOL_WS))
+	{
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_PROTOCOL, tocolreq->protocol);
+		cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, tocolreq->random);
+		char *frame = cJSON_Print(pRoot);
+		//sprintf(curl_buf, "key=[%s]&datatype=%s\0", frame, get_action_to_str(ACTION_TOCOLREQ));
+		ws_send(frame, strlen(frame));
+	}
+#endif
+
 	cJSON_Delete(pRoot);
 }
 
@@ -405,6 +416,9 @@ void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 		break;
 	case TOCOL_HTTP:
 		set_trans_protocol(TOCOL_HTTP);
+		break;
+	case TOCOL_WS:
+		set_trans_protocol(TOCOL_WS);
 		break;
 	}
 

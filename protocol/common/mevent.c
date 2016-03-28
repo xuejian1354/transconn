@@ -87,6 +87,11 @@ void upload_refresh(void *p)
 	trans_send_tocolreq_request(NULL, htocolreq);
 	get_trfr_tocolreq_free(htocolreq);
 #endif
+#ifdef TRANS_WS_CONNECT
+	trfr_tocolreq_t *wtocolreq = get_trfr_tocolreq_alloc(NULL, gw_sn, (char *)TRANSTOCOL_WS, NULL);
+	trans_send_tocolreq_request(NULL, wtocolreq);
+	get_trfr_tocolreq_free(wtocolreq);
+#endif
 }
 
 void set_heartbeat_check(int immediate, int interval)
