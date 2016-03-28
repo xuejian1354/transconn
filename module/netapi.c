@@ -30,6 +30,9 @@ extern "C" {
 #ifdef TRANS_HTTP_REQUEST
 void curl_post_request(void *ptr);
 #endif
+#ifdef TRANS_WS_CONNECT
+void *ws_read_func(void *p);
+#endif
 static void set_deudp_flag(uint8 flag);
 static void set_detcp_flag(uint8 flag);
 static void set_depost_flag(uint8 flag);
@@ -820,6 +823,9 @@ int ws_init(char *url)
 		return -1;
 	}
 
+	pthread_t wsRead;
+	pthread_create(&wsRead, NULL, ws_read_func, NULL);
+
 	return 0;
 }
 
@@ -837,6 +843,40 @@ void ws_send(char *data, int len)
 #else
 		DE_PRINTF(0, "%s\nWS-Send: %s\n\n\n", get_time_head(), data);
 #endif
+	}
+}
+
+void *ws_read_func(void *p)
+{
+	char buffer[MAXSIZE];
+	int bytes_read;
+
+	while(1)
+	{
+		while (nopoll_true) {
+			if (nopoll_conn_is_ready(ws_conn))
+				break;
+			nopoll_sleep(10000);
+		}
+
+		memset(buffer, 0, sizeof(buffer));
+		bytes_read = nopoll_conn_read(ws_conn, buffer, sizeof(buffer), nopoll_true, 10);
+		if(bytes_read > 0)
+		{
+			frhandler_arg_t *arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
+			char *data_buf = (char *)calloc(1, bytes_read);
+			memcpy(data_buf, buffer, bytes_read);
+			arg->transtocol = TOCOL_WS;
+			arg->buf = data_buf;
+			arg->len = bytes_read;
+
+#ifdef DE_PRINT_UDP_PORT
+			trans_data_show(DE_WS_RECV, NULL, data_buf, bytes_read);
+#else
+			DE_PRINTF(0, "%s\nWS-Recv: %s\n\n\n", get_time_head(), data_buf);
+#endif
+			analysis_capps_frame(arg);
+		}
 	}
 }
 #endif
