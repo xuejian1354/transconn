@@ -70,6 +70,7 @@ void set_trans_protocol(uint16 tocol)
 	case TOCOL_UDP:
 	case TOCOL_TCP:
 	case TOCOL_HTTP:
+	case TOCOL_WS:
 	{
 #ifdef COMM_SERVER
 		int i = 0;
@@ -95,7 +96,7 @@ void set_trans_protocol(uint16 tocol)
 
 	case TOCOL_NONE:
 #ifdef COMM_CLIENT
-		transtocol &= ~(TOCOL_UDP | TOCOL_TCP | TOCOL_HTTP);
+		transtocol &= ~(TOCOL_UDP | TOCOL_TCP | TOCOL_HTTP | TOCOL_WS);
 		set_session_status(SESS_WORKING);
 #endif
 		break;
@@ -137,6 +138,7 @@ char *get_trans_protocol_to_str(uint16 tocol)
 	case TOCOL_UDP: return (char *)"udp";
 	case TOCOL_TCP: return (char *)"tcp";
 	case TOCOL_HTTP: return (char *)"http";
+	case TOCOL_WS: return (char *)"websocket";
 	}
 
 	return (char *)"";

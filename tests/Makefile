@@ -29,9 +29,7 @@ LDFLAGS:=-lpthread
 DMACRO:=-DTARGET_NAME=\"$(TARGET)\" -DCLIENT_TEST -DTHREAD_POOL_SUPPORT -DTIMER_SUPPORT -DTRANS_UDP_SERVICE -DSELECT_SUPPORT
 
 .PHONY: all clean
-all:perznet deulog clar wstest
-
-wstest:fork-echoserv echoserv testclient
+all:perznet deulog clar
 
 perznet:perznet.c $(TESTTOP)module/serial.c
 	$(TARGET_CC) -o $@ $^ -DSERIAL_SUPPORT $(INCLUDE) -w $(LDFLAGS)
@@ -43,18 +41,6 @@ deulog:deulog.c
 
 clar:clar.c
 	$(TARGET_CC) -o $@ $^ $(INCLUDE) -DDE_TRANS_UDP_CONTROL $(LDFLAGS)
-	@$(TARGET_STRIP) $@
-
-fork-echoserv:fork-echoserv.c
-	$(TARGET_CC) -Wall -O2 -g -o $@ $^ -I../lib -L../lib -lwslay-s -lnettle
-	@$(TARGET_STRIP) $@
-
-echoserv:echoserv.cc
-	g++ -Wall -O2 -g -o $@ $^ -I../lib -L../lib -lwslay-s -lnettle
-	@$(TARGET_STRIP) $@
-
-testclient:testclient.cc
-	g++ -Wall -O2 -g -o $@ $^ -I../lib -L../lib -lwslay-s -lnettle
 	@$(TARGET_STRIP) $@
 
 clean:
