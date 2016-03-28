@@ -16,6 +16,7 @@
  */
 
 #include "netapi.h"
+#include <nopoll.h>
 #include <module/netlist.h>
 #include <services/corecomm.h>
 #include <services/balancer.h>
@@ -36,6 +37,7 @@ static void set_depost_flag(uint8 flag);
 static uint8 deudp_flag = 1;
 static uint8 detcp_flag = 1;
 static uint8 depost_flag = 1;
+static uint8 dews_flag = 1;
 static uint8 deuart_flag = 1;
 #ifdef DE_TRANS_UDP_STREAM_LOG
 static struct sockaddr_in ulog_addr;
@@ -52,6 +54,9 @@ static int s_tcpfd;
 #ifdef TRANS_TCP_CLIENT
 static int c_tcpfd;
 static struct sockaddr_in m_server_addr;
+#endif
+#ifdef TRANS_WS_CONNECT
+static noPollConn * ws_conn;
 #endif
 
 uint8 lwflag = 0;
@@ -768,6 +773,74 @@ curl_data_end:
 }
 #endif
 
+#ifdef TRANS_WS_CONNECT
+int ws_init(char *url)
+{
+	int i,dlen;
+	char sip[16] = {0};
+	char sport[8] = {0};
+	int iport = 0;
+
+	dlen = strlen(url);
+	if(url!=NULL && dlen>12 && !strncmp(url, "ws://", 5))
+	{
+		for(i=5; i<dlen; i++)
+		{
+			if(*(url+i) == ':')
+				break;
+		}
+
+		memcpy(sip, url+5, i-5);
+		if(i < dlen-1)
+		{
+			iport = atoi(url+i+1);
+		}
+
+		if(iport)
+		{
+			sprintf(sport, "%d", iport);
+		}
+		else
+		{
+			sprintf(sport, "%d", 80);
+		}
+	}
+	else
+	{
+		DE_PRINTF(1, "%s()%d : WebSocket url error\n",
+					__FUNCTION__, __LINE__);
+		return -1;
+	}
+
+	noPollCtx *ctx = nopoll_ctx_new();
+	ws_conn = nopoll_conn_new(ctx, sip, sport, NULL, "/", NULL, NULL);
+	if (!nopoll_conn_is_ok(ws_conn)) {
+		DE_PRINTF(1, "%s()%d : WebSocket connect error\n",
+					__FUNCTION__, __LINE__);
+		return -1;
+	}
+
+	return 0;
+}
+
+void ws_send(char *data, int len)
+{
+	if(nopoll_conn_send_text(ws_conn, data, len) != len)
+	{
+		DE_PRINTF(1, "%s()%d : WebSocket send error\n",
+					__FUNCTION__, __LINE__);
+	}
+	else
+	{
+#ifdef DE_PRINT_UDP_PORT
+		trans_data_show(DE_WS_SEND, NULL, data, len);
+#else
+		DE_PRINTF(0, "%s\nWS-Send: %s\n\n\n", get_time_head(), data);
+#endif
+	}
+}
+#endif
+
 void enable_datalog_atime()
 {
 	lwflag = 1;
@@ -954,6 +1027,23 @@ void trans_data_show(de_print_t deprint,
 			return;
 		}
 		DE_PRINTF(0, "%s\nHTTP-Returns: %s\n\n\n", get_time_head(), data);
+		return;
+	}
+	else if(deprint == DE_WS_SEND)
+	{
+		if(!dews_flag)
+		{
+			return;
+		}
+		DE_PRINTF(0, "%s\nWS-Send: %s\n\n\n", get_time_head(), data);
+		return;
+	}else if(deprint == DE_WS_RECV)
+	{
+		if(!dews_flag)
+		{
+			return;
+		}
+		DE_PRINTF(0, "%s\nWS-Recv: %s\n\n\n", get_time_head(), data);
 		return;
 	}
 	else

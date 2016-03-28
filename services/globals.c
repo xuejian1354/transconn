@@ -696,6 +696,12 @@ void set_conf_val(char *cmd, char *val)
 					g_conf.protocols[pro_index++] = TOCOL_HTTP;
 					transtocol_hasset |= TOCOL_HTTP;
 				}
+				else if(!(transtocol_hasset & TOCOL_WS) && field_len == 9
+					&& !strncmp(val+start_pos, TRANSTOCOL_WS, field_len))
+				{
+					g_conf.protocols[pro_index++] = TOCOL_WS;
+					transtocol_hasset |= TOCOL_WS;
+				}
 
 				if(i == len)
 				{
@@ -850,6 +856,28 @@ void set_conf_val(char *cmd, char *val)
 		if(g_conf.http_timeout > 0)
 		{
 			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_HTTP_TIMEOUT;
+		}
+	}
+#endif
+#endif
+
+#ifdef TRANS_WS_CONNECT
+	if(!strcmp(cmd, GLOBAL_CONF_WS_URL))
+	{
+		translate_confval_to_str(g_conf.ws_url, val);
+
+		if(strlen(g_conf.ws_url))
+		{
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_WSURL;
+		}
+	}
+#ifdef COMM_CLIENT
+	if(!strcmp(cmd, GLOBAL_CONF_WS_TIMEOUT))
+	{
+		g_conf.ws_timeout = atoi(val);
+		if(g_conf.ws_timeout > 0)
+		{
+			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_WS_TIMEOUT;
 		}
 	}
 #endif

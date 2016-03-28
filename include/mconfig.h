@@ -38,6 +38,7 @@ extern "C" {
 //#define TRANS_TCP_CLIENT
 //#define TRANS_UDP_SERVICE
 //#define TRANS_HTTP_REQUEST
+//#define TRANS_WS_CONNECT
 //#define DAEMON_PROCESS_CREATE
 //#define SERIAL_SUPPORT
 //#define READ_CONF_FILE

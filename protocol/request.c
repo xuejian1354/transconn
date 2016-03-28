@@ -726,7 +726,8 @@ void upload_data(uint8 isrefresh, char *random)
 	uint16 transtocol = get_trans_protocol();
 	if(transtocol == TOCOL_UDP
 		|| transtocol == TOCOL_TCP
-		|| transtocol == TOCOL_HTTP)
+		|| transtocol == TOCOL_HTTP
+		|| transtocol == TOCOL_WS)
 	{
 		sn_t gwno_str = {0};
 		incode_xtocs(gwno_str,
@@ -1080,6 +1081,13 @@ void trans_send_frame_request(frhandler_arg_t *arg, trans_action_t action, char 
 		sprintf(curl_buf, "key=[%s]&datatype=%s\0", frame, get_action_to_str(action));
 		curl_http_request(CURL_POST, get_global_conf()->http_url, curl_buf, curl_data);
 		set_heartbeat_check(0, get_global_conf()->http_timeout);
+#endif
+		break;
+
+	case TOCOL_WS:
+#ifdef TRANS_WS_CONNECT
+		ws_send(frame, strlen(frame));
+		set_heartbeat_check(0, get_global_conf()->ws_timeout);
 #endif
 		break;
 	}

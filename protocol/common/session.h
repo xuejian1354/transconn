@@ -23,6 +23,7 @@
 extern "C" {
 #endif
 
+#define TRANSTOCOL_WS		"websocket"
 #define TRANSTOCOL_HTTP		"http"
 #define TRANSTOCOL_TCP		"tcp"
 #define TRANSTOCOL_UDP		"udp"
@@ -44,7 +45,8 @@ typedef enum
 	TOCOL_UDP = 0x0002,
 	TOCOL_TCP = 0x0004,
 	TOCOL_HTTP = 0x0008,
-	TOCOL_NONE = 0x0010,
+	TOCOL_WS = 0x0010,
+	TOCOL_NONE = 0x0020,
 }transtocol_t;
 
 void set_session_status(sessionsta_t session);

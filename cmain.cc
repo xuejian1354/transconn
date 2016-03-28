@@ -112,6 +112,13 @@ int main(int argc, char **argv)
 	}
 #endif
 
+#ifdef TRANS_WS_CONNECT
+	if(ws_init(get_global_conf()->ws_url) < 0)
+	{
+		return -1;
+	}
+#endif
+
 	if(mach_init() < 0)
 	{
 		return -1;

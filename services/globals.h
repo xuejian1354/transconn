@@ -98,10 +98,12 @@ extern "C" {
 #define GLOBAL_CONF_TCP_PORT		"tcp_port"
 #define GLOBAL_CONF_UDP_PORT		"udp_port"
 #define GLOBAL_CONF_HTTP_URL		"http_url"
+#define GLOBAL_CONF_WS_URL			"ws_url"
 
 #define GLOBAL_CONF_TCP_TIMEOUT		"tcp_timeout"
 #define GLOBAL_CONF_UDP_TIMEOUT		"udp_timeout"
 #define GLOBAL_CONF_HTTP_TIMEOUT	"http_timeout"
+#define GLOBAL_CONF_WS_TIMEOUT		"ws_timeout"
 
 #define GLOBAL_CONF_UPAPK_DIR		"apk_update_dir"
 
@@ -118,10 +120,12 @@ extern "C" {
 #define GLOBAL_CONF_ISSETVAL_UDP_TIMEOUT	0x00000040
 #define GLOBAL_CONF_ISSETVAL_HTTPURL		0x00000080
 #define GLOBAL_CONF_ISSETVAL_HTTP_TIMEOUT	0x00000100
-#define GLOBAL_CONF_ISSETVAL_UPAPK			0x00000200
-#define GLOBAL_CONF_ISSETVAL_DB				0x00000400
-#define GLOBAL_CONF_ISSETVAL_DBUSER			0x00000800
-#define GLOBAL_CONF_ISSETVAL_DBPASS			0x00001000
+#define GLOBAL_CONF_ISSETVAL_WSURL			0x00000200
+#define GLOBAL_CONF_ISSETVAL_WS_TIMEOUT		0x00000400
+#define GLOBAL_CONF_ISSETVAL_UPAPK			0x00000800
+#define GLOBAL_CONF_ISSETVAL_DB				0x00001000
+#define GLOBAL_CONF_ISSETVAL_DBUSER			0x00002000
+#define GLOBAL_CONF_ISSETVAL_DBPASS			0x00004000
 
 #define GLOBAL_TRANSTOCOL_SIZE		4
 
@@ -197,6 +201,13 @@ typedef struct
 	char http_url[1024];
 #ifdef COMM_CLIENT
 	int http_timeout;
+#endif
+#endif
+
+#ifdef TRANS_WS_CONNECT
+	char ws_url[1024];
+#ifdef COMM_CLIENT
+	int ws_timeout;
 #endif
 #endif
 

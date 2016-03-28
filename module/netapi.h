@@ -41,7 +41,9 @@ typedef enum
 	DE_TCP_RECV,
 	DE_TCP_RELEASE,
 	DE_POST_SEND,
-	DE_POST_RET
+	DE_POST_RET,
+	DE_WS_SEND,
+	DE_WS_RECV
 }de_print_t;
 
 typedef struct
@@ -115,6 +117,11 @@ void delog_udp_sendto(char *data, int len);
 size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp);
 void curl_http_request(curl_method_t cm, 
 		char *url, char *req, data_handler reback);
+#endif
+
+#ifdef TRANS_WS_CONNECT
+int ws_init(char *url);
+void ws_send(char *data, int len);
 #endif
 
 void trans_data_show(de_print_t deprint,

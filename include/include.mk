@@ -4,7 +4,7 @@ ifeq ($(TOPDIR),)
 $(error TOPDIR value no set)
 endif
 
-inc_dirs :=/home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/openssl /home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/sqlite3.h
+inc_dirs :=
 
 inc_files := $(strip $(foreach n, $(SUB_MODULES), \
 			  $(patsubst %, $(n)/%, \
