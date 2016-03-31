@@ -16,10 +16,10 @@ use 'ip='.
 server(transconn). The function is support by macro READ_CONF_FILE.
 There is the configurations and contents as follow:
 
-  comm_protocol = udp,tcp,http
-  Setting the program support protocols. It support udp, tcp &
-http. Use ',' separate it. And the protocols have priority. The
-left has more higher priority.
+  comm_protocol = websocket,udp,tcp,http
+  Setting the program support protocols. It support websocket, udp,
+tcp & http. Use ',' separate it. And the protocols have priority.
+The left has more higher priority.
 
   serial_dev = /dev/ttyS1
   Configurate serial device. This is support only for client.
@@ -38,16 +38,22 @@ system default udp port.
   Configurate TCP comm port. Using '{$default_tcp_port}' can get
 system default tcp port.
 
-  http_url = http://{$server_ip}/request
+  http_url = http://{$server_ip}/devicedate
   Configurate HTTP URL. This is support only for client. The '{$val}'
 pattern can get val from system default. Using '{$[Server Name]_ip}'
 can get ip from /etc/balance_serlist.
 
+  ws_url = http://{$server_ip}:8010
+  Configurate WebSocket URL. This is support only for client. The '{$val}'
+pattern can get val from system default. Using '{$[Server Name]_ip}'
+can get ip from /etc/balance_serlist.
+
+  ws_timeout = 3000
   udp_timeout = 30000
   tcp_timeout = 10000
   http_timeout = 1000
-  Configurate protocols heartbeat timeout. The time unit is 'ms'. These
-are support only for client. The protocols support UDP, TCP & HTTP.
+  Configurate protocols heartbeat timeout. The time unit is 'ms'. These are
+support only for client. The protocols support WebSocket, UDP, TCP & HTTP.
 
   apk_update_dir = /mnt/android_apk
   Configurate update android apk locates. This is support only for

@@ -9,8 +9,8 @@ include $(TOPDIR)/config.mk
 include $(TOPDIR)/lib/library.mk
 
 #SERVER_TARGET:=$(notdir $(shell pwd))
-SERVER_TARGET:=smartplat
-CLIENT_TARGET:=smartlab
+SERVER_TARGET:=transconn
+CLIENT_TARGET:=connect_listen
 TARGET:=$(addprefix $(DIR),$(SERVER_TARGET) $(CLIENT_TARGET))
 export SERVER_TARGET CLIENT_TARGET
 
