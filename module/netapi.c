@@ -107,7 +107,7 @@ void get_frhandler_arg_free(frhandler_arg_t *arg)
 	}
 }
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 frhandler_arg_t *get_transtocol_frhandler_arg()
 {
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
@@ -216,7 +216,7 @@ void socket_tcp_server_send(frhandler_arg_t *arg, char *data, int len)
 }
 #endif
 
-#if defined(TRANS_TCP_SERVER) || (defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET))
+#if defined(TRANS_TCP_SERVER) || (defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET))
 void socket_tcp_server_release(int fd)
 {
 	close(fd);
@@ -262,7 +262,7 @@ int socket_tcp_server_recv(int fd)
 		DE_PRINTF(0, "data:%s\n", buf);
 #endif
 
-#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
+#if defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET)
 		if(m_list->tclient == RESER_TCLIENT)
 		{
 			serial_write(buf, nbytes);
@@ -393,9 +393,6 @@ int socket_udp_service_init(int port)
 
 #ifdef SELECT_SUPPORT
 	select_set(udpfd);
-#endif
-#ifdef COMM_SERVER
-	set_trans_protocol(TOCOL_UDP);
 #endif
 	return 0;
 }

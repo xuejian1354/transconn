@@ -92,11 +92,8 @@ int add_client_info(cli_info_t *m_info)
 	pthread_mutex_lock(&get_client_list()->lock);
 	m_info->next = get_client_list()->p_cli;
 	get_client_list()->p_cli = m_info;
-#ifdef COMM_SERVER
-	if(get_client_list()->max_num >= SERVER_CLI_LIST_MAX_NUM)
-#else
+
 	if(get_client_list()->max_num >= GATEWAY_CLI_LIST_MAX_NUM)
-#endif
 	{
 		if(pre_before != NULL)
 			pre_before->next = NULL;

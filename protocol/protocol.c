@@ -17,7 +17,7 @@
 #include "protocol.h"
 #include <cJSON.h>
 #include <module/netapi.h>
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 #include <module/dbclient.h>
 #endif
 #include <module/serial.h>
@@ -39,7 +39,7 @@ extern "C" {
 #define SB_OPT_CTRL				'&'
 #define SB_OPT_REMOTE_CTRL		'*'
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 static int zdev_sync_zopt(dev_opt_t *dst_opt, uint8 *data, uint8 datalen);
 
 void analysis_zdev_frame(void *ptr)
@@ -93,8 +93,9 @@ void analysis_zdev_frame(void *ptr)
 		dev_info->zdev_opt = 
 			get_devopt_fromstr(dev_info->zapp_type, uo->data, uo->data_len);
 		dev_info->isdata_change = 1;
+#ifdef DB_API_SUPPORT
 		sqlclient_set_datachange_zdev(dev_info->zidentity_no, 1);
-
+#endif
 		set_zdev_check(dev_info->znet_addr);
 		uint16 znet_addr = dev_info->znet_addr;
 		
@@ -206,7 +207,9 @@ UO_Free:
 				if(ret == 2 && !dev_info->isdata_change)
 				{
 					dev_info->isdata_change = 1;
+#ifdef DB_API_SUPPORT
 					sqlclient_set_datachange_zdev(dev_info->zidentity_no, 1);
+#endif
 				}
 
 				if(ret != 1)
@@ -359,274 +362,7 @@ void analysis_capps_frame(void *ptr)
 
 	switch(atoi(pAction->valuestring))
 	{
-#ifdef COMM_SERVER
-	case ACTION_TOCOLREQ:
-	{
-		trfield_obj_t *obj = NULL;
-		cJSON *pObj = cJSON_GetObjectItem(pRoot, JSON_FIELD_OBJECT);
-		if(pObj != NULL)
-		{
-			cJSON *pOwner = cJSON_GetObjectItem(pRoot, JSON_FIELD_OWNER);
-			cJSON *pCustom = cJSON_GetObjectItem(pRoot, JSON_FIELD_CUSTOM);
-			if(pOwner != NULL && pCustom != NULL)
-			{
-				obj = get_trfield_obj_alloc(pOwner->valuestring, pCustom->valuestring);
-			}
-		}
-
-		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
-		if(pGateway == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		cJSON *pProtocol = cJSON_GetObjectItem(pRoot, JSON_FIELD_PROTOCOL);
-		if(pProtocol == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
-		if(pRandom == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		trfr_tocolreq_t *tocolreq =
-			get_trfr_tocolreq_alloc(obj,
-										pGateway->valuestring,
-										pProtocol->valuestring,
-										pRandom->valuestring);
-		trans_tocolreq_handler(arg, tocolreq);
-		get_trfr_tocolreq_free(tocolreq);
-	}
-		break;
-
-	case ACTION_REPORT:
-	{
-		trfield_obj_t *obj = NULL;
-		cJSON *pObj = cJSON_GetObjectItem(pRoot, JSON_FIELD_OBJECT);
-		if(pObj != NULL)
-		{
-			cJSON *pOwner = cJSON_GetObjectItem(pRoot, JSON_FIELD_OWNER);
-			cJSON *pCustom = cJSON_GetObjectItem(pRoot, JSON_FIELD_CUSTOM);
-			if(pOwner != NULL && pCustom != NULL)
-			{
-				obj = get_trfield_obj_alloc(pOwner->valuestring, pCustom->valuestring);
-			}
-		}
-
-		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
-		if(pGateway == NULL)
-		{
-			goto capps_cjson_end;
-		}
-		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
-		if(pRandom == NULL)
-		{
-			goto capps_cjson_end;
-		}
-		
-
-		cJSON *pDevs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVICES);
-		int dev_size;
-		trfield_device_t **devices;
-		if(pDevs == NULL)
-		{
-			dev_size = 0;
-			devices = NULL;
-		}
-		else
-		{
-			dev_size = cJSON_GetArraySize(pDevs);
-			devices = (trfield_device_t **)calloc(dev_size, sizeof(trfield_device_t *));
-		}
-
-		int i = 0;			
-		while(i < dev_size)
-		{
-			cJSON *pDev = cJSON_GetArrayItem(pDevs, i);
-			i++;
-			if(pDev == NULL)
-			{
-				continue;
-			}
-
-			cJSON *pDevName = cJSON_GetObjectItem(pDev, JSON_FIELD_NAME);
-			if(pDevName == NULL) continue;
-
-			cJSON *pDevDevSN = cJSON_GetObjectItem(pDev, JSON_FIELD_DEVSN);
-			if(pDevDevSN == NULL) continue;
-
-			cJSON *pDevDevType = cJSON_GetObjectItem(pDev, JSON_FIELD_DEVTYPE);
-			if(pDevDevType == NULL) continue;
-
-			cJSON *pDevZnetStatus = cJSON_GetObjectItem(pDev, JSON_FIELD_ZSTATUS);
-			if(pDevZnetStatus == NULL) continue;
-
-			cJSON *pDevData = cJSON_GetObjectItem(pDev, JSON_FIELD_DEVDATA);
-			if(pDevData == NULL) continue;
-
-			*(devices + i - 1) = 
-				get_trfield_device_alloc(pDevName->valuestring,
-											pDevDevSN->valuestring,
-											pDevDevType->valuestring,
-											atoi(pDevZnetStatus->valuestring),
-											pDevData->valuestring);
-		}
-
-		trfr_report_t *report = 
-			get_trfr_report_alloc(obj,
-									pGateway->valuestring,
-									devices,
-									dev_size,
-									pRandom->valuestring);
-
-		trans_report_handler(arg, report);
-		get_trfr_report_free(report);
-	}
-		break;
-
-	case ACTION_CHECK:
-	{
-		trfield_obj_t *obj = NULL;
-		cJSON *pObj = cJSON_GetObjectItem(pRoot, JSON_FIELD_OBJECT);
-		if(pObj != NULL)
-		{
-			cJSON *pOwner = cJSON_GetObjectItem(pRoot, JSON_FIELD_OWNER);
-			cJSON *pCustom = cJSON_GetObjectItem(pRoot, JSON_FIELD_CUSTOM);
-			if(pOwner != NULL && pCustom != NULL)
-			{
-				obj = get_trfield_obj_alloc(pOwner->valuestring, pCustom->valuestring);
-			}
-		}
-
-		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
-		if(pGateway == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
-		if(pRandom == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		cJSON *pCodeArray = cJSON_GetObjectItem(pRoot, JSON_FIELD_CODE);
-		if(pCodeArray == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		cJSON *pCode = cJSON_GetArrayItem(pCodeArray, 0);
-		if(pCode == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		cJSON *pCodeCheck = cJSON_GetObjectItem(pCode, JSON_FIELD_CODECHECK);
-		if(pCodeCheck == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		cJSON *pCodeData = cJSON_GetObjectItem(pCode, JSON_FIELD_CODEDATA);
-		if(pCodeData == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		int devsn_size;
-		sn_t *dev_sns;
-		cJSON *pDevSNs = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSNS);
-		if(pDevSNs == NULL)
-		{
-			devsn_size = 0;
-			dev_sns = NULL;
-		}
-		else
-		{
-			devsn_size = cJSON_GetArraySize(pDevSNs);
-			dev_sns = (sn_t *)calloc(devsn_size, sizeof(sn_t));
-		}
-
-		int i = 0;
-		while(i < devsn_size)
-		{
-			cJSON *pDevSN = cJSON_GetArrayItem(pDevSNs, i);
-			i++;
-			if(pDevSN == NULL) continue;
-
-			STRS_MEMCPY(dev_sns+i-1, pDevSN->valuestring, 
-					sizeof(sn_t), strlen(pDevSN->valuestring));
-		}
-
-		trfr_check_t *check = 
-			get_trfr_check_alloc(obj,
-									pGateway->valuestring, 
-									dev_sns, 
-									devsn_size, 
-									pCodeCheck->valuestring, 
-									pCodeData->valuestring,
-									pRandom->valuestring);
-
-		trans_check_handler(arg, check);
-		get_trfr_check_free(check);
-	}
-		break;
-
-	case ACTION_RESPOND:
-	{
-		trfield_obj_t *obj = NULL;
-		cJSON *pObj = cJSON_GetObjectItem(pRoot, JSON_FIELD_OBJECT);
-		if(pObj != NULL)
-		{
-			cJSON *pOwner = cJSON_GetObjectItem(pRoot, JSON_FIELD_OWNER);
-			cJSON *pCustom = cJSON_GetObjectItem(pRoot, JSON_FIELD_CUSTOM);
-			if(pOwner != NULL && pCustom != NULL)
-			{
-				obj = get_trfield_obj_alloc(pOwner->valuestring, pCustom->valuestring);
-			}
-		}
-
-		cJSON *pGateway = cJSON_GetObjectItem(pRoot, JSON_FIELD_GWSN);
-		if(pGateway == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		cJSON *pRandom = cJSON_GetObjectItem(pRoot, JSON_FIELD_RANDOM);
-		if(pRandom == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		cJSON *pDevSN = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVSN);
-		if(pDevSN == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		cJSON *pDevData = cJSON_GetObjectItem(pRoot, JSON_FIELD_DEVDATA);
-		if(pDevData == NULL)
-		{
-			goto capps_cjson_end;
-		}
-
-		trfr_respond_t *respond = 
-			get_trfr_respond_alloc(obj,
-									pGateway->valuestring, 
-									pDevSN->valuestring, 
-									pDevData->valuestring,
-									pRandom->valuestring);
-
-		trans_respond_handler(arg, respond);
-		get_trfr_respond_free(respond);
-	}
-		break;
-#endif
-#if defined(COMM_CLIENT) || defined(DE_TRANS_UDP_CONTROL)
+#if defined(COMM_TARGET) || defined(DE_TRANS_UDP_CONTROL)
 	case ACTION_REFRESH:
 	{
 		trfield_obj_t *obj = NULL;
@@ -812,7 +548,7 @@ capps_cjson_end:
 capps_arg_end:
 	get_frhandler_arg_free(arg);
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	set_refresh_check();
 #endif
 }

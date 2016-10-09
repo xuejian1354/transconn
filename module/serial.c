@@ -223,7 +223,7 @@ int serial_init(char *dev)
 {
 	int fd;
 
-#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
+#if defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET)
 	if ((refd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
 	{
 		perror("client tcp socket fail");
@@ -251,10 +251,10 @@ int serial_init(char *dev)
 			return -2;
 		}
 
-#if defined(COMM_CLIENT) || defined(COMM_SERVER)
+#if defined(COMM_TARGET)
 		write(fd, "(^_^)", 5);	//just enable serial port, no pratical meaning
 #endif
-#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
+#if defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET)
 		if ((reser_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
 		{
 			perror("reser socket fail");
@@ -298,7 +298,7 @@ int serial_write(char *data, int datalen)
 	}
 #endif
 #endif
-#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
+#if defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET)
 	if(refd >= 0)
 	{
 		return send(refd, data, datalen, 0);
@@ -318,7 +318,7 @@ void *uart_read_func(void *p)
     {
         i = 0;
         memset(rbuf, 0, sizeof(rbuf));
-#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
+#if defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET)
 		if(refd >= 0)
 		{
 			rlen = recv(refd, rbuf, sizeof(rbuf), 0);
@@ -332,7 +332,7 @@ void *uart_read_func(void *p)
 #endif
 		{
         	rlen = read(serial_fd, rbuf, sizeof(rbuf));
-#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
+#if defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET)
 			if(rlen > 0 && get_tcp_conn_list()->p_head != NULL)
 			{
 				tcp_conn_t *t_list;	
@@ -476,7 +476,7 @@ serial_update:
 					 tmpFrame[dataLen] = 0;
 					 dataLen--;
 				}
-#if defined(COMM_SERVER) || defined(COMM_CLIENT)
+#if defined(COMM_TARGET) || defined(COMM_CLIENT)
 #ifdef DE_PRINT_SERIAL_PORT
 #ifdef DE_TRANS_UDP_STREAM_LOG
 				if(get_deuart_flag())
@@ -489,7 +489,7 @@ serial_update:
 #endif
 #endif
 				frhandler_arg_t *frarg;
-#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
+#if defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET)
 				if(refd >= 0)
 				{
 					frarg = get_frhandler_arg_alloc(refd, TOCOL_NONE, NULL, (char *)tmpFrame, dataLen);

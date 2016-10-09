@@ -73,7 +73,7 @@ extern "C" {
 #define TRANS_DB_USER	"root"
 #define TRANS_DB_PASS	"root"
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 //udp protocol using port
 #define TRANS_UDP_SELF_PORT	11678
 #define TRANS_UDP_REMOTE_PORT	11678
@@ -144,17 +144,10 @@ This macro just support that
 
 #define IP_ADDR_MAX_SIZE	24
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 #define GET_UDP_SERVICE_IPADDR(ipaddr)								\
 st(															\
 	sprintf(ipaddr, "%s:%d", get_server_ip(), get_udp_port());	\
-)
-#endif
-
-#ifdef COMM_SERVER
-#define GET_UDP_SERVICE_IPADDR(ipaddr)								\
-st(															\
-	sprintf(ipaddr, "%s:%d", "0.0.0.0", get_udp_port());	\
 )
 #endif
 
@@ -180,34 +173,34 @@ typedef struct
 	char serial_dev[16];
 #endif
 
-#if defined(COMM_CLIENT) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
+#if defined(COMM_TARGET) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
 	char main_ip[IP_ADDR_MAX_SIZE];
 #endif
 
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	int tcp_port;
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	int tcp_timeout;
 #endif
 #endif
 
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	int udp_port;
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	int udp_timeout;
 #endif
 #endif
 
 #ifdef TRANS_HTTP_REQUEST
 	char http_url[1024];
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	int http_timeout;
 #endif
 #endif
 
 #ifdef TRANS_WS_CONNECT
 	char ws_url[1024];
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	int ws_timeout;
 #endif
 #endif
@@ -238,12 +231,12 @@ typedef struct ConfVal
 char *get_de_buf();
 #endif
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 char *get_serial_dev();
 void set_serial_dev(char *name);
 #endif
 
-#if defined(COMM_CLIENT) || defined(COMM_SERVER)
+#if defined(COMM_TARGET)
 int get_tcp_port();
 int get_udp_port();
 void set_tcp_port(int port);
@@ -251,10 +244,6 @@ void set_udp_port(int port);
 #endif
 
 uint8 *get_broadcast_no();
-
-#ifdef COMM_SERVER
-uint8 *get_common_no();
-#endif
 
 int start_params(int argc, char **argv);
 char *get_time_head();

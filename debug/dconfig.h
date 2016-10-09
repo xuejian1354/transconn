@@ -23,12 +23,7 @@
 extern "C" {
 #endif
 
-#ifdef COMM_SERVER
-#define DE_PRINT_UDP_PORT
-#define DE_PRINT_TCP_PORT
-#endif
-
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 #define DE_PRINT_UDP_PORT
 #define DE_PRINT_TCP_PORT
 #define DE_PRINT_SERIAL_PORT

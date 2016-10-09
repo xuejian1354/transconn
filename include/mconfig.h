@@ -23,14 +23,13 @@
 extern "C" {
 #endif
 
-//#define COMM_SERVER
-//#define COMM_CLIENT
+//#define COMM_TARGET
 
-#if defined(COMM_SERVER) || defined(COMM_CLIENT)
+#if defined(COMM_TARGET)
 #define THREAD_POOL_SUPPORT
 #define TIMER_SUPPORT
 #define SELECT_SUPPORT
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 #define UART_COMMBY_SOCKET
 #endif
 #endif
@@ -47,10 +46,7 @@ extern "C" {
 //#define DE_TRANS_UDP_CONTROL
 
 #ifdef DB_API_SUPPORT
-#ifdef COMM_SERVER
-#define DB_API_WITH_MYSQL
-#endif
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 #define DB_API_WITH_SQLITE
 #endif
 #endif
@@ -69,13 +65,11 @@ extern "C" {
 #error 'cannot define TRANS_TCP_SERVER and TRANS_TCP_CLIENT at the same time'
 #endif
 
-#ifdef LOAD_BALANCE_SUPPORT
 #define BALANCE_SERVER_FILE		"/etc/balance_serlist"
-#endif
 
 #ifdef READ_CONF_FILE
 #define CONF_FILE	"/etc/transconn.conf"
-#elif !defined(COMM_CLIENT)
+#elif !defined(COMM_TARGET)
   #ifdef DB_API_SUPPORT
     #error 'You must define READ_CONF_FILE first before defining DB_API_SUPPORT'
   #elif defined(REMOTE_UPDATE_APK)

@@ -85,7 +85,7 @@ int select_listen()
 	ret = pselect(maxfd+1, &current_rdfs, &current_wtfs, NULL, NULL, &sigmask);
 	if(ret > 0)
 	{
-#if defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET)
+#if defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET)
 		int reser_fd = get_reser_fd();
 		if(reser_fd >= 0 && FD_ISSET(reser_fd, &current_rdfs))
 		{
@@ -115,7 +115,7 @@ int select_listen()
 			return socket_tcp_server_accept(get_stcp_fd());
 		}
 #endif
-#if defined(TRANS_TCP_SERVER) || (defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET))
+#if defined(TRANS_TCP_SERVER) || (defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET))
 		for(i=0; i<=maxfd; i++)
 		{
 			if(FD_ISSET(i, &current_rdfs))

@@ -35,16 +35,10 @@ static char current_time[64];
 static char curcode[64];
 static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 static char port_buf[16];
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 static char serial_dev[16] = TRANS_SERIAL_DEV;
 static int tcp_port = TRANS_TCP_PORT;
 static int udp_port = TRANS_UDP_REMOTE_PORT;
-#endif
-
-#ifdef COMM_SERVER
-static int tcp_port = TRANS_TCP_PORT;
-static int udp_port = TRANS_UDP_PORT;
-static uint8 _common_no[8] = {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
 #endif
 
 #ifdef DE_TRANS_UDP_STREAM_LOG
@@ -59,30 +53,30 @@ static global_conf_t g_conf =
 #ifdef SERIAL_SUPPORT
 	TRANS_SERIAL_DEV,
 #endif
-#if defined(COMM_CLIENT) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
+#if defined(COMM_TARGET) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
 	{0},
 #endif
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 	TRANS_TCP_PORT,
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	TRANS_TCP_TIMEOUT,
 #endif
 #endif
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 	TRANS_UDP_PORT,
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	TRANS_UDP_TIMEOUT,
 #endif
 #endif
 #ifdef TRANS_HTTP_REQUEST
 	{0},
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	TRANS_HTTP_TIMEOUT,
 #endif
 #endif
 #ifdef TRANS_WS_CONNECT
 	{0},
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	TRANS_WS_TIMEOUT,
 #endif
 #endif
@@ -116,7 +110,7 @@ char *get_de_buf()
 }
 #endif
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 char *get_serial_dev()
 {
 	return serial_dev;
@@ -129,7 +123,7 @@ void set_serial_dev(char *name)
 }
 #endif
 
-#if defined(COMM_CLIENT) || defined(COMM_SERVER)
+#if defined(COMM_TARGET)
 int get_tcp_port()
 {
 	return tcp_port;
@@ -155,13 +149,6 @@ uint8 *get_broadcast_no()
 {
 	return _broadcast_no;
 }
-
-#ifdef COMM_SERVER
-uint8 *get_common_no()
-{
-	return _common_no;
-}
-#endif
 
 int start_params(int argc, char **argv)
 {
@@ -371,7 +358,7 @@ int start_params(int argc, char **argv)
 	sprintf(get_global_conf()->http_url, "http://%s/request", SERVER_IP);
 #endif
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	DE_PRINTF(1, "Gateway Start!\n");
 #else
 	DE_PRINTF(1, "Server Start!\n");
@@ -495,7 +482,7 @@ int get_daemon_cmdline()
 
 int mach_init()
 {
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	gw_info_t *p_gw_info = get_gateway_info();
 
 	memset(p_gw_info->gw_no, 0, sizeof(p_gw_info->gw_no));
@@ -534,7 +521,7 @@ int mach_init()
 void event_init()
 {
 #ifdef TIMER_SUPPORT
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	gateway_init();
 #endif
 #endif
@@ -766,7 +753,7 @@ void set_conf_val(char *cmd, char *val)
 		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_SERIAL;
 	}
 #endif
-#if defined(COMM_CLIENT) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
+#if defined(COMM_TARGET) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
 	if(!strcmp(cmd, GLOBAL_CONF_MAIN_IP))
 	{
 		confval_list *pval = get_confval_alloc_from_str(val);
@@ -802,7 +789,7 @@ void set_conf_val(char *cmd, char *val)
 			}
 		}
 	}
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	if(!strcmp(cmd, GLOBAL_CONF_TCP_TIMEOUT))
 	{
 		g_conf.tcp_timeout = atoi(val);
@@ -833,7 +820,7 @@ void set_conf_val(char *cmd, char *val)
 			}
 		}
 	}
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	if(!strcmp(cmd, GLOBAL_CONF_UDP_TIMEOUT))
 	{
 		g_conf.udp_timeout = atoi(val);
@@ -855,7 +842,7 @@ void set_conf_val(char *cmd, char *val)
 			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_HTTPURL;
 		}
 	}
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	if(!strcmp(cmd, GLOBAL_CONF_HTTP_TIMEOUT))
 	{
 		g_conf.http_timeout = atoi(val);
@@ -877,7 +864,7 @@ void set_conf_val(char *cmd, char *val)
 			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_WSURL;
 		}
 	}
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	if(!strcmp(cmd, GLOBAL_CONF_WS_TIMEOUT))
 	{
 		g_conf.ws_timeout = atoi(val);
@@ -928,30 +915,30 @@ int get_conf_setval()
 #ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_ISSETVAL_SERIAL,
 #endif
-#if defined(COMM_CLIENT) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
+#if defined(COMM_TARGET) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
 					GLOBAL_CONF_ISSETVAL_IP,
 #endif
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 					GLOBAL_CONF_ISSETVAL_TCP,
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 					GLOBAL_CONF_ISSETVAL_TCP_TIMEOUT,
 #endif
 #endif
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 					GLOBAL_CONF_ISSETVAL_UDP,
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 					GLOBAL_CONF_ISSETVAL_UDP_TIMEOUT,
 #endif
 #endif
 #ifdef TRANS_HTTP_REQUEST
 					GLOBAL_CONF_ISSETVAL_HTTPURL,
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 					GLOBAL_CONF_ISSETVAL_HTTP_TIMEOUT,
 #endif
 #endif
 #ifdef TRANS_WS_CONNECT
 					GLOBAL_CONF_ISSETVAL_WSURL,
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 					GLOBAL_CONF_ISSETVAL_WS_TIMEOUT,
 #endif
 #endif
@@ -974,30 +961,30 @@ int get_conf_setval()
 #ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_SERIAL_PORT,
 #endif
-#if defined(COMM_CLIENT) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
+#if defined(COMM_TARGET) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
 					GLOBAL_CONF_MAIN_IP,
 #endif
 #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
 					GLOBAL_CONF_TCP_PORT,
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 					GLOBAL_CONF_TCP_TIMEOUT,
 #endif
 #endif
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
 					GLOBAL_CONF_UDP_PORT,
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 					GLOBAL_CONF_UDP_TIMEOUT,
 #endif
 #endif
 #ifdef TRANS_HTTP_REQUEST
 					GLOBAL_CONF_HTTP_URL,
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 					GLOBAL_CONF_HTTP_TIMEOUT,
 #endif
 #endif
 #ifdef TRANS_WS_CONNECT
 					GLOBAL_CONF_WS_URL,
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 					GLOBAL_CONF_WS_TIMEOUT,
 #endif
 #endif

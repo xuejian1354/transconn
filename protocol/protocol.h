@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 void analysis_zdev_frame(void *ptr);
 #endif
 

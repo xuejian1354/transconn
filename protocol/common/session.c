@@ -18,7 +18,7 @@
 #include <protocol/request.h>
 #include <protocol/common/mevent.h>
 #include <module/netapi.h>
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 #include <services/balancer.h>
 #include <module/dbclient.h>
 #endif
@@ -31,7 +31,7 @@ static sessionsta_t session_status;
 static uint16 transtocol;
 static char checkcode[64];
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 void send_transtocol_request();
 #ifdef TRANS_UDP_SERVICE
 void transtocol_udp_respond_handler(char *data);
@@ -72,7 +72,6 @@ void set_trans_protocol(uint16 tocol)
 	case TOCOL_HTTP:
 	case TOCOL_WS:
 	{
-#ifdef COMM_SERVER
 		int i = 0;
 		while(i < get_global_conf()->tocol_len)
 		{
@@ -86,8 +85,7 @@ void set_trans_protocol(uint16 tocol)
 
 			i++;
 		}
-#endif
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 		transtocol |= tocol;
 		set_session_status(SESS_WORKING);
 #endif
@@ -95,7 +93,7 @@ void set_trans_protocol(uint16 tocol)
 		break;
 
 	case TOCOL_NONE:
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 		transtocol &= ~(TOCOL_UDP | TOCOL_TCP | TOCOL_HTTP | TOCOL_WS);
 		set_session_status(SESS_WORKING);
 #endif
@@ -105,7 +103,7 @@ void set_trans_protocol(uint16 tocol)
 
 uint16 get_trans_protocol()
 {
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	if(!(transtocol & TOCOL_ENABLE))
 	{
 		return TOCOL_DISABLE;
@@ -125,10 +123,6 @@ uint16 get_trans_protocol()
 	
 	return TOCOL_NONE;
 #endif
-
-#ifdef COMM_SERVER
-	return transtocol;
-#endif
 }
 
 char *get_trans_protocol_to_str(uint16 tocol)
@@ -144,7 +138,7 @@ char *get_trans_protocol_to_str(uint16 tocol)
 	return (char *)"";
 }
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 void set_syncdata_checkcode(char *code)
 {
 	bzero(checkcode, sizeof(checkcode));
@@ -159,10 +153,8 @@ char *get_syncdata_checkcode()
 char *gen_current_checkcode(zidentify_no_t gw_sn)
 {
 	gw_info_t *p_gw = NULL;
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	p_gw = get_gateway_info();
-#elif defined(COMM_SERVER)
-	p_gw = query_gateway_info(gw_sn);
 #endif
 
 	char *text = NULL;
@@ -219,7 +211,7 @@ void session_handler()
 		break;
 
 	case SESS_READY:
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 		send_transtocol_request();
 #endif
 		break;
@@ -241,7 +233,7 @@ void session_handler()
 	}
 }
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 void send_transtocol_request()
 {}
 

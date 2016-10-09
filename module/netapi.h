@@ -25,7 +25,6 @@
 #include <curl/curl.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
-#include <sqlite3.h>
 #endif
 
 #ifdef __cplusplus
@@ -77,7 +76,7 @@ frhandler_arg_t *get_frhandler_arg_alloc(int fd,
 			transtocol_t transtocol, struct sockaddr_in *addr, char *buf, int len);
 void get_frhandler_arg_free(frhandler_arg_t *arg);
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 frhandler_arg_t *get_transtocol_frhandler_arg();
 #endif
 
@@ -86,7 +85,7 @@ int get_stcp_fd();
 int socket_tcp_server_init(int port);
 int socket_tcp_server_accept(int fd);
 #endif
-#if defined(TRANS_TCP_SERVER) || (defined(COMM_CLIENT) && defined(UART_COMMBY_SOCKET))
+#if defined(TRANS_TCP_SERVER) || (defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET))
 int socket_tcp_server_recv(int fd);
 void socket_tcp_server_send(frhandler_arg_t *arg, char *data, int len);
 #endif

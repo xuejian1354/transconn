@@ -23,10 +23,8 @@
 extern "C" {
 #endif
 
-#ifdef COMM_CLIENT
-#define DLOG_FILE   "/var/log/connect_listen.log"
-#elif defined(COMM_SERVER)
-#define DLOG_FILE   "/var/log/transconn.log"
+#ifdef COMM_TARGET
+#define DLOG_FILE   "/var/log/cullive.log"
 #else
 #define DLOG_FILE   "/tmp/transconn.log"
 #endif

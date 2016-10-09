@@ -39,7 +39,7 @@ extern "C" {
 char curl_buf[0x4000];
 #endif
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 respond_data_t *prespond_data = NULL;
 
 void del_respond_data_with_sn(sn_t sn);
@@ -227,7 +227,7 @@ void trans_send_respond_request(frhandler_arg_t *arg, trfr_respond_t *respond)
 	cJSON_Delete(pRoot);
 }
 #endif
-#if defined(COMM_CLIENT) || defined(DE_TRANS_UDP_CONTROL)
+#if defined(COMM_TARGET) || defined(DE_TRANS_UDP_CONTROL)
 void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 {
 	if(refresh == NULL)
@@ -235,7 +235,7 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 		return;
 	}
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	zidentify_no_t gw_sn;
 	incode_ctoxs(gw_sn, refresh->gw_sn, 16);
 	if(memcmp(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t)))
@@ -250,12 +250,16 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 		{
 			zidentify_no_t dev_no;
 			incode_ctoxs(dev_no, (char *)(refresh->dev_sns+i), 16);
+#ifdef DB_API_SUPPORT
 			sqlclient_set_datachange_zdev(dev_no, 1);
+#endif
 		}
 	}
 	else
 	{
+#ifdef DB_API_SUPPORT
 		sqlclient_set_datachange_zdev(get_gateway_info()->gw_no, 1);
+#endif
 	}
 
 	upload_data(1, refresh->random);
@@ -318,7 +322,7 @@ void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
 		return;
 	}
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	zidentify_no_t gw_sn;
 	incode_ctoxs(gw_sn, control->gw_sn, 16);
 	if(memcmp(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t)))
@@ -404,7 +408,7 @@ void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 		return;
 	}
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 	switch(arg->transtocol)
 	{
 	case TOCOL_UDP:
@@ -432,215 +436,14 @@ void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 			p_dev->isdata_change = 0;
 			p_dev = p_dev->next;
 		}
-
+#ifdef DB_API_SUPPORT
 		sqlclient_set_datachange_zdev(get_gateway_info()->gw_no, 0);
+#endif
 	}
 		break;
 	}
 #endif
 }
-
-#ifdef COMM_SERVER
-void trans_tocolreq_handler(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq)
-{
-	if(tocolreq == NULL)
-	{
-		return;
-	}
-
-#ifdef DB_API_WITH_MYSQL
-	sqlserver_add_gateway(arg, tocolreq->gw_sn);
-#endif
-
-	if(tocolreq->action == ACTION_TOCOLREQ)
-	{
-		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(NULL,
-															tocolreq->action,
-															NULL,
-															tocolreq->random);
-		trans_send_tocolres_request(arg, tocolres);
-		get_trfr_tocolres_free(tocolres);
-	}
-}
-
-void trans_report_handler(frhandler_arg_t *arg, trfr_report_t *report)
-{
-	if(report == NULL)
-	{
-		return;
-	}
-
-#ifdef DB_API_WITH_MYSQL
-	sqlserver_add_gateway(arg, report->gw_sn);
-	sqlserver_add_zdevices(arg, report);
-#endif
-
-	if(!(get_trans_protocol() & arg->transtocol))
-	{
-		return;
-	}
-
-	if(report->action == ACTION_REPORT)
-	{
-		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(NULL,
-																report->action,
-																NULL,
-																report->random);
-		trans_send_tocolres_request(arg, tocolres);
-		get_trfr_tocolres_free(tocolres);
-	}
-}
-
-void trans_check_handler(frhandler_arg_t *arg, trfr_check_t *check)
-{
-	if(check == NULL)
-	{
-		return;
-	}
-
-#ifdef DB_API_WITH_MYSQL
-	sqlserver_add_gateway(arg, check->gw_sn);
-#endif
-
-	if(!(get_trans_protocol() & arg->transtocol))
-	{
-		return;
-	}
-
-	if(check->action == ACTION_CHECK)
-	{
-		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(NULL,
-																check->action,
-																NULL,
-																check->random);
-		trans_send_tocolres_request(arg, tocolres);
-		get_trfr_tocolres_free(tocolres);
-	}
-}
-
-void trans_respond_handler(frhandler_arg_t *arg, trfr_respond_t *respond)
-{
-	if(respond == NULL)
-	{
-		return;
-	}
-
-#ifdef DB_API_WITH_MYSQL
-	sqlserver_add_gateway(arg, respond->gw_sn);
-	sqlserver_update_zdevice(arg, respond);
-#endif
-
-	if(!(get_trans_protocol() & arg->transtocol))
-	{
-		return;
-	}
-
-	if(respond->action == ACTION_RESPOND)
-	{
-		trfr_tocolres_t *tocolres = get_trfr_tocolres_alloc(NULL,
-																respond->action,
-																NULL,
-																respond->random);
-		trans_send_tocolres_request(arg, tocolres);
-		get_trfr_tocolres_free(tocolres);
-	}
-}
-
-void trans_send_refresh_request(frhandler_arg_t *arg, trfr_refresh_t *refresh)
-{
-	if(refresh == NULL)
-	{
-		return;
-	}
-
-	cJSON *pRoot = cJSON_CreateObject();
-	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(refresh->action));
-
-	if(refresh->obj != NULL)
-	{
-		cJSON *pObj = cJSON_CreateObject();
-		cJSON_AddItemToObject(pRoot, JSON_FIELD_OBJECT, pObj);
-
-		cJSON_AddStringToObject(pObj, JSON_FIELD_OWNER, refresh->obj->owner);
-		cJSON_AddStringToObject(pObj, JSON_FIELD_CUSTOM, refresh->obj->custom);
-	}
-
-	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, refresh->gw_sn);
-
-	cJSON *pDevSNs = NULL;
-	if(refresh->sn_size > 0 && refresh->dev_sns != NULL)
-	{
-		pDevSNs = cJSON_CreateArray();
-		cJSON_AddItemToObject(pRoot, JSON_FIELD_DEVSNS, pDevSNs);
-	}
-
-	int i = 0;
-	while(i < refresh->sn_size)
-	{
-		cJSON *pDevSN = cJSON_CreateString(*(refresh->dev_sns+i));
-		cJSON_AddItemToArray(pDevSNs, pDevSN);
-
-		i++;
-	}
-
-	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, refresh->random);
-
-	trans_send_frame_request(arg, ACTION_REFRESH, cJSON_Print(pRoot));
-
-	cJSON_Delete(pRoot);
-}
-
-void trans_send_control_request(frhandler_arg_t *arg, trfr_control_t *control)
-{
-	if(control == NULL)
-	{
-		return;
-	}
-
-	cJSON *pRoot = cJSON_CreateObject();
-	cJSON_AddStringToObject(pRoot, JSON_FIELD_ACTION, get_action_to_str(control->action));
-
-	if(control->obj != NULL)
-	{
-		cJSON *pObj = cJSON_CreateObject();
-		cJSON_AddItemToObject(pRoot, JSON_FIELD_OBJECT, pObj);
-
-		cJSON_AddStringToObject(pObj, JSON_FIELD_OWNER, control->obj->owner);
-		cJSON_AddStringToObject(pObj, JSON_FIELD_CUSTOM, control->obj->custom);
-	}
-
-	cJSON_AddStringToObject(pRoot, JSON_FIELD_GWSN, control->gw_sn);
-
-	int i = 0;
-	cJSON *pCtrls = NULL;
-	if(control->ctrl_size > 0 && control->ctrls != NULL)
-	{
-		pCtrls = cJSON_CreateArray();
-		cJSON_AddItemToObject(pRoot, JSON_FIELD_CTRLS, pCtrls);
-	}
-
-	while(i < control->ctrl_size)
-	{
-		trfield_ctrl_t *ctrl = *(control->ctrls+i);
-		if(ctrl != NULL)
-		{
-			cJSON *pCtrl = cJSON_CreateObject();
-			cJSON_AddItemToArray(pCtrls, pCtrl);
-
-			cJSON_AddStringToObject(pCtrl, JSON_FIELD_DEVSN, ctrl->dev_sn);
-			cJSON_AddStringToObject(pCtrl, JSON_FIELD_CMD, ctrl->cmd);
-		}
-
-		i++;
-	}
-
-	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, control->random);
-
-	trans_send_frame_request(arg, ACTION_CONTROL, cJSON_Print(pRoot));
-
-	cJSON_Delete(pRoot);
-}
-#endif
 
 void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 {
@@ -674,10 +477,12 @@ void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres
 	cJSON_Delete(pRoot);
 }
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 void sync_gateway_info(gw_info_t *pgw_info)
 {
+#ifdef DB_API_SUPPORT
 	sqlclient_add_gateway(pgw_info);
+#endif
 }
 
 void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info)
@@ -686,9 +491,9 @@ void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info)
 	{
 		return;
 	}
-
+#ifdef DB_API_SUPPORT
 	sqlclient_add_zdev(get_gateway_info(), pdev_info);
-
+#endif
 	sn_t dev_sn = {0};
 	incode_xtocs(dev_sn, pdev_info->zidentity_no, sizeof(zidentify_no_t));
 
@@ -1055,14 +860,7 @@ void detrans_send_control(sn_t devsn, char *cmd)
 
 void trans_send_frame_request(frhandler_arg_t *arg, trans_action_t action, char *frame)
 {
-#ifdef COMM_SERVER
-	if(arg == NULL)
-	{
-		return;
-	}
-
-	switch(arg->transtocol)
-#elif defined(COMM_CLIENT)
+#if defined(COMM_TARGET)
 	switch(get_trans_protocol())
 #endif
 	{
@@ -1075,7 +873,7 @@ void trans_send_frame_request(frhandler_arg_t *arg, trans_action_t action, char 
 	case TOCOL_UDP:
 #ifdef TRANS_UDP_SERVICE
 		socket_udp_sendto(&(arg->addr), frame, strlen(frame));
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 		set_heartbeat_check(0, get_global_conf()->udp_timeout);
 #endif
 #endif

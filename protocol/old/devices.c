@@ -23,26 +23,14 @@
 extern "C" {
 #endif
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 static gw_info_t gw_info;
 #endif
 
-#ifdef COMM_SERVER
-static gw_list_t gw_list;
-#endif
-
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 gw_info_t *get_gateway_info()
 {
 	return &gw_info;
-}
-#endif
-
-
-#ifdef COMM_SERVER
-gw_list_t *get_gateway_list()
-{
-	return &gw_list;
 }
 #endif
 
@@ -164,7 +152,7 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 }
 
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 int add_zdevice_info(dev_info_t *m_dev)
 {
 	return add_zdev_info(get_gateway_info(), m_dev);
@@ -221,148 +209,6 @@ uint16 get_znet_addr_with_sn(sn_t sn)
 int del_zdevice_info(uint16 znet_addr)
 {
 	return del_zdev_info(get_gateway_info(), znet_addr);
-}
-
-#elif defined(COMM_SERVER)
-int add_gateway_info(gw_info_t *m_gw)
-{
-	gw_info_t *pre_before, *pre_gw =  NULL;
-	gw_info_t *t_gw = gw_list.p_gw;
-
-	if(m_gw == NULL)
-	{
-		return -1;
-	}
-	else
-	{
-		m_gw->next = NULL;
-	}
-
-	while(t_gw != NULL)
-	{
-		if(memcmp(t_gw->gw_no, m_gw->gw_no, sizeof(zidentify_no_t)))
-		{
-			pre_before = pre_gw;
-			pre_gw = t_gw;
-			t_gw = t_gw->next;
-		}
-		else
-		{
-			t_gw->zapp_type = m_gw->zapp_type;
-			t_gw->zpanid = m_gw->zpanid;
-			t_gw->zchannel = m_gw->zchannel;
-			t_gw->rand = m_gw->rand;
-			t_gw->ip_len = m_gw->ip_len;
-			set_devopt_data_fromopt(t_gw->zgw_opt, m_gw->zgw_opt);
-			if(t_gw->ipaddr != m_gw->ipaddr)
-			{
-				memset(t_gw->ipaddr, 0, sizeof(t_gw->ipaddr));
-				memcpy(t_gw->ipaddr, m_gw->ipaddr, m_gw->ip_len);
-			}
-
-			if(t_gw->serverip_addr !=m_gw->serverip_addr)
-			{
-				memset(t_gw->serverip_addr, 0, sizeof(t_gw->serverip_addr));
-				memcpy(t_gw->serverip_addr, m_gw->serverip_addr, m_gw->serverip_len);
-			}
-
-			if(pre_gw != NULL)
-			{
-				pthread_mutex_lock(&gw_list.lock);
-				pre_gw->next = t_gw->next;
-				t_gw->next = gw_list.p_gw;
-				gw_list.p_gw = t_gw;
-				pthread_mutex_unlock(&gw_list.lock);
-			}
-
-			return 1;
-		}
-	}
-
-	pthread_mutex_lock(&gw_list.lock);
-	m_gw->next = gw_list.p_gw;
-	gw_list.p_gw = m_gw;
-	
-	if(gw_list.max_num >= SERVER_GW_LIST_MAX_NUM)
-	{
-		if(pre_before != NULL)
-			pre_before->next = NULL;
-
-		free(pre_gw);
-	}
-	else
-	{
-		gw_list.max_num++;
-	}
-	pthread_mutex_unlock(&gw_list.lock);
-
-	return 0;
-}
-
-gw_info_t *query_gateway_info(zidentify_no_t gw_no)
-{
-	gw_info_t *t_gw = gw_list.p_gw;
-
-
-	while(t_gw != NULL)
-	{
-		if(memcmp(t_gw->gw_no, gw_no, sizeof(zidentify_no_t)))
-		{
-			t_gw = t_gw->next;
-		}
-		else
-		{
-			return t_gw;
-		}
-	}
-
-	return NULL;
-}
-
-int del_gateway_info(zidentify_no_t gw_no)
-{
-	gw_info_t *pre_gw =  NULL;
-	gw_info_t *t_gw = gw_list.p_gw;
-
-
-	while(t_gw != NULL)
-	{
-		if(memcmp(t_gw->gw_no, gw_no, sizeof(zidentify_no_t)))
-		{
-			pre_gw = t_gw;
-			t_gw = t_gw->next;
-		}
-		else
-		{	
-			pthread_mutex_lock(&gw_list.lock);
-			if(pre_gw != NULL)
-			{
-				pre_gw->next = t_gw->next;
-			}
-			else
-			{
-				gw_list.p_gw = t_gw->next;
-			}
-			
-			gw_list.max_num--;
-			pthread_mutex_unlock(&gw_list.lock);
-
-			dev_info_t *pre_dev = t_gw->p_dev;
-			dev_info_t *pdev = t_gw->p_dev;
-			
-			while(pdev != NULL)
-			{
-				pre_dev = pdev;
-				pdev = pdev->next;
-				free(pre_dev);
-			}
-
-			free(t_gw);
-			return 0;
-		}
-	}
-
-	return -1;
 }
 #endif
 

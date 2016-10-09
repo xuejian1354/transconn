@@ -19,7 +19,7 @@
 #include <protocol/protocol.h>
 #include <protocol/request.h>
 #include <module/serial.h>
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 #include <services/balancer.h>
 #include <module/dbclient.h>
 #endif
@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 #ifdef TIMER_SUPPORT
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 static int heartbeat_interval = 500;
 
 static void heartbeat_request(void *p);
@@ -176,10 +176,12 @@ void zdev_watch(void *p)
 	uint16 znet_addr = (uint16)((int)p);
 	DE_PRINTF(1, "del zdevice from list, zdev no:%04X\n\n", znet_addr);
 
+#ifdef DB_API_SUPPORT
 	sqlclient_uponline_zdev(get_gateway_info(),
 							0,
 							&znet_addr,
 							1);
+#endif
 
 	del_zdevice_info(znet_addr);
 	upload_data(0, NULL);

@@ -25,7 +25,7 @@
 extern "C" {
 #endif
 
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 #define GATEWAY_INIT_EVENT		0x0001
 #define TIMER_REFRESH_EVENT		0x0002
 #define GATEWAY_HEARTBEAT_EVENT	0x0003
@@ -35,16 +35,12 @@ extern "C" {
 #endif
 
 #ifdef TIMER_SUPPORT
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 void gateway_init();
 void set_refresh_check();
 void set_heartbeat_check(int immediate, int interval);
 void set_zdev_check(uint16 net_addr);
 void set_cli_check(cli_info_t *p_cli);
-#endif
-
-#ifdef COMM_SERVER
-void set_gateway_check(zidentify_no_t gw_no, int rand);
 #endif
 
 void set_mevent(int id, 

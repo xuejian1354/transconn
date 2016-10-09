@@ -513,7 +513,7 @@ trfr_control_t *get_trfr_control_alloc(trfield_obj_t *obj, sn_t gw_sn, trfield_c
 	control->obj = obj;
 	if(gw_sn == NULL)
 	{
-#ifdef COMM_CLIENT
+#ifdef COMM_TARGET
 		incode_xtocs(control->gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 #endif
 	}
