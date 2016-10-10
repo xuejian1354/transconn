@@ -1,1 +1,1 @@
-SRCS :=session.c mevent.c fieldlysis.c
+SRCS :=mevent.c fieldlysis.c

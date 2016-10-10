@@ -31,11 +31,6 @@ extern "C" {
 static int serial_fd;
 
 static int isStart = 1;
-static int mcount = 0;		//match frame head
-static int step = 0;       //0,head; 1,fixed data; 2,data packet;
-static int fixLen = 3;		//location when copy
-static int dataLen = 0;
-static uint8 tmpFrame[SERIAL_MAX_LEN]={0};
 
 #ifdef UART_COMMBY_SOCKET
 static int refd = -1;
@@ -246,7 +241,7 @@ int serial_init(char *dev)
 		}
 		serial_fd = fd;
 
-		if (set_serial_params(fd, 115200, 8, 1, 0) < 0)
+		if (set_serial_params(fd, 9600, 8, 1, 0) < 0)
 		{
 			return -2;
 		}
@@ -312,11 +307,9 @@ void *uart_read_func(void *p)
 {
 	unsigned char rbuf[64] = {0};
     int rlen = 0;
-    int i = 0;
-	
+
     while(isStart)
     {
-        i = 0;
         memset(rbuf, 0, sizeof(rbuf));
 #if defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET)
 		if(refd >= 0)
@@ -347,168 +340,36 @@ void *uart_read_func(void *p)
 #endif
 		}
 
-        while(i < rlen)
-        {
-            if(0 == step)
-            {
-                switch(rbuf[i])
-                {
-                case 'U':
-				case 'D':
-                    if(0 == mcount)
-					{
-						tmpFrame[0] = rbuf[i];
-						mcount++;
-                    }
-                    else  
-						mcount=0;
-                    break;
-
-                case 'C':
-				case 'O':
-				case 'H':
-				case 'R':
-                    if(1 == mcount)
-					{
-						tmpFrame[1] = rbuf[i];
-						mcount++;
-                    }
-                    else
-						mcount=0;
-                    break;
-
-                case ':':
-					if(1 == mcount)
-					{
-                        step = 1;
-						tmpFrame[1] = 'E';
-						mcount++;
-						tmpFrame[2] = rbuf[i];
-						mcount++;
-                    }
-                    if(2 == mcount)
-					{
-                        step = 1;
-						mcount++;
-                        tmpFrame[2] = rbuf[i];
-                    }
-					else
-						mcount = 0;
-					break;
-                
-                default:
-                    if(0 != mcount) 
-                    {
-						mcount=0;
-                    }
-                    break;
-                }
-            }
-            else if(1 == step) 
-            {
-				if(fixLen > SERIAL_MAX_LEN)
-				{
-					fixLen = 3;
-                	step = 0;
-					mcount = 0;
-					break;
-				}
-				
-                *(tmpFrame+fixLen++) = rbuf[i];
-                switch(rbuf[i])
-                {
-                case 0x3A:
-                    if(3 == mcount)
-					{
-						mcount++;
-                    }
-                    else  
-						mcount=3;
-                    break;
-
-                case 0x4F:
-                    if(4 == mcount)
-					{
-						mcount++;
-                    }
-                    else
-						mcount=3;
-                    break;
-
-                case 0x0D:
-                    if(5 == mcount)
-					{
-                        mcount++;
-                    }
-					else
-						mcount=3;
-					break;
-
-				case 0x0A:
-					if(6 == mcount)
-					{
-						step = 2;
-						goto serial_update;
-					}
-					
-                default:
-                    if(3 != mcount) 
-                    {
-						mcount=3;
-                    }
-                    break;
-                }
-            }
-            else if(2 == step)
-            {
-serial_update:	
-				dataLen = fixLen;
-	            fixLen = 3;
-                step = 0;
-				mcount = 0;
-
-				if(!memcmp("DE:", tmpFrame, 3))
-				{
-					 uint8 mFrame[SERIAL_MAX_LEN]={0};
-					 memcpy(mFrame, "D:", 2);
-					 memcpy(mFrame+2, tmpFrame+3, dataLen-3);
-					 memcpy(tmpFrame, mFrame, dataLen-1);
-					 tmpFrame[dataLen] = 0;
-					 dataLen--;
-				}
-#if defined(COMM_TARGET) || defined(COMM_CLIENT)
+#if defined(COMM_TARGET)
 #ifdef DE_PRINT_SERIAL_PORT
 #ifdef DE_TRANS_UDP_STREAM_LOG
-				if(get_deuart_flag())
-				{
+		if(get_deuart_flag())
+		{
 #endif
-					DE_PRINTF(0, "%s\nserial read:%s\n", get_time_head(), tmpFrame);
-					//PRINT_HEX(tmpFrame, dataLen);
+			DE_PRINTF(0, "%s\nserial read:%s\n", get_time_head(), rbuf);
+			PRINT_HEX(rbuf, rlen);
 #ifdef DE_TRANS_UDP_STREAM_LOG
-				}
+		}
 #endif
 #endif
-				frhandler_arg_t *frarg;
+		frhandler_arg_t *frarg;
 #if defined(COMM_TARGET) && defined(UART_COMMBY_SOCKET)
-				if(refd >= 0)
-				{
-					frarg = get_frhandler_arg_alloc(refd, TOCOL_NONE, NULL, (char *)tmpFrame, dataLen);
-				}
-				else
+		if(refd >= 0)
+		{
+			frarg = get_frhandler_arg_alloc(refd, NULL, rbuf, rlen);
+		}
+		else
 #endif
-				{
-					frarg = get_frhandler_arg_alloc(serial_fd, TOCOL_NONE, NULL, (char *)tmpFrame, dataLen);
-				}
+		{
+			frarg = get_frhandler_arg_alloc(serial_fd, NULL, rbuf, rlen);
+		}
 #ifdef THREAD_POOL_SUPPORT
-				tpool_add_work(analysis_zdev_frame, frarg, TPOOL_LOCK);
+		tpool_add_work(analysis_zdev_frame, frarg, TPOOL_LOCK);
 #else
-				analysis_zdev_frame(frarg);
+		analysis_zdev_frame(frarg);
 #endif
-				memset(tmpFrame, 0, sizeof(tmpFrame));
+		memset(rbuf, 0, sizeof(rbuf));
 #endif
-            }
-            i++;
-        }
     }
 }
 #endif

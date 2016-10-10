@@ -18,7 +18,6 @@
 #define __NETAPI_H__
 
 #include <services/globals.h>
-#include <protocol/common/session.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #ifdef TRANS_HTTP_REQUEST
@@ -48,7 +47,6 @@ typedef enum
 typedef struct
 {
 	int fd;
-	transtocol_t transtocol;
 	struct sockaddr_in addr; 
 	char *buf;
 	int len;
@@ -72,8 +70,7 @@ typedef struct
 }curl_args_t;
 #endif
 
-frhandler_arg_t *get_frhandler_arg_alloc(int fd,
-			transtocol_t transtocol, struct sockaddr_in *addr, char *buf, int len);
+frhandler_arg_t *get_frhandler_arg_alloc(int fd, struct sockaddr_in *addr, char *buf, int len);
 void get_frhandler_arg_free(frhandler_arg_t *arg);
 
 #ifdef COMM_TARGET
@@ -98,7 +95,7 @@ void socket_tcp_client_send(char *data, int len);
 void socket_tcp_client_close();
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 int get_udp_fd();
 int socket_udp_service_init(int port);
 void socket_udp_sendto_with_ipaddr(char *ipaddr, char *data, int len);
@@ -114,12 +111,11 @@ void delog_udp_sendto(char *data, int len);
 
 #ifdef TRANS_HTTP_REQUEST
 size_t curl_data(void *buffer, size_t size, size_t nmemb, void *userp);
-void curl_http_request(curl_method_t cm, 
-		char *url, char *req, data_handler reback);
+void curl_http_request(curl_method_t cm, char *req, data_handler reback);
 #endif
 
 #ifdef TRANS_WS_CONNECT
-int ws_init(char *url);
+int ws_init();
 void ws_send(char *data, int len);
 #endif
 

@@ -1,1 +1,1 @@
-SRCS :=balancer.c corecomm.c etimer.c globals.c
+SRCS :=corecomm.c etimer.c globals.c

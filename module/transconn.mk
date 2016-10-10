@@ -1,1 +1,1 @@
-SRCS :=serial.c netapi.c netlist.c dbclient.c
+SRCS :=serial.c netapi.c netlist.c

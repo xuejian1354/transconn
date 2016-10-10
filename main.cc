@@ -15,14 +15,10 @@
  * GNU General Public License for more details.
  */
 #include <services/globals.h>
-#include <services/balancer.h>
 #include <services/etimer.h>
 #include <services/corecomm.h>
 #include <module/serial.h>
 #include <module/netapi.h>
-#ifdef DB_API_SUPPORT
-#include <module/dbclient.h>
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,24 +26,13 @@ extern "C" {
 
 int main(int argc, char **argv)
 {
-#ifdef LOAD_BALANCE_SUPPORT
-	if(serlist_read_from_confile() < 0)
-	{
-		DE_PRINTF(1, "%s()%d : Read \"%s\" fail, please set correct server list file\n",
-			__FUNCTION__, __LINE__, 
-			BALANCE_SERVER_FILE);
-		
-		return -1;
-	}
-#endif
-
 #ifdef READ_CONF_FILE
 	if(conf_read_from_file() < 0)
 	{
 		return -1;
 	}
 #endif
-	
+
 	if(start_params(argc, argv) != 0)
 	{
 		return 1;
@@ -61,17 +46,8 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#ifdef DB_API_SUPPORT
-	if(sqlclient_init() < 0)
-	{
-		sqlclient_release();
-		return -1;
-	}
-	//sqlclient_release();
-#endif
-
 #ifdef THREAD_POOL_SUPPORT
-	if (tpool_create(TRANS_CLIENT_THREAD_MAX_NUM) < 0)
+	if (tpool_create(TRANS_THREAD_MAX_NUM) < 0)
 	{
 		return -1;
 	}
@@ -105,6 +81,13 @@ int main(int argc, char **argv)
 	}
 #endif
 
+#ifdef TRANS_TCP_SERVER
+	if (socket_tcp_server_init(get_tcp_port()) < 0)
+	{
+		return -1;
+	}
+#endif
+
 #ifdef TRANS_TCP_CLIENT
 	if (socket_tcp_client_connect(get_tcp_port()) < 0)
 	{
@@ -113,7 +96,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef TRANS_WS_CONNECT
-	if(ws_init(get_global_conf()->ws_url) < 0)
+	if(ws_init() < 0)
 	{
 		return -1;
 	}

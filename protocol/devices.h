@@ -18,27 +18,40 @@
 #define __DEVICES_H__
 
 #include <services/globals.h>
-#include <protocol/old/devalloc.h>
 #include <protocol/common/fieldlysis.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef struct Dev_Info
+{
+	zidentify_no_t dev_no;
+	fr_app_type_t type;
+	uint32 data;
+	uint8 ischange;
+	struct Dev_Info *next;
+}dev_info_t;
+
+typedef struct Gw_Info
+{
+	zidentify_no_t gw_no;
+	fr_app_type_t type;
+	pthread_mutex_t lock;
+	dev_info_t *p_dev;
+	struct Gw_Info *next;
+}gw_info_t;
+
+
 int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev);
-dev_info_t *query_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
-int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr);
+dev_info_t *query_zdev_info(gw_info_t *gw_info, char *dev_no);
+int del_zdev_info(gw_info_t *gw_info, zidentify_no_t dev_no);
 
-
-#ifdef COMM_TARGET
 gw_info_t *get_gateway_info();
 
 int add_zdevice_info(dev_info_t *m_dev);
-dev_info_t *query_zdevice_info(uint16 znet_addr);
-dev_info_t *query_zdevice_info_with_sn(zidentify_no_t zidentify_no);
-uint16 get_znet_addr_with_sn(sn_t sn);
-int del_zdevice_info(uint16 znet_addr);
-#endif
+dev_info_t *query_zdevice_info(zidentify_no_t dev_no);
+int del_zdevice_info(zidentify_no_t dev_no);
 
 #ifdef __cplusplus
 }

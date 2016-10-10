@@ -20,10 +20,8 @@
 #include <md5.h>
 #include <module/netapi.h>
 #include <protocol/common/fieldlysis.h>
-#include <protocol/common/session.h>
 #include <protocol/common/mevent.h>
 #include <protocol/protocol.h>
-#include <services/balancer.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,11 +33,12 @@ static char current_time[64];
 static char curcode[64];
 static uint8 _broadcast_no[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 static char port_buf[16];
-#ifdef COMM_TARGET
+
+
 static char serial_dev[16] = TRANS_SERIAL_DEV;
+static char server_ip[IP_ADDR_MAX_SIZE] = SERVER_IP;
 static int tcp_port = TRANS_TCP_PORT;
 static int udp_port = TRANS_UDP_REMOTE_PORT;
-#endif
 
 #ifdef DE_TRANS_UDP_STREAM_LOG
 static char de_buf[0x4000];
@@ -48,50 +47,8 @@ static char de_buf[0x4000];
 static global_conf_t g_conf = 
 {
 	0,
-	{TOCOL_UDP, TOCOL_TCP, TOCOL_HTTP, 0},
-	3,
-#ifdef SERIAL_SUPPORT
 	TRANS_SERIAL_DEV,
-#endif
-#if defined(COMM_TARGET) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
-	{0},
-#endif
-#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-	TRANS_TCP_PORT,
-#ifdef COMM_TARGET
-	TRANS_TCP_TIMEOUT,
-#endif
-#endif
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	TRANS_UDP_PORT,
-#ifdef COMM_TARGET
-	TRANS_UDP_TIMEOUT,
-#endif
-#endif
-#ifdef TRANS_HTTP_REQUEST
-	{0},
-#ifdef COMM_TARGET
-	TRANS_HTTP_TIMEOUT,
-#endif
-#endif
-#ifdef TRANS_WS_CONNECT
-	{0},
-#ifdef COMM_TARGET
-	TRANS_WS_TIMEOUT,
-#endif
-#endif
-#ifdef REMOTE_UPDATE_APK
-	TRANS_UPDATE_DIR,
-#endif
-#ifdef DB_API_SUPPORT
-#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
-	TRANS_DB_NAME,
-#ifdef DB_API_WITH_MYSQL
-	TRANS_DB_USER,
-	TRANS_DB_PASS,
-#endif
-#endif
-#endif
+	SERVER_IP,
 };
 
 #ifdef READ_CONF_FILE
@@ -110,7 +67,6 @@ char *get_de_buf()
 }
 #endif
 
-#ifdef COMM_TARGET
 char *get_serial_dev()
 {
 	return serial_dev;
@@ -121,9 +77,13 @@ void set_serial_dev(char *name)
 	memset(serial_dev, 0, sizeof(serial_dev));
 	strcpy(serial_dev, name);
 }
-#endif
 
 #if defined(COMM_TARGET)
+char *get_server_ip(void)
+{
+	return server_ip;
+}
+
 int get_tcp_port()
 {
 	return tcp_port;
@@ -132,6 +92,12 @@ int get_tcp_port()
 int get_udp_port()
 {
 	return udp_port;
+}
+
+void set_server_ip(char *ip)
+{
+	memset(server_ip, 0, sizeof(server_ip));
+	strcpy(server_ip, ip);
 }
 
 void set_tcp_port(int port)
@@ -157,69 +123,17 @@ int start_params(int argc, char **argv)
 	opterr = 0;  
 	global_conf_t t_conf = {0};
 
-
-#ifdef SERIAL_SUPPORT
-  #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	const char *optstrs = "s:t:u:h";
-	#else
-	const char *optstrs = "s:t:h";
-    #endif
-  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	const char *optstrs = "s:u:h";
-  #else
-  	const char *optstrs = "s:h";
-  #endif
-#elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-  	const char *optstrs = "t:u:h";
-  #else
-  	const char *optstrs = "t:h";
-  #endif
-#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	const char *optstrs = "u:h";
-#else
-	const char *optstrs = "h";
-#endif
+	const char *optstrs = "s:i:h";
 	
     while((ch = getopt(argc, argv, optstrs)) != -1)
     {
 		switch(ch)
 		{
 		case 'h':
-#ifdef SERIAL_SUPPORT
-  #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-t<TCP Port>] [-u<UDP Port>]\n", argv[0]);
-			DE_PRINTF(0, "Default: \n\t-s %s\n\t-t %d\n\t-u %d\n",
+			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-i<Server IP>]\n", argv[0]);
+			DE_PRINTF(0, "Default: \n\t-s %s\n\t-i %d\n",
 							TRANS_SERIAL_DEV,
-							TRANS_TCP_PORT,
-							TRANS_UDP_PORT);
-	#else
-			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-t<TCP Port>]\n", argv[0]);
-			DE_PRINTF(0, "Default:\n\t-s %s\n\t-t %d\n", TRANS_SERIAL_DEV, TRANS_TCP_PORT);
-    #endif
-  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-			DE_PRINTF(0, "Usage: %s [-s<Serial Device>] [-u<UDP Port>]\n", argv[0]);
-  			DE_PRINTF(0, "Default:\n\t-s %s\n\t-u %d\n", TRANS_SERIAL_DEV, TRANS_UDP_PORT);
-  #else
-  			DE_PRINTF(0, "Usage: %s [-s<Serial Device>]\n", argv[0]);
-  			DE_PRINTF(0, "Default:\n\t-s %s\n", TRANS_SERIAL_DEV);
-  #endif
-#elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-  			DE_PRINTF(0, "Usage: %s [-t<TCP Port>] [-u<UDP Port>]\n", argv[0]);
-  			DE_PRINTF(0, "Default:\n\t-t %d\n\t-u %d\n", TRANS_TCP_PORT, TRANS_UDP_PORT);
-  #else
-  			DE_PRINTF(0, "Usage: %s [-t<TCP Port>]\n", argv[0]);
-  			DE_PRINTF(0, "Default:\n\t-t %d\n", TRANS_TCP_PORT);
-  #endif
-#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-			DE_PRINTF(0, "Usage: %s [-u<UDP Port>]\n", argv[0]);
-			DE_PRINTF(0, "Default:\n\t-u %d\n", TRANS_UDP_PORT);
-#else
-			DE_PRINTF(0, "Usage: %s\n", argv[0]);
-#endif
+							SERVER_IP);
 			return 1;
 
 		case '?':
@@ -227,28 +141,18 @@ int start_params(int argc, char **argv)
 			DE_PRINTF(0, "\'%s -h\' get more help infomations.\n", argv[0]);
 			return 1;
 
-#ifdef SERIAL_SUPPORT
 		case 's':
 			sprintf(t_conf.serial_dev, "%s", optarg);
 			t_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_SERIAL;
 			break;
-#endif
-#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-		case 't':
-			t_conf.tcp_port = atoi(optarg);
-			t_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_TCP;
+
+		case 'i':
+			sprintf(t_conf.server_ip, "%s", optarg);
+			t_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_IP;
 			break;
-#endif
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-		case 'u':
-			t_conf.udp_port = atoi(optarg);
-			t_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UDP;
-			break;
-#endif
 		}
 	}
-	
-#ifdef SERIAL_SUPPORT
+
 	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_SERIAL)
 	{
 		set_serial_dev(t_conf.serial_dev);
@@ -262,123 +166,18 @@ int start_params(int argc, char **argv)
   #endif
 	}
 	
-  #if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-  	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_TCP)
+  	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_IP)
   	{
-		set_tcp_port(t_conf.tcp_port);
+		set_server_ip(t_conf.server_ip);
   	}
 	else
 	{
 	#ifdef READ_CONF_FILE
-		set_tcp_port(g_conf.tcp_port);
+		set_server_ip(g_conf.server_ip);
     #else
-		set_tcp_port(TRANS_TCP_PORT);
+		set_server_ip(SERVER_IP);
     #endif
 	}
-	
-    #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-
-	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
-	{
-		set_udp_port(t_conf.udp_port);
-	}
-	else
-	{
-      #ifdef READ_CONF_FILE
-		set_udp_port(g_conf.udp_port);
-      #else
-		set_udp_port(TRANS_UDP_PORT);
-      #endif
-	}
-    #endif
-	
-  #elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
-  	{
-		set_udp_port(t_conf.udp_port);
-  	}
-	else
-	{
-	#ifdef READ_CONF_FILE
-		set_udp_port(g_conf.udp_port);
-    #else
-		set_udp_port(TRANS_UDP_PORT);
-    #endif
-	}
-  #endif
-
-#elif defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_TCP)
-  	{
-		set_tcp_port(t_conf.tcp_port);
-  	}
-	else
-	{
-  #ifdef READ_CONF_FILE
-		set_tcp_port(g_conf.tcp_port);
-  #else
-		set_tcp_port(TRANS_TCP_PORT);
-  #endif
-	}
-
-  #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-  	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
-  	{
-		set_udp_port(t_conf.udp_port);
-  	}
-	else
-	{
-    #ifdef READ_CONF_FILE
-		set_udp_port(g_conf.udp_port);
-    #else
-		set_udp_port(TRANS_UDP_PORT);
-    #endif
-	}
-  #endif
-  
-#elif defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	if(t_conf.isset_flag & GLOBAL_CONF_ISSETVAL_UDP)
-  	{
-		set_udp_port(t_conf.udp_port);
-  	}
-	else
-	{
-    #ifdef READ_CONF_FILE
-		set_udp_port(g_conf.udp_port);
-    #else
-		set_udp_port(TRANS_UDP_PORT);
-    #endif
-	}
-#elif defined(TRANS_HTTP_REQUEST)	
-#else
-#warning "No Comm protocol be selected, please set uart, tcp or udp."
-#endif
-
-#if defined(TRANS_HTTP_REQUEST) && !defined(READ_CONF_FILE)
-	sprintf(get_global_conf()->http_url, "http://%s/request", SERVER_IP);
-#endif
-
-#ifdef COMM_TARGET
-	DE_PRINTF(1, "Gateway Start!\n");
-#else
-	DE_PRINTF(1, "Server Start!\n");
-#endif
-
-#ifdef SERIAL_SUPPORT
-	DE_PRINTF(1, "Serial device: \"%s\"\n", get_serial_dev());
-#endif
-
-#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-	DE_PRINTF(1, "TCP transmit port: %d\n", get_tcp_port());
-#endif
-
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	DE_PRINTF(1, "UDP transmit port: %d\n", get_udp_port());
-#endif
-
-#ifdef TRANS_HTTP_REQUEST
-	DE_PRINTF(1, "HTTP URL: \"%s\"\n", get_global_conf()->http_url);
-#endif
 
 	FILE *fp = NULL;
 	static char logfile[32] = {0};
@@ -415,7 +214,6 @@ openlog_error:
 			__FUNCTION__, __LINE__, DLOG_FILE);
 	}
 
-	set_session_status(SESS_INIT);
 	return 0;
 }
 
@@ -482,18 +280,13 @@ int get_daemon_cmdline()
 
 int mach_init()
 {
-#ifdef COMM_TARGET
 	gw_info_t *p_gw_info = get_gateway_info();
 
 	memset(p_gw_info->gw_no, 0, sizeof(p_gw_info->gw_no));
-	p_gw_info->zapp_type = FRAPP_NONE;
-	p_gw_info->zpanid = 0;
-	p_gw_info->zchannel = 0;
-	p_gw_info->ip_len = 0;
-	p_gw_info->zgw_opt = NULL;
+	p_gw_info->type = FRAPP_CONNECTOR;
 	p_gw_info->p_dev = NULL;
 	p_gw_info->next = NULL;
-	
+
 	if(pthread_mutex_init(&(get_gateway_info()->lock), NULL) != 0)
     {
         DE_PRINTF(1, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
@@ -501,20 +294,6 @@ int mach_init()
         return -1;
     }
 
-	cli_list_t *p_cli_list = get_client_list();
-	p_cli_list->p_cli = NULL;
-	p_cli_list->max_num = 0;
-
-	if(pthread_mutex_init(&(get_client_list()->lock), NULL) != 0)
-    {
-        DE_PRINTF(1, "%s()%d :  pthread_mutext_init failed, errno:%d, error:%s\n",
-            __FUNCTION__, __LINE__, errno, strerror(errno));
-        return -1;
-    }
-#endif
-
-	set_session_status(SESS_READY);
-	set_trans_protocol(TOCOL_ENABLE);
 	return 0;
 }
 
@@ -538,8 +317,6 @@ int conf_read_from_file()
 	FILE *fp = NULL;
 	char buf[128] = {0};
 	g_conf.isset_flag = 0;
-	memset(g_conf.protocols, 0, sizeof(g_conf.protocols));
-	g_conf.tocol_len = 0;
 
 	if((fp = fopen(CONF_FILE, "r")) != NULL)
 	{
@@ -649,357 +426,40 @@ void get_read_line(char *line, int len)
 
 void set_conf_val(char *cmd, char *val)
 {
-	if(!strcmp(cmd, GLOBAL_CONF_COMM_PROTOCOL))
-	{
-		int i, len=strlen(val);
-		int start_pos, end_pos;
-		int start_isset = 0;
-		int end_isset = 0;
-		int pro_index = 0;
-		uint16 transtocol_hasset = TOCOL_DISABLE;
-
-		for(i=0; i<=len; i++)
-		{
-			if(start_isset && (end_isset || i == len))
-			{
-				int field_len = end_pos - start_pos;
-				if(i == len && !end_isset)
-				{
-					field_len++;
-				}
-
-				start_isset = 0;
-				end_isset = 0;
-
-				if(!(transtocol_hasset & TOCOL_UDP) && field_len == 3
-					&& !strncmp(val+start_pos, TRANSTOCOL_UDP, field_len))
-				{
-					g_conf.protocols[pro_index++] = TOCOL_UDP;
-					transtocol_hasset |= TOCOL_UDP;
-				}
-				else if(!(transtocol_hasset & TOCOL_TCP) && field_len == 3
-					&& !strncmp(val+start_pos, TRANSTOCOL_TCP, field_len))
-				{
-					g_conf.protocols[pro_index++] = TOCOL_TCP;
-					transtocol_hasset |= TOCOL_TCP;
-				}
-				else if(!(transtocol_hasset & TOCOL_HTTP) && field_len == 4
-					&& !strncmp(val+start_pos, TRANSTOCOL_HTTP, field_len))
-				{
-					g_conf.protocols[pro_index++] = TOCOL_HTTP;
-					transtocol_hasset |= TOCOL_HTTP;
-				}
-				else if(!(transtocol_hasset & TOCOL_WS) && field_len == 9
-					&& !strncmp(val+start_pos, TRANSTOCOL_WS, field_len))
-				{
-					g_conf.protocols[pro_index++] = TOCOL_WS;
-					transtocol_hasset |= TOCOL_WS;
-				}
-
-				if(i == len)
-				{
-					break;
-				}
-			}
-
-			if(!start_isset)
-			{
-				if(*(val+i) == ' '
-					|| *(val+i) == ',')
-				{
-					continue;
-				}
-				else
-				{
-					start_pos = i;
-					end_pos = i+1;
-					start_isset = 1;
-				}
-			}
-			else if(!end_isset)
-			{
-				end_pos = i;
-				if(*(val+i) == ',')
-				{
-					int j = end_pos;
-					while(j > start_pos+1)
-					{
-						if(*(val+j-1) == ' ')
-						{
-							j--;
-						}
-						else
-						{
-							break;
-						}
-					}
-					end_pos = j;
-					end_isset = 1;
-				}
-			}
-		}
-
-		if(pro_index)
-		{
-			g_conf.tocol_len = pro_index;
-			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_PROTOCOL;
-		}
-	}
-
-#ifdef SERIAL_SUPPORT
 	if(!strcmp(cmd, GLOBAL_CONF_SERIAL_PORT))
 	{
 		strcpy(g_conf.serial_dev, val);
 		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_SERIAL;
 	}
-#endif
-#if defined(COMM_TARGET) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
-	if(!strcmp(cmd, GLOBAL_CONF_MAIN_IP))
+
+	if(!strcmp(cmd, GLOBAL_CONF_SERVER_IP))
 	{
 		confval_list *pval = get_confval_alloc_from_str(val);
 		if(pval != NULL)
 		{
-			strcpy(g_conf.main_ip, get_val_from_name(pval->val));
+			strcpy(g_conf.server_ip, get_val_from_name(pval->val));
 			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_IP;
 			get_confval_free(pval);
 		}
 		else
 		{
-			strcpy(g_conf.main_ip, val);
+			strcpy(g_conf.server_ip, val);
 			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_IP;
 		}
 	}
-#endif
-#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-	if(!strcmp(cmd, GLOBAL_CONF_TCP_PORT))
-	{
-		confval_list *pval = get_confval_alloc_from_str(val);
-		if(pval != NULL)
-		{
-			g_conf.tcp_port = atoi(get_val_from_name(pval->val));
-			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_TCP;
-			get_confval_free(pval);
-		}
-		else
-		{
-			g_conf.tcp_port = atoi(val);
-			if(g_conf.tcp_port > 0)
-			{
-				g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_TCP;
-			}
-		}
-	}
-#ifdef COMM_TARGET
-	if(!strcmp(cmd, GLOBAL_CONF_TCP_TIMEOUT))
-	{
-		g_conf.tcp_timeout = atoi(val);
-		if(g_conf.tcp_timeout > 0)
-		{
-			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_TCP_TIMEOUT;
-		}
-	}
-#endif
-#endif
-
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	if(!strcmp(cmd, GLOBAL_CONF_UDP_PORT))
-	{
-		confval_list *pval = get_confval_alloc_from_str(val);
-		if(pval != NULL)
-		{
-			g_conf.udp_port = atoi(get_val_from_name(pval->val));
-			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UDP;
-			get_confval_free(pval);
-		}
-		else
-		{
-			g_conf.udp_port = atoi(val);
-			if(g_conf.udp_port > 0)
-			{
-				g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UDP;
-			}
-		}
-	}
-#ifdef COMM_TARGET
-	if(!strcmp(cmd, GLOBAL_CONF_UDP_TIMEOUT))
-	{
-		g_conf.udp_timeout = atoi(val);
-		if(g_conf.udp_timeout > 0)
-		{
-			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UDP_TIMEOUT;
-		}
-	}
-#endif
-#endif
-
-#ifdef TRANS_HTTP_REQUEST
-	if(!strcmp(cmd, GLOBAL_CONF_HTTP_URL))
-	{		
-		translate_confval_to_str(g_conf.http_url, val);
-
-		if(strlen(g_conf.http_url))
-		{
-			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_HTTPURL;
-		}
-	}
-#ifdef COMM_TARGET
-	if(!strcmp(cmd, GLOBAL_CONF_HTTP_TIMEOUT))
-	{
-		g_conf.http_timeout = atoi(val);
-		if(g_conf.http_timeout > 0)
-		{
-			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_HTTP_TIMEOUT;
-		}
-	}
-#endif
-#endif
-
-#ifdef TRANS_WS_CONNECT
-	if(!strcmp(cmd, GLOBAL_CONF_WS_URL))
-	{
-		translate_confval_to_str(g_conf.ws_url, val);
-
-		if(strlen(g_conf.ws_url))
-		{
-			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_WSURL;
-		}
-	}
-#ifdef COMM_TARGET
-	if(!strcmp(cmd, GLOBAL_CONF_WS_TIMEOUT))
-	{
-		g_conf.ws_timeout = atoi(val);
-		if(g_conf.ws_timeout > 0)
-		{
-			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_WS_TIMEOUT;
-		}
-	}
-#endif
-#endif
-
-#ifdef REMOTE_UPDATE_APK
-	if(!strcmp(cmd, GLOBAL_CONF_UPAPK_DIR))
-	{
-		strcpy(g_conf.upapk_dir, val);
-		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_UPAPK;
-	}
-#endif
-
-#ifdef DB_API_SUPPORT
-#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
-	if(!strcmp(cmd, GLOBAL_CONF_DATABASE))
-	{
-		strcpy(g_conf.db_name, val);
-		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_DB;
-	}
-#ifdef DB_API_WITH_MYSQL
-	else if(!strcmp(cmd, GLOBAL_CONF_DBUSER))
-	{
-		strcpy(g_conf.db_user, val);
-		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_DBUSER;
-	}
-	else if(!strcmp(cmd, GLOBAL_CONF_DBPASS))
-	{
-		strcpy(g_conf.db_password, val);
-		g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_DBPASS;
-	}
-#endif
-#endif
-#endif
 }
 
 int get_conf_setval()
 {
 	int i;
 	uint32 issetflags[] = {
-					GLOBAL_CONF_ISSETVAL_PROTOCOL,
-#ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_ISSETVAL_SERIAL,
-#endif
-#if defined(COMM_TARGET) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
 					GLOBAL_CONF_ISSETVAL_IP,
-#endif
-#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-					GLOBAL_CONF_ISSETVAL_TCP,
-#ifdef COMM_TARGET
-					GLOBAL_CONF_ISSETVAL_TCP_TIMEOUT,
-#endif
-#endif
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-					GLOBAL_CONF_ISSETVAL_UDP,
-#ifdef COMM_TARGET
-					GLOBAL_CONF_ISSETVAL_UDP_TIMEOUT,
-#endif
-#endif
-#ifdef TRANS_HTTP_REQUEST
-					GLOBAL_CONF_ISSETVAL_HTTPURL,
-#ifdef COMM_TARGET
-					GLOBAL_CONF_ISSETVAL_HTTP_TIMEOUT,
-#endif
-#endif
-#ifdef TRANS_WS_CONNECT
-					GLOBAL_CONF_ISSETVAL_WSURL,
-#ifdef COMM_TARGET
-					GLOBAL_CONF_ISSETVAL_WS_TIMEOUT,
-#endif
-#endif
-#ifdef REMOTE_UPDATE_APK
-					GLOBAL_CONF_ISSETVAL_UPAPK,
-#endif
-#ifdef DB_API_SUPPORT
-#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
-					GLOBAL_CONF_ISSETVAL_DB,
-#ifdef DB_API_WITH_MYSQL
-					GLOBAL_CONF_ISSETVAL_DBUSER,
-					GLOBAL_CONF_ISSETVAL_DBPASS,
-#endif
-#endif
-#endif
 					};
 
 	const char *issetvals[] = {
-					GLOBAL_CONF_COMM_PROTOCOL,
-#ifdef SERIAL_SUPPORT
 					GLOBAL_CONF_SERIAL_PORT,
-#endif
-#if defined(COMM_TARGET) && (defined(TRANS_UDP_SERVICE) || defined(TRANS_TCP_CLIENT))
-					GLOBAL_CONF_MAIN_IP,
-#endif
-#if defined(TRANS_TCP_SERVER) || defined(TRANS_TCP_CLIENT)
-					GLOBAL_CONF_TCP_PORT,
-#ifdef COMM_TARGET
-					GLOBAL_CONF_TCP_TIMEOUT,
-#endif
-#endif
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-					GLOBAL_CONF_UDP_PORT,
-#ifdef COMM_TARGET
-					GLOBAL_CONF_UDP_TIMEOUT,
-#endif
-#endif
-#ifdef TRANS_HTTP_REQUEST
-					GLOBAL_CONF_HTTP_URL,
-#ifdef COMM_TARGET
-					GLOBAL_CONF_HTTP_TIMEOUT,
-#endif
-#endif
-#ifdef TRANS_WS_CONNECT
-					GLOBAL_CONF_WS_URL,
-#ifdef COMM_TARGET
-					GLOBAL_CONF_WS_TIMEOUT,
-#endif
-#endif
-#ifdef REMOTE_UPDATE_APK
-					GLOBAL_CONF_UPAPK_DIR,
-#endif
-#ifdef DB_API_SUPPORT
-#if defined(DB_API_WITH_MYSQL) || defined(DB_API_WITH_SQLITE)
-					GLOBAL_CONF_DATABASE,
-#ifdef DB_API_WITH_MYSQL
-					GLOBAL_CONF_DBUSER,
-					GLOBAL_CONF_DBPASS,
-#endif
-#endif
-#endif
+					GLOBAL_CONF_SERVER_IP,
 					};
 
 
@@ -1162,87 +622,13 @@ void get_confval_free(confval_list *pval)
 
 char *get_val_from_name(char *name)
 {
-	if(!strcmp(name, "server_ip"))
+	if(!strcmp(name, "default_ip"))
 	{
-#ifdef LOAD_BALANCE_SUPPORT
-		return get_server_ip();
-#else
 		return SERVER_IP;
-#endif
-	}
-#ifdef LOAD_BALANCE_SUPPORT
-	else if(!strcmp(name+strlen(name)-3, "_ip"))
-	{
-		return get_server_ip_from_name(name);
-	}
-#endif
-	else if(!strcmp(name, "default_tcp_port"))
-	{
-		bzero(port_buf, sizeof(port_buf));
-		sprintf(port_buf, "%d", TRANS_TCP_PORT);
-		return port_buf;
-	}
-	else if(!strcmp(name, "default_udp_port"))
-	{
-		bzero(port_buf, sizeof(port_buf));
-		sprintf(port_buf, "%d", TRANS_UDP_PORT);
-		return port_buf;
 	}
 
 	return (char *)"";
 }
-
-#ifdef REMOTE_UPDATE_APK
-void reapk_version_code(char *up_flags, char *ipaddr, cidentify_no_t cidentify_no)
-{
-	ub_t ub;
-	DIR *dp;
-	struct dirent *ep;
-
-	int version_code = 0;
-	
-	memcpy(ub.zidentify_no, cidentify_no, sizeof(cidentify_no_t));
-	memcpy(ub.cidentify_no, cidentify_no, sizeof(cidentify_no_t));
-	ub.trans_type = TRTYPE_UDP_NORMAL;
-	ub.tr_info = TRINFO_REDATA;
-
-	if((dp = opendir(g_conf.upapk_dir)) != NULL)
-	{
-		while((ep = readdir(dp)) != NULL)
-		{
-			int f_len = strlen(ep->d_name);
-			
-			if(f_len > 12 && !strncmp(ep->d_name+f_len-4, ".apk", 4))
-			{
-				if(!strncmp(ep->d_name, "SHomely_", 8))
-				{
-					char codestr[16] = {0};
-					memcpy(codestr, ep->d_name+8, f_len-12);
-					int tcode = atoi(codestr);
-					version_code = version_code>tcode?version_code:tcode;
-				}
-				else if(up_flags != NULL && !strncmp(up_flags, "LS", 2)
-					&& !strncmp(ep->d_name, "loongsmart_", 11))
-				{
-					char codestr[16] = {0};
-					memcpy(codestr, ep->d_name+11, f_len-15);
-					int tcode = atoi(codestr);
-					version_code = version_code>tcode?version_code:tcode;
-				}
-			}
-		}
-	}
-
-	char data[4];
-	incode_xtoc16(data, version_code);
-	
-	ub.data = data;
-	ub.data_len = 4;
-
-	enable_datalog_atime();
-	send_frame_udp_request(ipaddr, TRHEAD_UB, &ub);
-}
-#endif
 
 char *get_current_time()
 {

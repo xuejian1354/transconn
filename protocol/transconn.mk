@@ -1,1 +1,1 @@
-SRCS :=protocol.c request.c
+SRCS :=protocol.c request.c devices.c

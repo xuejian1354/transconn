@@ -19,7 +19,6 @@
 #include <nopoll.h>
 #include <module/netlist.h>
 #include <services/corecomm.h>
-#include <services/balancer.h>
 #include <protocol/protocol.h>
 #include <protocol/request.h>
 
@@ -46,7 +45,7 @@ static uint8 deuart_flag = 1;
 static struct sockaddr_in ulog_addr;
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 static frhandler_arg_t t_arg;
 static int udpfd;
 static struct sockaddr_in m_addr;
@@ -64,8 +63,7 @@ static noPollConn * ws_conn;
 
 uint8 lwflag = 0;
 
-frhandler_arg_t *get_frhandler_arg_alloc(int fd, 
-			transtocol_t transtocol, struct sockaddr_in *addr, char *buf, int len)
+frhandler_arg_t *get_frhandler_arg_alloc(int fd, struct sockaddr_in *addr, char *buf, int len)
 {
 	if(len > MAXSIZE)
 	{
@@ -76,7 +74,6 @@ frhandler_arg_t *get_frhandler_arg_alloc(int fd,
 	arg->buf = (char *)calloc(1, len);
 
 	arg->fd = fd;
-	arg->transtocol = transtocol;
 
 	if(addr != NULL)
 	{
@@ -110,8 +107,7 @@ void get_frhandler_arg_free(frhandler_arg_t *arg)
 #ifdef COMM_TARGET
 frhandler_arg_t *get_transtocol_frhandler_arg()
 {
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
-	t_arg.transtocol = get_trans_protocol();
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	t_arg.addr.sin_family = PF_INET;
 	t_arg.addr.sin_port = htons(get_udp_port());
 	t_arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
@@ -272,7 +268,7 @@ int socket_tcp_server_recv(int fd)
 
 #ifdef TRANS_TCP_CONN_LIST
 		frhandler_arg_t *frarg = 
-			get_frhandler_arg_alloc(fd, TOCOL_TCP, &m_list->client_addr, buf, nbytes);
+			get_frhandler_arg_alloc(fd, &m_list->client_addr, buf, nbytes);
 #ifdef THREAD_POOL_SUPPORT
 		tpool_add_work(analysis_capps_frame, frarg, TPOOL_LOCK);
 #else
@@ -361,7 +357,7 @@ void socket_tcp_client_close()
 }
 #endif
 
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG) || defined(DE_TRANS_UDP_CONTROL)
+#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 int get_udp_fd()
 {
 	return udpfd;
@@ -415,30 +411,9 @@ int socket_udp_recvfrom()
 	trans_data_show(DE_UDP_RECV, &client_addr, buf, nbytes);
 #endif
 
-#ifdef DE_TRANS_UDP_CONTROL
-	if(ntohs(client_addr.sin_port) == DE_UDP_CTRL_PORT
-		&& !strcmp(inet_ntoa(client_addr.sin_addr), "127.0.0.1"))
-	{
-		if(nbytes >= 23 && !strncmp(buf, "refresh", 7))
-		{
-			sn_t devsn;
-			STRS_MEMCPY(devsn, buf+7, sizeof(devsn), 16);
-			detrans_send_refresh(devsn);
-		}
-		else if(nbytes > 20 && !strncmp(buf, "ctrl", 4))
-		{
-			sn_t devsn;
-			STRS_MEMCPY(devsn, buf+4, sizeof(devsn), 16);
-			detrans_send_control(devsn, buf+20);
-		}
-
-		return;
-	}
-#endif
-
 #if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
 	frhandler_arg_t *frarg = 
-		get_frhandler_arg_alloc(udpfd, TOCOL_UDP, &client_addr, buf, nbytes);
+		get_frhandler_arg_alloc(udpfd, &client_addr, buf, nbytes);
 #ifdef THREAD_POOL_SUPPORT
 	tpool_add_work(analysis_capps_frame, frarg, TPOOL_LOCK);
 #else
@@ -543,9 +518,11 @@ void delog_udp_sendto(char *data, int len)
 #endif
 
 #ifdef TRANS_HTTP_REQUEST
-void curl_http_request(curl_method_t cm, 
-		char *url, char *req, data_handler reback)
-{	
+void curl_http_request(curl_method_t cm, char *req, data_handler reback)
+{
+	char url[128] = {0};
+	sprintf(url, "http://%s/devicedata", get_server_ip());
+
 	switch(cm)
 	{
 	case CURL_GET:
@@ -751,7 +728,6 @@ curl_data_end:
 		frhandler_arg_t *arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 		char *data_buf = (char *)calloc(1, tail-head);
 		memcpy(data_buf, data+head+1, tail-head-1);
-		arg->transtocol = TOCOL_HTTP;
 		arg->buf = data_buf;
 		arg->len = tail - head - 1;
 
@@ -774,12 +750,15 @@ curl_data_end:
 #endif
 
 #ifdef TRANS_WS_CONNECT
-int ws_init(char *url)
+int ws_init()
 {
 	int i,dlen;
 	char sip[16] = {0};
 	char sport[8] = {0};
 	int iport = 0;
+
+	char url[128] = {0};
+	sprintf(url, "ws://%s:%d", get_server_ip(), TRANS_WS_PORT);
 
 	dlen = strlen(url);
 	if(url!=NULL && dlen>12 && !strncmp(url, "ws://", 5))
@@ -863,7 +842,6 @@ void *ws_read_func(void *p)
 			frhandler_arg_t *arg = (frhandler_arg_t *)calloc(1, sizeof(frhandler_arg_t));
 			char *data_buf = (char *)calloc(1, bytes_read);
 			memcpy(data_buf, buffer, bytes_read);
-			arg->transtocol = TOCOL_WS;
 			arg->buf = data_buf;
 			arg->len = bytes_read;
 

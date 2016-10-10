@@ -23,16 +23,12 @@
 extern "C" {
 #endif
 
-#ifdef COMM_TARGET
 static gw_info_t gw_info;
-#endif
 
-#ifdef COMM_TARGET
 gw_info_t *get_gateway_info()
 {
 	return &gw_info;
 }
-#endif
 
 int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev)
 {
@@ -50,28 +46,23 @@ int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev)
 
 	while(t_dev != NULL)
 	{
-		if(t_dev->znet_addr != m_dev->znet_addr)
+		if(memcmp(t_dev->dev_no, m_dev->dev_no, sizeof(zidentify_no_t)))
 		{
 			pre_dev = t_dev;
 			t_dev = t_dev->next;
 		}
 		else
 		{
-			if(memcmp(t_dev->zidentity_no, m_dev->zidentity_no, 8)
-				|| t_dev->zapp_type != m_dev->zapp_type
-				|| t_dev->znet_type != m_dev->znet_type)
+			if(memcmp(t_dev->dev_no, m_dev->dev_no, 3)
+				|| t_dev->type != m_dev->type)
 			{
-				memcpy(t_dev->zidentity_no, m_dev->zidentity_no, 8);
-				t_dev->zapp_type = m_dev->zapp_type;
-				t_dev->znet_type = m_dev->znet_type;
+				memcpy(t_dev->dev_no, m_dev->dev_no, 3);
+				t_dev->type = m_dev->type;
 			}
 
-			int is_change =
-				set_devopt_data_fromopt(t_dev->zdev_opt, m_dev->zdev_opt);
-
-			if(!t_dev->isdata_change)
+			if(!t_dev->ischange)
 			{
-				t_dev->isdata_change = is_change;
+				//t_dev->isdata_change = is_change;
 			}
 
 			if(pre_dev != NULL)
@@ -97,14 +88,14 @@ int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev)
 
 
 
-dev_info_t *query_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
+dev_info_t *query_zdev_info(gw_info_t *gw_info, char *dev_no)
 {
 	dev_info_t *t_dev = gw_info->p_dev;
 
 
 	while(t_dev != NULL)
 	{
-		if(t_dev->znet_addr != znet_addr)
+		if(memcmp(t_dev->dev_no, dev_no, sizeof(zidentify_no_t)))
 		{
 			t_dev = t_dev->next;
 		}
@@ -117,7 +108,7 @@ dev_info_t *query_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 	return NULL;
 }
 
-int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
+int del_zdev_info(gw_info_t *gw_info, zidentify_no_t dev_no)
 {
 	dev_info_t *pre_dev =  NULL;
 	dev_info_t *t_dev = gw_info->p_dev;
@@ -125,7 +116,7 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 
 	while(t_dev != NULL)
 	{
-		if(t_dev->znet_addr != znet_addr)
+		if(memcmp(t_dev->dev_no, dev_no, sizeof(zidentify_no_t)))
 		{
 			pre_dev = t_dev;
 			t_dev = t_dev->next;
@@ -143,7 +134,7 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 			}
 			pthread_mutex_unlock(&gw_info->lock);
 
-			get_zdev_frame_free(t_dev);
+			free(t_dev);
 			return 0;
 		}
 	}
@@ -152,25 +143,18 @@ int del_zdev_info(gw_info_t *gw_info, uint16 znet_addr)
 }
 
 
-#ifdef COMM_TARGET
 int add_zdevice_info(dev_info_t *m_dev)
 {
 	return add_zdev_info(get_gateway_info(), m_dev);
 }
 
-dev_info_t *query_zdevice_info(uint16 znet_addr)
-{
-	return query_zdev_info(get_gateway_info(), znet_addr);
-}
-
-dev_info_t *query_zdevice_info_with_sn(zidentify_no_t zidentify_no)
+dev_info_t *query_zdevice_info(zidentify_no_t dev_no)
 {
 	dev_info_t *t_dev = get_gateway_info()->p_dev;
 
-
 	while(t_dev != NULL)
 	{
-		if(memcmp(t_dev->zidentity_no, zidentify_no, sizeof(zidentify_no_t)))
+		if(memcmp(t_dev->dev_no, dev_no, sizeof(zidentify_no_t)))
 		{
 			t_dev = t_dev->next;
 		}
@@ -183,34 +167,10 @@ dev_info_t *query_zdevice_info_with_sn(zidentify_no_t zidentify_no)
 	return NULL;
 }
 
-uint16 get_znet_addr_with_sn(sn_t sn)
+int del_zdevice_info(zidentify_no_t dev_no)
 {
-	if(sn == NULL)
-	{
-		return 0;
-	}
-
-	zidentify_no_t zdev_no;
-	incode_ctoxs(zdev_no, sn, 16);
-
-	dev_info_t *p_dev = query_zdevice_info_with_sn(zdev_no);
-	if(p_dev != NULL)
-	{
-		return p_dev->znet_addr;
-	}
-	else
-	{
-		
-	}
-
-	return 0;
+	return del_zdev_info(get_gateway_info(), dev_no);
 }
-
-int del_zdevice_info(uint16 znet_addr)
-{
-	return del_zdev_info(get_gateway_info(), znet_addr);
-}
-#endif
 
 #ifdef __cplusplus
 }

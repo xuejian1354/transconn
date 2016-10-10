@@ -152,6 +152,33 @@ unsigned int gen_rand(unsigned char *seed)
 	return ra;
 }
 
+unsigned int crc16(unsigned char *buf, unsigned int length)
+{
+    unsigned int i;
+    unsigned int j;
+    unsigned int c;
+    unsigned int crc = 0xFFFF;
+    for (i=0; i<length; i++)
+    {
+        c = *(buf+i) & 0x00FF;
+        crc ^= c;
+        for (j=0; j<8; j++)
+        {
+            if (crc & 0x0001)
+            {
+                crc >>= 1;
+                crc ^= 0xA001;
+            }
+            else
+            { 
+                crc >>= 1;
+            }
+        }
+   }
+   crc = (crc>>8) + (crc<<8);
+   return crc;
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -33,6 +33,7 @@ void incode_xtoc16(char *dest, unsigned short src);
 void incode_ctox32(unsigned int *dest, char *src);
 void incode_xtoc32(char *dest, unsigned int src);
 unsigned int gen_rand(unsigned char *seed);
+unsigned int crc16(unsigned char *buf, unsigned int length);
 
 #ifdef __cplusplus
 }

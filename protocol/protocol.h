@@ -18,16 +18,13 @@
 #define __PROTOCOL_H__
 
 #include <services/globals.h>
-#include <protocol/old/devices.h>
+#include <protocol/devices.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifdef COMM_TARGET
 void analysis_zdev_frame(void *ptr);
-#endif
-
 void analysis_capps_frame(void *ptr);
 
 #ifdef __cplusplus
