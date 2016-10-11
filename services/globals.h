@@ -68,6 +68,12 @@ extern "C" {
 //websocket protocol using port
 #define TRANS_WS_PORT	8020
 
+#define UPCHECK_TIME	30000
+
+//query devices
+#define QUERYDEV_TIME	300
+#define QUERYDEV_NUM	5
+
 #ifdef COMM_TARGET
 //udp protocol using port
 #define TRANS_UDP_SELF_PORT	11678
@@ -89,7 +95,10 @@ extern "C" {
 #define TRANS_WS_TIMEOUT	30000
 
 #define GLOBAL_CONF_SERIAL_PORT		"serial_dev"
-#define GLOBAL_CONF_SERVER_IP			"server_ip"
+#define GLOBAL_CONF_SERVER_IP		"server_ip"
+#define GLOBAL_CONF_UPCHECK_TIME	"upcheck_time"
+#define GLOBAL_CONF_QUERYDEV_TIME	"querydev_time"
+#define GLOBAL_CONF_QUERYDEV_NUM	"querydev_num"
 
 #define GLOBAL_CONF_ISSETVAL_SERIAL			0x00000001
 #define GLOBAL_CONF_ISSETVAL_IP				0x00000002
@@ -119,7 +128,9 @@ typedef struct
 
 	char serial_dev[16];
 	char server_ip[IP_ADDR_MAX_SIZE];
-
+	unsigned long upcheck_time;
+	unsigned long querydev_time;
+	int querydev_num;
 }global_conf_t;
 
 typedef struct ConfVal

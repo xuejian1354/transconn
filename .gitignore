@@ -5,7 +5,6 @@ smartplat
 smartlab
 cullive
 *.swp
-*.patch
 
 include/*
 !include/*.mk

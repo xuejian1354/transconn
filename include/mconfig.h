@@ -25,14 +25,11 @@ extern "C" {
 
 //#define COMM_TARGET
 
-#if defined(COMM_TARGET)
 #define THREAD_POOL_SUPPORT
 #define TIMER_SUPPORT
 #define SELECT_SUPPORT
-#ifdef COMM_TARGET
 #define UART_COMMBY_SOCKET
-#endif
-#endif
+
 #define SERIAL_SUPPORT
 //#define TRANS_TCP_SERVER
 //#define TRANS_TCP_CLIENT

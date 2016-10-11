@@ -25,6 +25,37 @@ extern "C" {
 
 static gw_info_t gw_info;
 
+trbuffer_t *get_devopt_frame_alloc(uint8 devid, uint16 dataoff, uint16 datalen)
+{
+	trbuffer_t *frame = calloc(1, sizeof(trbuffer_t));
+
+	frame->len = 8;
+	frame->data = calloc(1, frame->len);
+
+	*(frame->data) = devid;
+	*(frame->data+1) = 0x03;
+	*(frame->data+2) = (dataoff>>8) & 0xFF;
+	*(frame->data+3) = dataoff & 0xFF;
+	*(frame->data+4) = (datalen>>8) & 0xFF;
+	*(frame->data+5) = datalen & 0xFF;
+
+	uint32 crcval = crc16(frame->data, 6);
+	*(frame->data+6) = (crcval>>8) & 0xFF;
+	*(frame->data+7) = crcval & 0xFF;
+
+	return frame;
+}
+
+void get_devopt_frame_free(trbuffer_t *buffer)
+{
+	if(buffer != NULL)
+	{
+		free(buffer->data);
+	}
+
+	free(buffer);
+}
+
 gw_info_t *get_gateway_info()
 {
 	return &gw_info;
@@ -53,16 +84,14 @@ int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev)
 		}
 		else
 		{
-			if(memcmp(t_dev->dev_no, m_dev->dev_no, 3)
-				|| t_dev->type != m_dev->type)
+			if(memcmp(t_dev->data, m_dev->data, 4))
 			{
-				memcpy(t_dev->dev_no, m_dev->dev_no, 3);
-				t_dev->type = m_dev->type;
+				memcpy(t_dev->data, m_dev->data, 4);
+				t_dev->ischange = 1;
 			}
-
-			if(!t_dev->ischange)
+			else
 			{
-				//t_dev->isdata_change = is_change;
+				t_dev->ischange = 0;
 			}
 
 			if(pre_dev != NULL)

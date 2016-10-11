@@ -19,7 +19,10 @@
 
 #include <services/globals.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h> 
 #include <arpa/inet.h>
+#include <netinet/in.h> 
+#include <net/if.h> 
 #ifdef TRANS_HTTP_REQUEST
 #include <curl/curl.h>
 #include <libxml/parser.h>
@@ -48,7 +51,7 @@ typedef struct
 {
 	int fd;
 	struct sockaddr_in addr; 
-	char *buf;
+	unsigned char *buf;
 	int len;
 }frhandler_arg_t;
 
@@ -70,12 +73,10 @@ typedef struct
 }curl_args_t;
 #endif
 
+unsigned char *getMac(char *ifdev);
+
 frhandler_arg_t *get_frhandler_arg_alloc(int fd, struct sockaddr_in *addr, char *buf, int len);
 void get_frhandler_arg_free(frhandler_arg_t *arg);
-
-#ifdef COMM_TARGET
-frhandler_arg_t *get_transtocol_frhandler_arg();
-#endif
 
 #ifdef TRANS_TCP_SERVER
 int get_stcp_fd();

@@ -34,6 +34,25 @@ void analysis_zdev_frame(void *ptr)
 		return;
 	}
 
+	//DE_PRINTF(0, "%s\nserial read: ", get_time_head());
+	//PRINT_HEX(arg->buf, arg->len);
+
+	zidentify_no_t devno;
+	memcpy(devno, get_gateway_info()->gw_no+1, sizeof(zidentify_no_t)-1);
+	devno[sizeof(zidentify_no_t)-1] = arg->buf[0];
+
+	dev_info_t *dev_info = (dev_info_t *)calloc(1, sizeof(dev_info_t));
+	memcpy(dev_info->dev_no, devno, sizeof(zidentify_no_t));
+	dev_info->type = FRAPP_CONNECTOR;
+	memcpy(dev_info->data, arg->buf+3, arg->buf[2]);
+	dev_info->ischange = 1;
+
+	if(add_zdevice_info(dev_info) != 0)
+	{
+		free(dev_info);
+	}
+
+	upload_data(NULL);
 
 	get_frhandler_arg_free(arg);
 }
@@ -115,7 +134,7 @@ void analysis_capps_frame(void *ptr)
 									devsn_size,
 									pRandom->valuestring);
 
-		trans_refresh_handler(arg, refresh);
+		trans_refresh_handler(refresh);
 		get_trfr_refresh_free(refresh);
 	}
 		break;
@@ -193,7 +212,7 @@ void analysis_capps_frame(void *ptr)
 									ctrl_size,
 									pRandom->valuestring);
 
-		trans_control_handler(arg, control);
+		trans_control_handler(control);
 		get_trfr_control_free(control);
 	}
 		break;
@@ -236,7 +255,7 @@ void analysis_capps_frame(void *ptr)
 										(trans_action_t)atoi(pReqAction->valuestring),
 										info_str,
 										pRandom->valuestring);
-		trans_tocolres_handler(arg, tocolres);
+		trans_tocolres_handler(tocolres);
 		get_trfr_tocolres_free(tocolres);
 	}
 		break;

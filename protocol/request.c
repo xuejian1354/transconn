@@ -31,7 +31,6 @@ extern "C" {
 char curl_buf[0x4000];
 #endif
 
-#ifdef COMM_TARGET
 respond_data_t *prespond_data = NULL;
 
 void del_respond_data_with_sn(sn_t sn);
@@ -68,7 +67,41 @@ void del_respond_data_with_sn(sn_t sn)
 	}
 }
 
-void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq)
+char *gen_current_checkcode()
+{
+	char *text = NULL;
+	long text_len = 0;
+
+	dev_info_t *p_dev = get_gateway_info()->p_dev;
+	while(p_dev != NULL)
+	{
+		unsigned char devdata_str[8] = {0};
+		incode_xtocs(devdata_str, p_dev->data, sizeof(p_dev->data));
+		p_dev = p_dev->next;
+
+		if(text == NULL)
+		{
+			text = (char *)calloc(1, 9);
+			text_len = 9;
+		}
+		else
+		{
+			text = realloc(text, text_len+8);
+			text_len += 8;
+		}
+
+		memcpy(text+text_len-9, devdata_str, 8);
+		*(text+text_len-1) = '\0';
+	}
+
+	char *checkcode = get_md5(text, 16);
+	free(text);
+
+	return checkcode;
+}
+
+
+void trans_send_tocolreq_request(trfr_tocolreq_t *tocolreq)
 {
 	if(tocolreq == NULL)
 	{
@@ -124,7 +157,7 @@ void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq
 	cJSON_Delete(pRoot);
 }
 
-void trans_send_report_request(frhandler_arg_t *arg, trfr_report_t *report)
+void trans_send_report_request(trfr_report_t *report)
 {
 	if(report == NULL)
 	{
@@ -146,34 +179,23 @@ void trans_send_report_request(frhandler_arg_t *arg, trfr_report_t *report)
 
 	while(i < report->dev_size)
 	{
-		
 		cJSON *pDev = cJSON_CreateObject();
 		cJSON_AddItemToArray(pDevs, pDev);
 
-		cJSON_AddStringToObject(pDev, JSON_FIELD_NAME, (*(report->devices+i))->name);
 		cJSON_AddStringToObject(pDev, JSON_FIELD_DEVSN, (*(report->devices+i))->dev_sn);
-		//cJSON_AddStringToObject(pDev, JSON_FIELD_DEVTYPE, get_frapp_type_to_str((*(report->devices+i))->dev_type));
-		if((*(report->devices+i))->znet_status)
-		{
-			cJSON_AddStringToObject(pDev, JSON_FIELD_ZSTATUS, "1");
-		}
-		else
-		{
-			cJSON_AddStringToObject(pDev, JSON_FIELD_ZSTATUS, "0");
-		}
 		cJSON_AddStringToObject(pDev, JSON_FIELD_DEVDATA, (*(report->devices+i))->dev_data);
-		
+
 		i++;
 	}
 
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, report->random);
 
-	trans_send_frame_request(arg, ACTION_REPORT, cJSON_Print(pRoot));
+	trans_send_frame_request(cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
 
-void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check)
+void trans_send_check_request(trfr_check_t *check)
 {
 	if(check == NULL)
 	{
@@ -194,12 +216,12 @@ void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check)
 	cJSON_AddStringToObject(pCode, JSON_FIELD_CODEDATA, check->code.code_data);
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, check->random);
 
-	trans_send_frame_request(arg, ACTION_CHECK, cJSON_Print(pRoot));
+	trans_send_frame_request(cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
 
-void trans_send_respond_request(frhandler_arg_t *arg, trfr_respond_t *respond)
+void trans_send_respond_request(trfr_respond_t *respond)
 {
 	if(respond == NULL)
 	{
@@ -214,20 +236,18 @@ void trans_send_respond_request(frhandler_arg_t *arg, trfr_respond_t *respond)
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_DEVDATA, respond->dev_data);
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, respond->random);
 
-	trans_send_frame_request(arg, ACTION_RESPOND, cJSON_Print(pRoot));
+	trans_send_frame_request(cJSON_Print(pRoot));
 
 	cJSON_Delete(pRoot);
 }
-#endif
-#if defined(COMM_TARGET)
-void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
+
+void trans_refresh_handler(trfr_refresh_t *refresh)
 {
 	if(refresh == NULL)
 	{
 		return;
 	}
 
-#ifdef COMM_TARGET
 	zidentify_no_t gw_sn;
 	incode_ctoxs(gw_sn, refresh->gw_sn, 16);
 	if(memcmp(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t)))
@@ -248,18 +268,16 @@ void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh)
 	{
 	}
 
-	upload_data(1, refresh->random);
-#endif
+	upload_data(refresh->random);
 }
 
-void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
+void trans_control_handler(trfr_control_t *control)
 {
 	if(control == NULL)
 	{
 		return;
 	}
 
-#ifdef COMM_TARGET
 	zidentify_no_t gw_sn;
 	incode_ctoxs(gw_sn, control->gw_sn, 16);
 	if(memcmp(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t)))
@@ -286,18 +304,16 @@ void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control)
 			usleep(100);
 		}
 	}
-#endif
 }
-#endif
 
-void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
+
+void trans_tocolres_handler(trfr_tocolres_t *tocolres)
 {
 	if(tocolres == NULL)
 	{
 		return;
 	}
 
-#ifdef COMM_TARGET
 	switch(tocolres->req_action)
 	{
 	case ACTION_REPORT:
@@ -311,10 +327,9 @@ void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
 	}
 		break;
 	}
-#endif
 }
 
-void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres)
+void trans_send_tocolres_request(trfr_tocolres_t *tocolres)
 {
 	if(tocolres == NULL)
 	{
@@ -341,117 +356,60 @@ void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres
 	}
 	cJSON_AddStringToObject(pRoot, JSON_FIELD_RANDOM, tocolres->random);
 
-	trans_send_frame_request(arg, ACTION_TOCOLRES, cJSON_Print(pRoot));
+	trans_send_frame_request(cJSON_Print(pRoot));
 	
 	cJSON_Delete(pRoot);
 }
 
-#ifdef COMM_TARGET
-void sync_gateway_info(gw_info_t *pgw_info)
+void upload_data(char *random)
 {
-}
+	sn_t gwno_str = {0};
+	incode_xtocs(gwno_str, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
 
-void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info)
-{
-	if(pdev_info == NULL)
+	trfield_device_t **devices = NULL;
+	int dev_size = 0;
+
+	dev_info_t *p_dev = get_gateway_info()->p_dev;
+	while(p_dev != NULL)
 	{
-		return;
-	}
-
-	sn_t dev_sn = {0};
-	incode_xtocs(dev_sn, pdev_info->dev_no, sizeof(zidentify_no_t));
-
-	respond_data_t *trespond_data = prespond_data;
-	while(trespond_data != NULL)
-	{
-		if(!strcmp(trespond_data->sn, dev_sn))
+		if(p_dev->ischange)
 		{
-			sn_t gw_sn = {0};
-			incode_xtocs(gw_sn, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
+			sn_t dev_sn = {0};
+			incode_xtocs(dev_sn, p_dev->dev_no, sizeof(zidentify_no_t));
 
-			bzero(trespond_data->dev_data, JSON_FIELD_DATA_MAXSIZE);
-			STRS_MEMCPY(trespond_data->dev_data,
-								pdev_info->data,
-								sizeof(trespond_data->dev_data),
-								strlen(pdev_info->data));
+			char dev_data[12] = {0};
+			incode_xtocs(dev_data, p_dev->data, sizeof(p_dev->data));
 
-			trfr_respond_t *respond =
-				get_trfr_respond_alloc(NULL,
-										gw_sn,
-										dev_sn,
-										trespond_data->dev_data,
-										trespond_data->random);
-
-			trespond_data->respond_callback(get_transtocol_frhandler_arg(), respond);
-			get_trfr_respond_free(respond);
-
-			del_timer_event(trespond_data->timer_id);
-			del_respond_data_with_sn(dev_sn);
-			return;
-		}
-
-		trespond_data = trespond_data->next;
-	}
-
-	if(pdev_info->ischange)
-	{
-		upload_data(isrefresh, NULL);
-	}
-}
-
-void upload_data(uint8 isrefresh, char *random)
-{
-		sn_t gwno_str = {0};
-		incode_xtocs(gwno_str, get_gateway_info()->gw_no, sizeof(zidentify_no_t));
-
-		trfield_device_t **devices = NULL;
-		int dev_size = 0;
-
-		dev_info_t *p_dev = get_gateway_info()->p_dev;
-		while(p_dev != NULL)
-		{
-			if(p_dev->ischange)
+			trfield_device_t *device = get_trfield_device_alloc(dev_sn, dev_data);
+			if(device != NULL)
 			{
-				char *name = get_mix_name(p_dev->type,
-											get_gateway_info()->gw_no[7],
-											p_dev->dev_no[2]);
-
-				sn_t dev_sn = {0};
-				incode_xtocs(dev_sn, p_dev->dev_no, sizeof(zidentify_no_t));
-
-				char *dev_data = (char *)calloc(1, sizeof(p_dev->data));
-				memcpy(dev_data, p_dev->data, sizeof(p_dev->data));
-
-				trfield_device_t *device = 
-						get_trfield_device_alloc(name, dev_sn, (char *)p_dev->type, 1, dev_data);
-
-				if(device != NULL)
+				if(devices == NULL)
 				{
-					if(devices == NULL)
-					{
-						devices = (trfield_device_t **)calloc(1, sizeof(trfield_device_t *));
-						*devices = device;
-					}
-					else
-					{
-						devices = realloc(devices, (dev_size+1)*sizeof(trfield_device_t *));
-						*(devices+dev_size) = device;
-					}
-
-					dev_size++;
+					devices = (trfield_device_t **)calloc(1, sizeof(trfield_device_t *));
+					*devices = device;
 				}
+				else
+				{
+					devices = realloc(devices, (dev_size+1)*sizeof(trfield_device_t *));
+					*(devices+dev_size) = device;
+				}
+
+				dev_size++;
 			}
-			p_dev = p_dev->next;
 		}
+		p_dev->ischange = 0;
+		p_dev = p_dev->next;
+	}
 
-		trfr_report_t * report = get_trfr_report_alloc(NULL,
-														gwno_str,
-														devices,
-														dev_size,
-														random);
+	trfr_report_t * report = get_trfr_report_alloc(NULL, gwno_str, devices, dev_size, random);
 
-		trans_send_report_request(get_transtocol_frhandler_arg(), report);
-		get_trfr_report_free(report);
+	trans_send_report_request(report);
+	if(report != NULL)
+	{
+		set_upcheck_reset();
+	}
+
+	get_trfr_report_free(report);
 }
 
 void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback)
@@ -520,20 +478,17 @@ void device_ctrl_timer_callback(void *p)
 										ACTION_CONTROL,
 										(char *)INFO_TIMEOUT,
 										mrespond_data->random);
-		trans_send_tocolres_request(get_transtocol_frhandler_arg(), tocolres);
+		trans_send_tocolres_request(tocolres);
 		get_trfr_tocolres_free(tocolres);
 
 		del_respond_data_with_sn(mrespond_data->sn);
 	}
 }
-#endif
 
-void trans_send_frame_request(frhandler_arg_t *arg, trans_action_t action, char *frame)
+void trans_send_frame_request(char *frame)
 {
-#ifdef TRANS_HTTP_REQUEST
-		sprintf(curl_buf, "key=[%s]&datatype=%s\0", frame, get_action_to_str(action));
-		curl_http_request(CURL_POST, curl_buf, curl_data);
-		set_heartbeat_check(0, TRANS_WS_TIMEOUT);
+#ifdef TRANS_WS_CONNECT
+	ws_send(frame, strlen(frame));
 #endif
 }
 

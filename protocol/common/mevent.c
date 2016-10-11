@@ -25,63 +25,70 @@ extern "C" {
 #endif
 
 #ifdef TIMER_SUPPORT
-#ifdef COMM_TARGET
-static int heartbeat_interval = 500;
 
-static void heartbeat_request(void *p);
-static void zdev_watch(void *p);
+static void upcheck(void *p);
+static void query_dev(void *p);
 
 void gateway_init()
 {
+	//Upcheck with server
+	set_upcheck_reset();
+
+	//Query Devices
 	timer_event_param_t timer_param;
 	timer_param.resident = 1;
-	timer_param.interval = 4000;
+	timer_param.interval = get_global_conf()->querydev_time;
 	timer_param.count = 1;
 	timer_param.immediate = 1;
 
-	set_mevent(GATEWAY_HEARTBEAT_EVENT, heartbeat_request, &timer_param);
+	set_mevent(GATEWAY_QUERYDEV_EVENT, query_dev, &timer_param);
 }
 
-void set_heartbeat_check(int immediate, int interval)
+void set_upcheck_reset()
 {
 	timer_event_param_t timer_param;
-	heartbeat_interval = interval;
 	timer_param.resident = 1;
-	timer_param.interval = heartbeat_interval;
-	timer_param.count = 1;
-	timer_param.immediate = immediate;
-
-	set_mevent(GATEWAY_HEARTBEAT_EVENT, heartbeat_request, &timer_param);
-}
-
-void heartbeat_request(void *p)
-{
-	
-}
-
-void set_zdev_check(uint16 net_addr)
-{
-	timer_event_param_t timer_param;
-
-	timer_param.resident = 0;
-	timer_param.interval = 40000;
+	timer_param.interval = get_global_conf()->upcheck_time;
 	timer_param.count = 1;
 	timer_param.immediate = 0;
-	timer_param.arg = (void *)((int)net_addr);
-	
-	set_mevent((ZDEVICE_WATCH_EVENT<<16)+net_addr, zdev_watch, &timer_param);
+
+	set_mevent(GATEWAY_UPCHECK_EVENT, upcheck, &timer_param);
 }
 
-void zdev_watch(void *p)
+static void upcheck(void *p)
 {
-	//uint16 znet_addr = (uint16)((int)p);
-	//DE_PRINTF(1, "del zdevice from list, zdev no:%04X\n\n", znet_addr);
+	sn_t gwno_str = {0};
+	incode_xtocs(gwno_str,
+					get_gateway_info()->gw_no,
+					sizeof(zidentify_no_t));
 
+	char *cur_code = gen_current_checkcode();
 
-	//del_zdevice_info(znet_addr);
-	upload_data(0, NULL);
+	trfr_check_t *check = get_trfr_check_alloc(NULL,
+												gwno_str,
+												NULL,
+												0,
+												(char *)"md5",
+												cur_code,
+												NULL);
+
+	trans_send_check_request(check);
+	get_trfr_check_free(check);
 }
-#endif
+
+void query_dev(void *p)
+{
+    static unsigned int i = 0;
+
+	trbuffer_t *frame = get_devopt_frame_alloc(i++, 0, 2);
+	serial_write(frame->data, frame->len);
+	get_devopt_frame_free(frame);
+
+	if(i > get_global_conf()->querydev_num)
+	{
+		i = 1;
+	}
+}
 
 void set_mevent(int id, timer_callback_t event_callback, timer_event_param_t *param)
 {
@@ -89,7 +96,7 @@ void set_mevent(int id, timer_callback_t event_callback, timer_event_param_t *pa
 	timer_event->timer_id = id;
 	timer_event->param = *param;
 	timer_event->timer_callback = event_callback;
-	
+
 	if(set_timer_event(timer_event) != 0)
 	{
 		free(timer_event);

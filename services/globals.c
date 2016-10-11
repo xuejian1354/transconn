@@ -49,6 +49,9 @@ static global_conf_t g_conf =
 	0,
 	TRANS_SERIAL_DEV,
 	SERVER_IP,
+	UPCHECK_TIME,
+	QUERYDEV_TIME,
+	QUERYDEV_NUM,
 };
 
 #ifdef READ_CONF_FILE
@@ -280,12 +283,14 @@ int get_daemon_cmdline()
 
 int mach_init()
 {
-	gw_info_t *p_gw_info = get_gateway_info();
+	gw_info_t *p_gw = get_gateway_info();
 
-	memset(p_gw_info->gw_no, 0, sizeof(p_gw_info->gw_no));
-	p_gw_info->type = FRAPP_CONNECTOR;
-	p_gw_info->p_dev = NULL;
-	p_gw_info->next = NULL;
+	memset(p_gw->gw_no, 0, sizeof(p_gw->gw_no));
+	memcpy(p_gw->gw_no, getMac("eth0.2")+3, sizeof(zidentify_no_t));
+
+	p_gw->type = FRAPP_CONNECTOR;
+	p_gw->p_dev = NULL;
+	p_gw->next = NULL;
 
 	if(pthread_mutex_init(&(get_gateway_info()->lock), NULL) != 0)
     {
@@ -300,9 +305,7 @@ int mach_init()
 void event_init()
 {
 #ifdef TIMER_SUPPORT
-#ifdef COMM_TARGET
 	gateway_init();
-#endif
 #endif
 }
 
@@ -316,7 +319,11 @@ int conf_read_from_file()
 {
 	FILE *fp = NULL;
 	char buf[128] = {0};
+
 	g_conf.isset_flag = 0;
+	g_conf.upcheck_time = UPCHECK_TIME;
+	g_conf.querydev_time = QUERYDEV_TIME;
+	g_conf.querydev_num = QUERYDEV_NUM;
 
 	if((fp = fopen(CONF_FILE, "r")) != NULL)
 	{
@@ -446,6 +453,21 @@ void set_conf_val(char *cmd, char *val)
 			strcpy(g_conf.server_ip, val);
 			g_conf.isset_flag |= GLOBAL_CONF_ISSETVAL_IP;
 		}
+	}
+
+	if(!strcmp(cmd, GLOBAL_CONF_UPCHECK_TIME))
+	{
+		g_conf.upcheck_time = atol(val);
+	}
+
+	if(!strcmp(cmd, GLOBAL_CONF_QUERYDEV_TIME))
+	{
+		g_conf.querydev_time = atol(val);
+	}
+
+	if(!strcmp(cmd, GLOBAL_CONF_QUERYDEV_NUM))
+	{
+		g_conf.querydev_num = atoi(val);
 	}
 }
 

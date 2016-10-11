@@ -36,6 +36,8 @@ static void set_deudp_flag(uint8 flag);
 static void set_detcp_flag(uint8 flag);
 static void set_depost_flag(uint8 flag);
 
+static uint8 macaddr[6] = { 0xFF };
+
 static uint8 deudp_flag = 1;
 static uint8 detcp_flag = 1;
 static uint8 depost_flag = 1;
@@ -62,6 +64,29 @@ static noPollConn * ws_conn;
 #endif
 
 uint8 lwflag = 0;
+
+unsigned char *getMac(char *ifdev)
+{
+	struct ifreq ifreq;
+
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    if(sock < 0)
+    {
+        perror("error sock");
+    }
+
+    strcpy(ifreq.ifr_name, ifdev);
+    if(ioctl(sock, SIOCGIFHWADDR, &ifreq) < 0)
+    {
+        perror("error ioctl");
+    }
+
+	memcpy(macaddr, ifreq.ifr_hwaddr.sa_data, 6);
+	close(sock);
+
+    return macaddr;
+}
+
 
 frhandler_arg_t *get_frhandler_arg_alloc(int fd, struct sockaddr_in *addr, char *buf, int len)
 {
@@ -103,21 +128,6 @@ void get_frhandler_arg_free(frhandler_arg_t *arg)
 		free(arg);
 	}
 }
-
-#ifdef COMM_TARGET
-frhandler_arg_t *get_transtocol_frhandler_arg()
-{
-#if defined(TRANS_UDP_SERVICE) || defined(DE_TRANS_UDP_STREAM_LOG)
-	t_arg.addr.sin_family = PF_INET;
-	t_arg.addr.sin_port = htons(get_udp_port());
-	t_arg.addr.sin_addr.s_addr = inet_addr(get_server_ip());
-
-	return &t_arg;
-#else
-	return NULL;
-#endif
-}
-#endif
 
 #ifdef TRANS_TCP_SERVER
 int get_stcp_fd()

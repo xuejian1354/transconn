@@ -103,6 +103,7 @@ int set_serial_params(int fd, uint32 speed, uint8 databit, uint8 stopbit, uint8 
     cfsetospeed(&options,iSpeed);
 
     //  Set DataBits
+    options.c_cflag |= CLOCAL | CREAD;
     options.c_cflag &= ~CSIZE;
     switch(databit) {
         case 5:
@@ -129,12 +130,12 @@ int set_serial_params(int fd, uint32 speed, uint8 databit, uint8 stopbit, uint8 
             break;
         case 1:
             options.c_cflag |= (PARODD | PARENB);
-            options.c_iflag |= INPCK;
+            options.c_iflag |= (INPCK | ISTRIP);
             break;
         case 2:
             options.c_cflag |= PARENB;
             options.c_cflag &= ~PARODD;
-            options.c_iflag |= INPCK;
+            options.c_iflag |= (INPCK | ISTRIP);
             break;
         default:
             perror("Unsupported Parity");
@@ -155,8 +156,11 @@ int set_serial_params(int fd, uint32 speed, uint8 databit, uint8 stopbit, uint8 
     }
 
 
-    options.c_lflag &= ~(ICANON | ECHO | ECHONL | ECHOE | ISIG | IEXTEN);
-    options.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+    //options.c_lflag &= ~(ICANON | ECHO | ECHONL | ECHOE | ISIG | IEXTEN);
+    //options.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+
+	options.c_cc[VTIME] = 1;
+	options.c_cc[VMIN] = 9;
 
     if(tcsetattr(fd, TCSANOW, &options) != 0) {
         perror("Tcsetattr Fail");
@@ -280,15 +284,15 @@ int serial_init(char *dev)
 	return 0;
 }
 
-int serial_write(char *data, int datalen)
+int serial_write(uint8 *data, uint16 datalen)
 {
 #ifdef DE_PRINT_SERIAL_PORT
 #ifdef DE_TRANS_UDP_STREAM_LOG
 	if(get_deuart_flag())
 	{
 #endif
-		DE_PRINTF(0, "serial write:%s\n", data);
-		//PRINT_HEX(data, datalen);
+		DE_PRINTF(0, "%s\nserial write: ", get_time_head());
+		PRINT_HEX(data, datalen);
 #ifdef DE_TRANS_UDP_STREAM_LOG
 	}
 #endif
@@ -346,7 +350,7 @@ void *uart_read_func(void *p)
 		if(get_deuart_flag())
 		{
 #endif
-			DE_PRINTF(0, "%s\nserial read:%s\n", get_time_head(), rbuf);
+			DE_PRINTF(0, "%s\nserial read: ", get_time_head());
 			PRINT_HEX(rbuf, rlen);
 #ifdef DE_TRANS_UDP_STREAM_LOG
 		}

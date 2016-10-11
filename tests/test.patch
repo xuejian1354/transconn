@@ -1,0 +1,23 @@
+diff --git a/include/include.mk b/include/include.mk
+index 0fb8111..4ac9e02 100644
+--- a/include/include.mk
++++ b/include/include.mk
+@@ -4,7 +4,7 @@ ifeq ($(TOPDIR),)
+ $(error TOPDIR value no set)
+ endif
+ 
+-inc_dirs :=
++inc_dirs :=/home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/openssl /home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/curl /home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/libxml2/libxml
+ 
+ inc_files := $(strip $(foreach n, $(SUB_MODULES), \
+ 			  $(patsubst %, $(n)/%, \
+diff --git a/mconfig/cullive_config b/mconfig/cullive_config
+index 6690e7b..d0420bb 100644
+--- a/mconfig/cullive_config
++++ b/mconfig/cullive_config
+@@ -1,4 +1,4 @@
+ DMACRO +=-DXDE_TRANS_UDP_STREAM_LOG
+ 
+-TARGET_LDPATH =
++TARGET_LDPATH =-L/home/sam/openwrt/barrier_breaker/staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/lib
+ TARGET_LDFLAG =-lcurl -lssl -lcrypto -lxml2 -lm -lz

@@ -261,8 +261,7 @@ typedef struct
 
 char *get_action_to_str(trans_action_t action);
 
-trfield_device_t *get_trfield_device_alloc(char *name,
-	sn_t dev_sn, char *dev_type, int znet_status, char *dev_data);
+trfield_device_t *get_trfield_device_alloc(sn_t dev_sn, char *dev_data);
 
 trfield_ctrl_t *get_trfield_ctrl_alloc(sn_t dev_sn, char *cmd);
 

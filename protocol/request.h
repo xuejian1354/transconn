@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-typedef void (*respond_request_t)(frhandler_arg_t *, trfr_respond_t *);
+typedef void (*respond_request_t)(trfr_respond_t *);
 
 typedef struct RespondData
 {
@@ -39,24 +39,24 @@ typedef struct RespondData
 	struct RespondData *next;
 }respond_data_t;
 
-void trans_send_tocolreq_request(frhandler_arg_t *arg, trfr_tocolreq_t *tocolreq);
-void trans_send_report_request(frhandler_arg_t *arg, trfr_report_t *report);
-void trans_send_check_request(frhandler_arg_t *arg, trfr_check_t *check);
-void trans_send_respond_request(frhandler_arg_t *arg, trfr_respond_t *respond);
+char *gen_current_checkcode();
 
-void trans_refresh_handler(frhandler_arg_t *arg, trfr_refresh_t *refresh);
-void trans_control_handler(frhandler_arg_t *arg, trfr_control_t *control);
+void trans_send_tocolreq_request(trfr_tocolreq_t *tocolreq);
+void trans_send_report_request(trfr_report_t *report);
+void trans_send_check_request(trfr_check_t *check);
+void trans_send_respond_request(trfr_respond_t *respond);
 
-void trans_tocolres_handler(frhandler_arg_t *arg, trfr_tocolres_t *tocolres);
+void trans_refresh_handler(trfr_refresh_t *refresh);
+void trans_control_handler(trfr_control_t *control);
 
-void trans_send_tocolres_request(frhandler_arg_t *arg, trfr_tocolres_t *tocolres);
+void trans_tocolres_handler(trfr_tocolres_t *tocolres);
 
-void sync_gateway_info(gw_info_t *pgw_info);
-void sync_zdev_info(uint8 isrefresh, dev_info_t *pdev_info);
-void upload_data(uint8 isrefresh, char *random);
+void trans_send_tocolres_request(trfr_tocolres_t *tocolres);
+
+void upload_data(char *random);
 void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback);
 
-void trans_send_frame_request(frhandler_arg_t *arg, trans_action_t action, char *frame);
+void trans_send_frame_request(char *frame);
 
 #ifdef __cplusplus
 }

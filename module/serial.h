@@ -36,7 +36,7 @@ int get_reser_fd();
 int get_reser_accept(int fd);
 #endif
 int serial_init(char *dev);
-int serial_write(char *data, int datalen);
+int serial_write(uint8 *data, uint16 datalen);
 void *uart_read_func(void *p);
 
 #endif

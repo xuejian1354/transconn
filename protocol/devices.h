@@ -28,7 +28,7 @@ typedef struct Dev_Info
 {
 	zidentify_no_t dev_no;
 	fr_app_type_t type;
-	uint32 data;
+	uint8 data[4];
 	uint8 ischange;
 	struct Dev_Info *next;
 }dev_info_t;
@@ -41,6 +41,16 @@ typedef struct Gw_Info
 	dev_info_t *p_dev;
 	struct Gw_Info *next;
 }gw_info_t;
+
+typedef struct Tr_Buffer
+{
+	uint8 *data;
+	uint16 len;
+}trbuffer_t;
+
+
+trbuffer_t *get_devopt_frame_alloc(uint8 devid, uint16 dataoff, uint16 datalen);
+void get_devopt_frame_free(trbuffer_t *buffer);
 
 
 int add_zdev_info(gw_info_t *gw_info, dev_info_t *m_dev);
