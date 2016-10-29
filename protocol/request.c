@@ -420,7 +420,7 @@ void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback)
 	}
 
 
-	int timer_id = (ZDEVICE_RESPOND_EVENT<<16)+atoi(get_md5(get_system_time(), 2));
+	/*int timer_id = (ZDEVICE_RESPOND_EVENT<<16)+atoi(get_md5(get_system_time(), 2));
 
 	respond_data_t *mrespond_data = (respond_data_t *)calloc(1, sizeof(respond_data_t));
 
@@ -450,22 +450,50 @@ void device_ctrl(sn_t sn, char *cmd, char *random, respond_request_t callback)
 	param.count = 1;
 	param.immediate = 0;
 	param.arg = mrespond_data;
-	set_mevent(timer_id, device_ctrl_timer_callback, &param);
+	set_mevent(timer_id, device_ctrl_timer_callback, &param);*/
 
-	//if(znet_addr)
+	zidentify_no_t ztsn = {0};
+	incode_ctoxs(ztsn, sn, strlen(sn));
+
+	uint8 ztcmd[8] = {0};
+	uint16 ztcmdlen = strlen(cmd)/2;
+	incode_ctoxs(ztcmd, cmd, strlen(cmd));
+
+
+	trbuffer_t *frame = calloc(1, sizeof(trbuffer_t));
+	
+	frame->len = 8;
+	frame->data = calloc(1, frame->len);
+
+	*(frame->data) = ztsn[strlen(sn)/2-1];
+	*(frame->data+1) = 0x04;
+	if(ztcmdlen > 0)
 	{
-		/*int size = FR_DE_DATA_FIX_LEN + cmd_len;
-		uint8 *buffer = (uint8 *)calloc(size, sizeof(uint8));
-
-		memcpy(buffer, FR_HEAD_DE, 2);
-		memcpy(buffer+2, FR_CMD_SINGLE_EXCUTE, 4);
-		sprintf((char *)(buffer+6), "%04X", znet_addr);
-		memcpy(buffer+10, cmd, cmd_len);
-		memcpy(buffer+10+cmd_len, FR_TAIL, 4);
-
-		serial_write((char *)buffer, size);
-		free(buffer);*/
+		*(frame->data+2) = ztcmd[0];
 	}
+
+	if(ztcmdlen > 1)
+	{
+		*(frame->data+3) = ztcmd[1];
+	}
+
+	if(ztcmdlen > 2)
+	{
+		*(frame->data+4) = ztcmd[2];
+	}
+
+	if(ztcmdlen > 3)
+	{
+		*(frame->data+5) = ztcmd[3];
+	}
+
+	uint32 crcval = crc16(frame->data, 6);
+	*(frame->data+6) = (crcval>>8) & 0xFF;
+	*(frame->data+7) = crcval & 0xFF;
+
+	serial_write(frame->data, frame->len);
+	PRINT_HEX(frame->data, frame->len);
+	get_devopt_frame_free(frame);
 }
 
 void device_ctrl_timer_callback(void *p)

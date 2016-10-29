@@ -26,9 +26,6 @@ extern "C" {
 
 #ifdef TIMER_SUPPORT
 
-static void upcheck(void *p);
-static void query_dev(void *p);
-
 void gateway_init()
 {
 	//Upcheck with server
@@ -55,7 +52,7 @@ void set_upcheck_reset()
 	set_mevent(GATEWAY_UPCHECK_EVENT, upcheck, &timer_param);
 }
 
-static void upcheck(void *p)
+void upcheck(void *p)
 {
 	sn_t gwno_str = {0};
 	incode_xtocs(gwno_str,

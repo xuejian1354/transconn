@@ -760,7 +760,7 @@ curl_data_end:
 #endif
 
 #ifdef TRANS_WS_CONNECT
-int ws_init()
+int ws_open()
 {
 	int i,dlen;
 	char sip[16] = {0};
@@ -809,6 +809,16 @@ int ws_init()
 		return -1;
 	}
 
+	return 0;
+}
+
+int ws_init()
+{
+	if(ws_open() < 0)
+	{
+		return -1;
+	}
+
 	pthread_t wsRead;
 	pthread_create(&wsRead, NULL, ws_read_func, NULL);
 
@@ -821,15 +831,21 @@ void ws_send(char *data, int len)
 	{
 		DE_PRINTF(1, "%s()%d : WebSocket send error\n",
 					__FUNCTION__, __LINE__);
+		nopoll_conn_close(ws_conn);
+
+		if(ws_open() < 0)
+		{
+			return;
+		}
+
+		upcheck();
 	}
-	else
-	{
+
 #ifdef DE_PRINT_UDP_PORT
 		trans_data_show(DE_WS_SEND, NULL, data, len);
 #else
 		DE_PRINTF(0, "%s\nWS-Send: %s\n\n\n", get_time_head(), data);
 #endif
-	}
 }
 
 void *ws_read_func(void *p)

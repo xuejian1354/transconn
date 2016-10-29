@@ -33,6 +33,9 @@ extern "C" {
 void gateway_init();
 void set_upcheck_reset();
 
+void upcheck(void *p);
+void query_dev(void *p);
+
 void set_mevent(int id, timer_callback_t event_callback, timer_event_param_t *param);
 #endif
 
