@@ -1,4 +1,4 @@
 DMACRO +=-DXDE_TRANS_UDP_STREAM_LOG
 
 TARGET_LDPATH =
-TARGET_LDFLAG =-lcurl -lssl -lcrypto -lxml2 -lm -lz
+TARGET_LDFLAG =-lssl -lcrypto -lm -lz

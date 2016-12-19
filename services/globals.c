@@ -286,7 +286,7 @@ int mach_init()
 	gw_info_t *p_gw = get_gateway_info();
 
 	memset(p_gw->gw_no, 0, sizeof(p_gw->gw_no));
-	memcpy(p_gw->gw_no, getMac("eth0.2")+3, sizeof(zidentify_no_t));
+	memcpy(p_gw->gw_no, getMac("eth0")+3, sizeof(zidentify_no_t));
 
 	p_gw->type = FRAPP_CONNECTOR;
 	p_gw->p_dev = NULL;
